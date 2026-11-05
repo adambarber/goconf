@@ -6,11 +6,11 @@ version: "2"
 # setting that any of the three repos applies to it, merged.
 #
 # What is NOT here, and why — the one-owner rule:
-#   file/function size   -> BPL budget rules in policy.bpl
-#   branching            -> BPL budget rules in policy.bpl
-#   import direction     -> BPL layers declaration in policy.bpl
-#   banned primitives    -> BPL rule table, matched by AST
-#   duplication          -> policy's no_clones rule, over the engine's clone primitive
+#   file/function size   -> not enforced; goconf's policy declares no budget rule
+#   branching            -> not enforced; goconf's policy declares no budget rule
+#   import direction     -> not enforced; goconf's policy declares no layers rule
+#   banned primitives    -> not enforced; goconf's policy declares no rule table
+#   duplication          -> policy's no_clones rule, the one rule it declares
 
 linters:
   default: none
@@ -219,13 +219,6 @@ linters:
         - error
         - stdlib.Error
         - ast.Expr
-        - github.com/adambarber/birdcage/engine.Node
-        - github.com/adambarber/birdcage/engine.Surface
-        - github.com/adambarber/birdcage/bpl.Expr
-        - github.com/adambarber/birdcage/bpl.Args
-        - github.com/adambarber/birdcage/engine.SeamResolver
-        - github.com/adambarber/birdcage/engine.Definitions
-        - github.com/adambarber/birdcage/lang.Adapter
     interfacebloat:
       max: 5
     dogsled:
