@@ -54,6 +54,26 @@ rule function_budget {
     negative = { file = "policy/fixtures/function_lines_negative/fixture.go", expects = no_finding }
 }
 
+rule no_untyped_value {
+    lang    = go
+    match    = type(position: "var", of: "string")
+            or type(position: "var", of: "any")
+            or type(position: "parameter", of: "string")
+            or type(position: "parameter", of: "any")
+            or type(position: "result", of: "string")
+            or type(position: "result", of: "any")
+            or type(position: "field", of: "string")
+            or type(position: "field", of: "any")
+            or type(position: "type_spec", of: "any")
+            or type(position: "assertion", of: "any")
+            or type(position: "type_argument", of: "any")
+    why     = "a value whose type is spelled string is a bag of bytes, and an empty interface is a type nobody chose: name the domain kind"
+    fix     = "declare a named type and use it in the type position"
+    owner   = "platform"
+    positive = { file = "policy/fixtures/no_untyped_value_positive/fixture.go", expects = finding(rule: "no_untyped_value", marker: "typed"), count = 3 }
+    negative = { file = "policy/fixtures/no_untyped_value_negative/fixture.go", expects = no_finding }
+}
+
 rule no_clones {
     fix      = "extract the shared decision, or spell the difference the copy hides"
     lang     = any
