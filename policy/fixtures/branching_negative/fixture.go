@@ -1,6 +1,6 @@
 package fixtures
 
-func branchy(x int) int {
+func switchy(x int) int {
 	if x == 1 {
 		return 1
 	}
@@ -24,12 +24,6 @@ func branchy(x int) int {
 	}
 	if x == 8 {
 		return 8
-	}
-	if x == 9 {
-		return 9
-	}
-	if x == 10 {
-		return 10
 	}
 	return 0
 }

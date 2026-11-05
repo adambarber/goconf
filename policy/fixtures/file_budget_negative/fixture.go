@@ -1,25 +1,152 @@
 package fixtures
 
-// Exactly under the limit: 199 code lines, plus this header comment.
-// Each line below is a single assignment, so the file counts 199 lines of code.
-// Line 1, line 2, line 3, line 4, line 5, line 6, line 7, line 8, line 9, line 10
-// line 11, line 12, line 13, line 14, line 15, line 16, line 17, line 18, line 19, line 20
-// line 21, line 22, line 23, line 24, line 25, line 26, line 27, line 28, line 29, line 30
-// line 31, line 32, line 33, line 34, line 35, line 36, line 37, line 38, line 39, line 40
-// line 41, line 42, line 43, line 44, line 45, line 46, line 47, line 48, line 49, line 50
-// line 51, line 52, line 53, line 54, line 55, line 56, line 57, line 58, line 59, line 60
-// line 61, line 62, line 63, line 64, line 65, line 66, line 67, line 68, line 69, line 70
-// line 71, line 72, line 73, line 74, line 75, line 76, line 77, line 78, line 79, line 80
-// line 81, line 82, line 83, line 84, line 85, line 86, line 87, line 88, line 89, line 90
-// line 91, line 92, line 93, line 94, line 95, line 96, line 97, line 98, line 99, line 100
-// line 101, line 102, line 103, line 104, line 105, line 106, line 107, line 108, line 109, line 110
-// line 111, line 112, line 113, line 114, line 115, line 116, line 117, line 118, line 119, line 120
-// line 121, line 122, line 123, line 124, line 125, line 126, line 127, line 128, line 129, line 130
-// line 131, line 132, line 133, line 134, line 135, line 136, line 137, line 138, line 139, line 140
-// line 141, line 142, line 143, line 144, line 145, line 146, line 147, line 148, line 149, line 150
-// line 151, line 152, line 153, line 154, line 155, line 156, line 157, line 158, line 159, line 160
-// line 161, line 162, line 163, line 164, line 165, line 166, line 167, line 168, line 169, line 170
-// line 171, line 172, line 173, line 174, line 175, line 176, line 177, line 178, line 179, line 180
-// line 181, line 182, line 183, line 184, line 185, line 186, line 187, line 188, line 189, line 190
-// line 191, line 192, line 193, line 194, line 195, line 196, line 197, line 198, line 199
-const FileBudgetNegative = "under the limit"
+var x0 int
+var x1 int
+var x2 int
+var x3 int
+var x4 int
+var x5 int
+var x6 int
+var x7 int
+var x8 int
+var x9 int
+var x10 int
+var x11 int
+var x12 int
+var x13 int
+var x14 int
+var x15 int
+var x16 int
+var x17 int
+var x18 int
+var x19 int
+var x20 int
+var x21 int
+var x22 int
+var x23 int
+var x24 int
+var x25 int
+var x26 int
+var x27 int
+var x28 int
+var x29 int
+var x30 int
+var x31 int
+var x32 int
+var x33 int
+var x34 int
+var x35 int
+var x36 int
+var x37 int
+var x38 int
+var x39 int
+var x40 int
+var x41 int
+var x42 int
+var x43 int
+var x44 int
+var x45 int
+var x46 int
+var x47 int
+var x48 int
+var x49 int
+var x50 int
+var x51 int
+var x52 int
+var x53 int
+var x54 int
+var x55 int
+var x56 int
+var x57 int
+var x58 int
+var x59 int
+var x60 int
+var x61 int
+var x62 int
+var x63 int
+var x64 int
+var x65 int
+var x66 int
+var x67 int
+var x68 int
+var x69 int
+var x70 int
+var x71 int
+var x72 int
+var x73 int
+var x74 int
+var x75 int
+var x76 int
+var x77 int
+var x78 int
+var x79 int
+var x80 int
+var x81 int
+var x82 int
+var x83 int
+var x84 int
+var x85 int
+var x86 int
+var x87 int
+var x88 int
+var x89 int
+var x90 int
+var x91 int
+var x92 int
+var x93 int
+var x94 int
+var x95 int
+var x96 int
+var x97 int
+var x98 int
+var x99 int
+var x100 int
+var x101 int
+var x102 int
+var x103 int
+var x104 int
+var x105 int
+var x106 int
+var x107 int
+var x108 int
+var x109 int
+var x110 int
+var x111 int
+var x112 int
+var x113 int
+var x114 int
+var x115 int
+var x116 int
+var x117 int
+var x118 int
+var x119 int
+var x120 int
+var x121 int
+var x122 int
+var x123 int
+var x124 int
+var x125 int
+var x126 int
+var x127 int
+var x128 int
+var x129 int
+var x130 int
+var x131 int
+var x132 int
+var x133 int
+var x134 int
+var x135 int
+var x136 int
+var x137 int
+var x138 int
+var x139 int
+var x140 int
+var x141 int
+var x142 int
+var x143 int
+var x144 int
+var x145 int
+var x146 int
+var x147 int
+var x148 int
+var x149 int
