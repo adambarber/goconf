@@ -6,7 +6,7 @@ goconf is a shared Go library for **config validation at load**, extracted from 
 
 ## Architecture
 
-goconf is a **leaf package**: it imports nothing from the three consuming projects, and nothing from them imports goconf's internals. It exports exactly the chokepoints:
+goconf is a **leaf package**: it imports nothing from the three consuming projects, and nothing from them imports goconf's internals. It will export exactly the chokepoints:
 
 | Chokepoint | What it owns | Derived from |
 |---|---|---|
@@ -14,12 +14,16 @@ goconf is a **leaf package**: it imports nothing from the three consuming projec
 | Refusal vocabulary | `Refusal{File, Line, Subject, Why}`, `At()` constructor, `Describable` interface, generic `Because[R]` carrier | hardstand `refusal/` |
 | Boundary types | named string kinds for account, model, address; no bare `string` at domain positions | control-point `internal/domain/` |
 
+These chokepoints do not yet exist — see the Planned Feature Set below and the Next Steps section for what remains to implement.
+
 ## Feature Set (Phase 1 — MVP)
 
-1. **Strict config loader** (`LoadBytes`): JSON decode with `DisallowUnknownFields`, `orElse` defaults for absent optional fields, pointer-based explicit-vs-absent distinction, digest stamped on the loaded value.
-2. **Typed refusal carrier** (`Because[R]`): generic, compile-time-incompatible reason types per package; `Frame`, `Reason`, `Subject`, `Tail`, `Cause`; `Error()` renders prose for people; `Describe()` renders `Refusal` for machines.
-3. **Refusal verdict** (`Refusal{File, Line, Subject, Why}`): `At(file, line, subject, why)` single constructor; `Describable` interface.
-4. **Domain newtypes** (`Account`, `Model`, `Addr`): named string types with `AddrOf`/`SplitProvider` as the only join/split points.
+These are planned, not yet implemented:
+
+1. **Strict config loader** (`LoadBytes`): JSON decode with `DisallowUnknownFields`, `orElse` defaults for absent optional fields, pointer-based explicit-vs-absent distinction, digest stamped on the loaded value. — *not yet implemented*
+2. **Typed refusal carrier** (`Because[R]`): generic, compile-time-incompatible reason types per package; `Frame`, `Reason`, `Subject`, `Tail`, `Cause`; `Error()` renders prose for people; `Describe()` renders `Refusal` for machines. — *not yet implemented*
+3. **Refusal verdict** (`Refusal{File, Line, Subject, Why}`): `At(file, line, subject, why)` single constructor; `Describable` interface. — *not yet implemented*
+4. **Domain newtypes** (`Account`, `Model`, `Addr`): named string types with `AddrOf`/`SplitProvider` as the only join/split points. — *not yet implemented*
 
 ## Scaffolding Already Landed
 

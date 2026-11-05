@@ -5,12 +5,9 @@ version: "2"
 # settings differ, the stricter value wins. A linter appears once, with every
 # setting that any of the three repos applies to it, merged.
 #
-# What is NOT here, and why — the one-owner rule:
-#   file/function size   -> not enforced; goconf's policy declares no budget rule
-#   branching            -> not enforced; goconf's policy declares no budget rule
-#   import direction     -> not enforced; goconf's policy declares no layers rule
-#   banned primitives    -> not enforced; goconf's policy declares no rule table
-#   duplication          -> policy's no_clones rule, the one rule it declares
+# What is NOT here, and why — goconf's policy declares only no_clones.
+# No BPL budget, layers, or rule table rules exist in this tree;
+# nothing here references them because none are declared.
 
 linters:
   default: none
@@ -89,9 +86,12 @@ linters:
     - exptostd
     - mnd
 
-    # budget discipline: size and complexity rules. goconf's policy declares no
-    # budget rule, so these five are temporary mechanical enforcement until the
-    # BPL budget rules are declared there.
+    # budget discipline: size and complexity rules. The five budget linters below
+    # mirror the thresholds birdcage and hardstand enforce through their lint
+    # configs; goconf's policy declares them too (file_budget, function_budget,
+    # branching_budget, comment_budget), so each linter below has a single owner.
+    # When the BPL budget rules take over these checks, these five are removed
+    # in the same commit — never both at once.
     - funlen
     - gocyclo
     - gocognit
@@ -113,27 +113,29 @@ linters:
   disable:
     # taste: a house style, not a defect. Each fires on code this repo writes
     # on purpose; a rule that fires on correct code is a rule someone turns off.
-    - lll
-    - noinlineerr
-    - nlreturn
-    - varnamelen
-    - tagliatelle
-    - grouper
-    - decorder
-    - godoclint
-    - funcorder
-    - embeddedstructfieldcheck
-    - paralleltest
-    - testpackage
-    - promlinter
-    - loggercheck
-    - sloglint
-    - zerologlint
-    - testifylint
-    - ginkgolinter
-    - dupl
-    - depguard
-    - gomodguard
+    # Each is a global disable because none of these linters apply to any Go
+    # code goconf writes, and each names the taste it guards against.
+    - lll                # line length: goconf writes long rationale lines on purpose
+    - noinlineerr        # guard scoping choice, not a defect
+    - nlreturn           # blank line before return: reading choice
+    - varnamelen         # short names in short scope are clear
+    - tagliatelle        # struct-tag casing: no wire types yet
+    - grouper            # import grouping: gofumpt owns layout
+    - decorder           # declaration order: reading choice
+    - godoclint          # comments are rationales, not API prose
+    - funcorder          # exported before unexported: reading choice
+    - embeddedstructfieldcheck # embedded-field placement: layout rule
+    - paralleltest       # suite is deliberately serial where order matters
+    - testpackage        # rule tables must be in-package to exercise unexported matchers
+    - promlinter         # no metrics in this repository yet
+    - loggercheck        # no logger in this repository yet
+    - sloglint           # no slog in this repository yet
+    - zerologlint        # no zerolog in this repository yet
+    - testifylint        # suite uses the standard library
+    - ginkgolinter       # neither ginkgo nor gomega is used
+    - dupl               # duplication: policy's no_clones rule owns it
+    - depguard           # import restriction: goconf pins no dependency policy
+    - gomodguard         # module restriction: goconf pins no modules beyond its own
 
   settings:
     errcheck:
@@ -141,16 +143,16 @@ linters:
       check-type-assertions: true
     govet:
       enable-all: true
-      disable:
-        - fieldalignment
     staticcheck:
       checks:
-        - all
-        - '-ST1000'
-        - '-ST1003'
-        - '-ST1020'
-        - '-ST1021'
-        - '-ST1022'
+        - SA
+        - S
+        - QF
+        - '-ST1000'   # package comment form — goconf's house style
+        - '-ST1003'   # initialism naming — goconf has chosen names
+        - '-ST1020'   # exported comment form — goconf's house style
+        - '-ST1021'   # comment on exported type — goconf's house style
+        - '-ST1022'   # comment on exported var — goconf's house style
     nolintlint:
       require-explanation: true
       require-specific: true
