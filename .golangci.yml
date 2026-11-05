@@ -242,6 +242,7 @@ linters:
     rules:
       - path: policy/fixtures/.*_positive/.*\.go
         linters:
+          - forbidigo   # the no_untyped_value positive fixture must spell `any` to prove the rule bites
           - gocognit
           - gocyclo
           - godot
