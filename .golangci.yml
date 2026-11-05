@@ -89,9 +89,9 @@ linters:
     - exptostd
     - mnd
 
-    # budget discipline: size and complexity rules. The BPL budget rules own
-    # file/function size and branching; these five are the temporary mechanical
-    # owner until the BPL rules take over.
+    # budget discipline: size and complexity rules. goconf's policy declares no
+    # budget rule, so these five are temporary mechanical enforcement until the
+    # BPL budget rules are declared there.
     - funlen
     - gocyclo
     - gocognit
@@ -188,15 +188,7 @@ linters:
         - pattern: '^any$'
           analyze-types: true
           msg: "a bare `any` is an untyped value; name the domain kind"
-        - pattern: ^fmt\.Print.*$
-          msg: "the CLI writes through cmdline, which owns the report format"
-        - pattern: ^log\.(Print|Println|Printf|Fatal|Fatalf|Fatalln)$
-          msg: "a log call is not a report; the report format belongs to cmdline"
-        - pattern: ^panic$
-          msg: "a panic is an unreportable failure; return an error instead"
     gosec:
-      excludes:
-        - G204
     gocognit:
       min-complexity: 10
     cyclop:
@@ -240,15 +232,6 @@ linters:
 
   exclusions:
     generated: strict
-    presets:
-      - std-error-handling
-    rules:
-      - path: _test\.go
-        linters:
-          - errcheck
-          - noctx
-          - bodyclose
-          - forbidigo
 
   run:
     timeout: 5m
