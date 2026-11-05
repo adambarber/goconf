@@ -1,0 +1,281 @@
+version: "2"
+
+# The strictest lint gate derived from control-point, hardstand, and birdcage.
+# Every linter listed below is enabled in at least one of the three repos; where
+# settings differ, the stricter value wins. A linter appears once, with every
+# setting that any of the three repos applies to it, merged.
+#
+# What is NOT here, and why — the one-owner rule:
+#   file/function size   -> BPL budget rules in policy.bpl
+#   branching            -> BPL budget rules in policy.bpl
+#   import direction     -> BPL layers declaration in policy.bpl
+#   banned primitives    -> BPL rule table, matched by AST
+#   duplication          -> policy's no_clones rule, over the engine's clone primitive
+
+linters:
+  default: none
+  enable:
+    # correctness: a real defect, no taste
+    - staticcheck
+    - unused
+    - errcheck
+    - ineffassign
+    - unparam
+    - govet
+    - bodyclose
+    - noctx
+    - containedctx
+    - contextcheck
+    - nilerr
+    - nilnil
+    - nilnesserr
+    - errorlint
+    - errname
+    - err113
+    - wrapcheck
+    - forcetypeassert
+    - errchkjson
+    - unconvert
+    - predeclared
+    - copyloopvar
+    - wastedassign
+    - intrange
+    - usestdlibvars
+    - durationcheck
+    - makezero
+    - mirror
+    - musttag
+    - protogetter
+    - canonicalheader
+    - bidichk
+    - asciicheck
+    - dupword
+    - rowserrcheck
+    - sqlclosecheck
+    - unqueryvet
+    - nosprintfhostport
+    - gosmopolitan
+    - gocritic
+    - goconst
+    - exhaustive
+    - gochecksumtype
+    - prealloc
+    - whitespace
+    - goprintffuncname
+    - gocheckcompilerdirectives
+    - nolintlint
+    - nonamedreturns
+    - nakedret
+    - dogsled
+    - iotamixing
+    - recvcheck
+    - reassign
+    - iface
+    - inamedparam
+    - perfsprint
+    - usetesting
+    - testableexamples
+    - misspell
+    - gomoddirectives
+    - tagalign
+    - modernize
+    - godox
+    - godot
+    - wsl_v5
+
+    # security
+    - gosec
+    - fatcontext
+    - exptostd
+    - mnd
+
+    # budget discipline: size and complexity rules. The BPL budget rules own
+    # file/function size and branching; these five are the temporary mechanical
+    # owner until the BPL rules take over.
+    - funlen
+    - gocyclo
+    - gocognit
+    - cyclop
+    - maintidx
+
+    # type discipline: exhaustiveness, concreteness, no ambient state
+    - exhaustruct_v5
+    - ireturn
+    - interfacebloat
+    - gochecknoglobals
+    - gochecknoinits
+    - forbidigo
+
+    # test hygiene
+    - tparallel
+    - thelper
+
+  disable:
+    # taste: a house style, not a defect. Each fires on code this repo writes
+    # on purpose; a rule that fires on correct code is a rule someone turns off.
+    - lll
+    - noinlineerr
+    - nlreturn
+    - varnamelen
+    - tagliatelle
+    - grouper
+    - decorder
+    - godoclint
+    - funcorder
+    - embeddedstructfieldcheck
+    - paralleltest
+    - testpackage
+    - promlinter
+    - loggercheck
+    - sloglint
+    - zerologlint
+    - testifylint
+    - ginkgolinter
+    - dupl
+    - depguard
+    - gomodguard
+
+  settings:
+    errcheck:
+      check-blank: true
+      check-type-assertions: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+    staticcheck:
+      checks:
+        - all
+        - '-ST1000'
+        - '-ST1003'
+        - '-ST1020'
+        - '-ST1021'
+        - '-ST1022'
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+      disabled-checks:
+        - ifElseChain
+        - singleCaseSwitch
+        - elseif
+    exhaustive:
+      default-signifies-exhaustive: false
+    mnd:
+      ignored-functions:
+        - strconv.ParseInt
+        - strconv.ParseFloat
+        - strconv.ParseUint
+        - strconv.Atoi
+      ignored-numbers:
+        - '0'
+        - '1'
+        - '-1'
+        - '2'
+      checks:
+        - argument
+        - case
+        - condition
+        - operation
+        - return
+        - assign
+    forbidigo:
+      forbid:
+        - pattern: '^any$'
+          analyze-types: true
+          msg: "a bare `any` is an untyped value; name the domain kind"
+        - pattern: ^fmt\.Print.*$
+          msg: "the CLI writes through cmdline, which owns the report format"
+        - pattern: ^log\.(Print|Println|Printf|Fatal|Fatalf|Fatalln)$
+          msg: "a log call is not a report; the report format belongs to cmdline"
+        - pattern: ^panic$
+          msg: "a panic is an unreportable failure; return an error instead"
+    gosec:
+      excludes:
+        - G204
+    gocognit:
+      min-complexity: 10
+    cyclop:
+      max-complexity: 10
+      package-average: 0.0
+    funlen:
+      lines: 60
+      statements: 40
+    gocyclo:
+      min-complexity: 10
+    maintidx:
+      under: 20
+    godot:
+      scope: declarations
+      period: true
+    godox:
+      keywords: [TODO, FIXME, BUG, XXX]
+    ireturn:
+      allow:
+        - error
+        - stdlib.Error
+        - ast.Expr
+        - github.com/adambarber/birdcage/engine.Node
+        - github.com/adambarber/birdcage/engine.Surface
+        - github.com/adambarber/birdcage/bpl.Expr
+        - github.com/adambarber/birdcage/bpl.Args
+        - github.com/adambarber/birdcage/engine.SeamResolver
+        - github.com/adambarber/birdcage/engine.Definitions
+        - github.com/adambarber/birdcage/lang.Adapter
+    interfacebloat:
+      max: 5
+    dogsled:
+      max-blank-identifiers: 2
+    perfsprint:
+      strconcat: true
+      sprintf1: true
+      err-error: false
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    wsl_v5:
+      branch-max-lines: 2
+    prealloc:
+      simple: true
+      range-loops: true
+    unparam:
+      check-exported: false
+
+  exclusions:
+    generated: strict
+    presets:
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - noctx
+          - bodyclose
+          - forbidigo
+
+  run:
+    timeout: 5m
+    tests: true
+    modules-download-mode: readonly
+
+  issues:
+    max-same-issues: 0
+    max-issues-per-linter: 0
+    new: false
+
+  formatters:
+    enable:
+      - gofumpt
+      - goimports
+    settings:
+      gofumpt:
+        extra:
+          group-params: true
+          clothe-returns: true
+      goimports:
+        local-prefixes:
+          - github.com/adambarber/goconf
