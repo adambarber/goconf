@@ -53,8 +53,8 @@ func fieldsOf(v reflect.Value, prefix FieldPath) []FieldPath {
 	return out
 }
 
-// copyMissing copies absent fields from the defaults value into the
-// target, recursing into nested structs and skipping present leaves.
+// copyMissing copies absent leaf fields from the defaults value into the
+// target, recursing through struct fields with presence decided per leaf.
 func copyMissing(dst reflect.Value, def reflect.Value, prefix FieldPath, present KeySet) error {
 	if dst.Kind() != reflect.Struct {
 		return nil
@@ -62,12 +62,7 @@ func copyMissing(dst reflect.Value, def reflect.Value, prefix FieldPath, present
 
 	t := dst.Type()
 	for i := range t.NumField() {
-		p := childPath(prefix, tagPathOf(fieldAt(t, i)))
-		if present.Has(p) {
-			continue
-		}
-
-		if err := copyField(dst.Field(i), def.Field(i), p, present); err != nil {
+		if err := copyField(dst.Field(i), def.Field(i), childPath(prefix, tagPathOf(fieldAt(t, i))), present); err != nil {
 			return err
 		}
 	}
@@ -91,14 +86,14 @@ func tagPathOf(f *reflect.StructField) FieldPath {
 	return FieldPath(name)
 }
 
-// copyField fills one field: leaves are set directly, structs recurse so
-// partially-set nested objects keep their source values.
+// copyField fills one field: structs recurse so presence is decided at
+// each leaf; leaves fill only when the leaf path itself is absent.
 func copyField(dst, def reflect.Value, path FieldPath, present KeySet) error {
 	if dst.Kind() == reflect.Struct {
 		return copyMissing(dst, def, path, present)
 	}
 
-	if !dst.CanSet() {
+	if present.Has(path) || !dst.CanSet() {
 		return nil
 	}
 
