@@ -50,3 +50,12 @@ The `.golangci.yml` merges all three repos' enable lists (default: none, explici
 3. Implement domain newtypes.
 4. Write tests that exercise behavior (not implementation), including falsifiable checks that each refusal fires on invalid input.
 5. Have each target repo import goconf and remove its inline copy.
+
+## Backlog (from the parity review, 2026-11-06)
+
+Each item lands as its own TDD cluster after the current fix program and reviewer cycles close.
+
+2. **Public error-identity contract**: export the load-refusal sentinels (`ErrAmbiguous`, `ErrUnknownFormat`, `ErrUnmarshalable`, `ErrEscapingName`, `ErrOutsideSearch`) so callers branch on `errors.Is`, never string-matching. Settled as part of the goconf→gorefuse wiring step.
+3. **Product limit on source size**: a public-interface option (`WithMaxBytes`) with a reasonable default value and a hard upper maximum — values above the maximum are refused outright; a source exceeding the limit refuses with a named sentinel.
+4. **Env-var overlay** (documented progression path, not built now): a third source that slots into the existing layer chain as an env layer; the layer architecture keeps the seam open for it.
+5. **Watch/reload is not a feature**: Load stays one-shot; watch/reload orchestration belongs to the caller. The README carries a sample watch/reload implementation built on `Load` + `Provenance` digests, so consumers have a worked starting point.
