@@ -162,3 +162,26 @@ func TestLoadDigestStampsEachSource(t *testing.T) {
 		t.Fatalf("fixture drifted: %q", raw)
 	}
 }
+
+func TestLoadYAMLExplicitNullIsNeverOverridden(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		dirGlobal: {fileNameYAML: SourceBytes("region: null\n")},
+	})
+	t.Chdir(string(root))
+
+	got, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatYAML},
+		append(loadOpts(globalPathOf(root)), WithDefaults(loadCfgWant(7, "fill", nestedCfgWant("dh", 9))))...)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if got.Region != "" {
+		t.Fatalf("explicit null is a decision and must not be overridden, got %q", got.Region)
+	}
+
+	// absent fields still default-fill despite the null sibling.
+	want := loadCfgWant(7, "", nestedCfgWant("dh", 9))
+	if got != want {
+		t.Fatalf("got %+v, want %+v", got, want)
+	}
+}
