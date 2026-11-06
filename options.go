@@ -73,15 +73,32 @@ func WithGlobalDir(dir DirPath) *globalDirOption {
 }
 
 // WithDefaults appends one defaults layer. The value must be marshalable
-// by the spec's format: a broken default fails loud here, at option
-// construction, and is never silently stored.
+// by the spec's format and struct-shaped: a broken default fails loud
+// here, at option construction, and is never silently stored.
 func WithDefaults[T any](value T) *defaultsOption {
 	v := reflect.ValueOf(value)
 	if err := marshalable(v); err != nil {
 		panic(err)
 	}
 
+	if err := checkDefaultShape(v); err != nil {
+		panic(err)
+	}
+
 	return &defaultsOption{value: v}
+}
+
+// errBadDefaultShape is the refusal for a default value that is not a
+// struct: only a struct can fill named target fields.
+var errBadDefaultShape = errors.New("WithDefaults: default value must be a struct whose fields fill the target's fields, got")
+
+// checkDefaultShape refuses a default value that is not struct-shaped.
+func checkDefaultShape(v reflect.Value) error {
+	if v.Kind() != reflect.Struct {
+		return fmt.Errorf("%w %s", errBadDefaultShape, v.Kind())
+	}
+
+	return nil
 }
 
 // marshalable refuses a default whose value JSON cannot represent: a

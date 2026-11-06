@@ -10,6 +10,12 @@ import (
 // decoded; only true absences are filled, layer by layer.
 func fillAbsents(dst Target, present KeySet, defaults []LayeredDefault) error {
 	for _, d := range defaults {
+		if err := checkDefaultShape(d.value); err != nil {
+			// the option-construction check did not run (a hand-built
+			// LayeredDefault): refuse with a domain error, never panic
+			return err
+		}
+
 		if err := fillOne(dst, present, d); err != nil {
 			return err
 		}

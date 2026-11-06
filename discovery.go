@@ -30,9 +30,13 @@ type Discovery struct {
 // different-format extensions; discovery never guesses.
 var errAmbiguous = errors.New("ambiguous config candidates with different formats")
 
-// discover lists the config files found in the search paths, in order.
-// Each directory must hold at most one format's candidate unless the
-// required format narrows the search to one extension.
+// errNothingFound is the refusal for a discovery that found no candidate
+// anywhere: a load that found nothing loaded nothing.
+var errNothingFound = errors.New("no config file found in any searched path")
+
+// discover lists the config files found in the search paths, in order:
+// each directory holds at most one format's candidate unless the format
+// narrows the search; zero candidates across all paths is refused.
 func discover(d Discovery) ([]FoundFile, error) {
 	if err := d.Format.check(); err != nil {
 		return nil, fmt.Errorf("discover: %w", err)
@@ -51,6 +55,10 @@ func discover(d Discovery) ([]FoundFile, error) {
 		}
 
 		found = append(found, one...)
+	}
+
+	if len(found) == 0 {
+		return nil, fmt.Errorf("discover: %w in %s", errNothingFound, renderPaths(d.Search))
 	}
 
 	return found, nil
@@ -168,17 +176,4 @@ func onePer(cands []Extension, dir DirPath, name configName) ([]FoundFile, error
 	}
 
 	return out, nil
-}
-
-// refusalText is rendered text inside a refusal message.
-type refusalText string
-
-// renderFiles renders the candidate file names for a refusal message.
-func renderFiles(name configName, cands []Extension) refusalText {
-	parts := make([]string, 0, len(cands))
-	for _, c := range cands {
-		parts = append(parts, string(name)+string(c))
-	}
-
-	return refusalText(strings.Join(parts, ", "))
 }
