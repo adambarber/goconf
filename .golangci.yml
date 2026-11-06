@@ -213,6 +213,7 @@ linters:
         - error
         - stdlib.Error
         - ast.Expr
+        - generic   # Load[T any] returns the caller's concrete T; the generic-result rule is the library's whole contract
     interfacebloat:
       max: 5
     dogsled:
@@ -239,6 +240,9 @@ linters:
     # direct module fetch fails. gomoddirectives must not fire on them; the
     # replaces move out with the workaround (report, not a code TODO).
     rules:
+      - path: (load|options)\.go$
+        linters:
+          - forbidigo   # the sanctioned `any` lives in type-parameter constraint positions: Load[T any], WithDefaults[T any]
       - path: go\.mod
         linters:
           - gomoddirectives
