@@ -1,0 +1,145 @@
+package goconf
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// configName is the caller-declared name of a config: files are searched
+// as NAME.EXT in each directory.
+type configName string
+
+// FoundFile is one config file discovery located, with its format.
+type FoundFile struct {
+	Path   FilePath
+	Format Format
+}
+
+// Discovery is the search the loader performs: the directories to look in
+// (in order, later wins), the config name, and the required format.
+type Discovery struct {
+	Name   configName
+	Format Format
+	Search []DirPath
+}
+
+// errAmbiguous is the refusal for one directory holding candidates with
+// different-format extensions; discovery never guesses.
+var errAmbiguous = errors.New("ambiguous config candidates with different formats")
+
+// discover lists the config files found in the search paths, in order.
+// Each directory must hold at most one format's candidate unless the
+// required format narrows the search to one extension.
+func discover(d Discovery) ([]FoundFile, error) {
+	if err := d.Format.check(); err != nil {
+		return nil, fmt.Errorf("discover: %w", err)
+	}
+
+	found := []FoundFile{}
+
+	for _, dir := range d.Search {
+		one, err := discoverDir(dir, d.Name, d.Format)
+		if err != nil {
+			return nil, err
+		}
+
+		found = append(found, one...)
+	}
+
+	return found, nil
+}
+
+// discoverDir finds candidates in one directory, refusing ambiguity.
+func discoverDir(dir DirPath, name configName, required Format) ([]FoundFile, error) {
+	entries, err := os.ReadDir(string(dir))
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("discover: %w", err)
+	}
+
+	cands := candidateExts(entries, name)
+	if required.IsUndetermined() && len(cands) > 1 {
+		return nil, fmt.Errorf("discover: %w in %s: %s", errAmbiguous, dir, renderFiles(name, cands))
+	}
+
+	if !required.IsUndetermined() {
+		return narrow(required, dir, name), nil
+	}
+
+	return onePer(cands, dir, name), nil
+}
+
+// candidateExts lists the extensions of files named NAME.EXT in entries.
+func candidateExts(entries []os.DirEntry, name configName) []Extension {
+	exts := []Extension{}
+
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+
+		ext := extOf(FileName(e.Name()), name)
+		if ext != "" {
+			exts = append(exts, ext)
+		}
+	}
+
+	return exts
+}
+
+// extOf returns the extension of a file named NAME.EXT, or empty when
+// the file is not a candidate: the extension must include its dot.
+func extOf(file FileName, name configName) Extension {
+	base := string(file)
+	if !strings.HasPrefix(base, string(name)) || base == string(name) {
+		return ""
+	}
+
+	ext := Extension(strings.TrimPrefix(base, string(name)))
+	if !strings.HasPrefix(string(ext), ".") {
+		return ""
+	}
+
+	return ext
+}
+
+// narrow returns the single candidate a required format selects, if the
+// file exists.
+func narrow(required Format, dir DirPath, name configName) []FoundFile {
+	p := filepath.Join(string(dir), string(name)+string(required))
+	if _, err := os.Stat(p); err != nil {
+		return nil
+	}
+
+	return []FoundFile{{Path: FilePath(p), Format: required}}
+}
+
+// onePer builds one FoundFile per candidate extension.
+func onePer(cands []Extension, dir DirPath, name configName) []FoundFile {
+	out := make([]FoundFile, 0, len(cands))
+	for _, ext := range cands {
+		p := filepath.Join(string(dir), string(name)+string(ext))
+		out = append(out, FoundFile{Path: FilePath(p), Format: formatOf(ext)})
+	}
+
+	return out
+}
+
+// refusalText is rendered text inside a refusal message.
+type refusalText string
+
+// renderFiles renders the candidate file names for a refusal message.
+func renderFiles(name configName, cands []Extension) refusalText {
+	parts := make([]string, 0, len(cands))
+	for _, c := range cands {
+		parts = append(parts, string(name)+string(c))
+	}
+
+	return refusalText(strings.Join(parts, ", "))
+}
