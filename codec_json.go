@@ -31,7 +31,7 @@ var errTrailing = errors.New("trailing data after the document")
 // under joins a key to its parent's dotted path, records it, and returns
 // the composed path, so an opening delimiter can open a frame at the child
 // path.
-func under(keys *KeySet, parent FieldPath, key FieldPath) FieldPath {
+func under(keys *KeySet, parent, key FieldPath) FieldPath {
 	p := key
 	if parent != "" {
 		p = parent + "." + key

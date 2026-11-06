@@ -284,15 +284,23 @@ linters:
     max-issues-per-linter: 0
     new: false
 
-  formatters:
-    enable:
-      - gofumpt
-      - goimports
-    settings:
-      gofumpt:
-        extra:
-          group-params: true
-          clothe-returns: true
-      goimports:
-        local-prefixes:
-          - github.com/adambarber/goconf
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  # deps/ is the degraded-network workaround: module zips fetched over HTTPS
+  # and parked as third-party source. It is not written under this policy and
+  # moves out with the workaround (the recipe is in PLAN.md); until then its
+  # formatter drift is a sanctioned path-scoped exemption, not a policy
+  # weakening. The gomoddirectives exclusion above covers the same workaround.
+  exclusions:
+    paths:
+      - deps/.*
+  settings:
+    gofumpt:
+      extra:
+        group-params: true
+        clothe-returns: true
+    goimports:
+      local-prefixes:
+        - github.com/adambarber/goconf

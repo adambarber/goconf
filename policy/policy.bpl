@@ -90,3 +90,25 @@ rule no_clones {
     severity = error
     why      = "a clone is one decision written twice, and they drift the first time one of them changes"
 }
+
+# Doors: every gate a passing commit must survive is declared here, so the
+# policy is the single ledger of what the commit path runs. The engine's
+# verify pass covers the rules above; the doors below are the rest.
+
+command gofumpt {
+    run    = "golangci-lint fmt --diff"
+    why    = "unformatted files are a formatting defect the diff exposes; the exit code is the verdict"
+    owner  = "platform"
+}
+
+command lint {
+    run    = "golangci-lint run ./..."
+    why    = "the merged lint gate from control-point, hardstand, and birdcage; any finding refuses the commit"
+    owner  = "platform"
+}
+
+command test {
+    run    = "go test -count=1 ./..."
+    why    = "-count=1 refuses the cache: the suite must behave, not remember"
+    owner  = "platform"
+}

@@ -61,7 +61,7 @@ func fieldsOf(v reflect.Value, prefix FieldPath) []FieldPath {
 
 // copyMissing copies absent leaf fields from the defaults value into the
 // target, recursing through struct fields with presence decided per leaf.
-func copyMissing(dst reflect.Value, def reflect.Value, prefix FieldPath, present KeySet) error {
+func copyMissing(dst, def reflect.Value, prefix FieldPath, present KeySet) error {
 	if dst.Kind() != reflect.Struct {
 		return nil
 	}
@@ -109,7 +109,7 @@ func copyField(dst, def reflect.Value, path FieldPath, present KeySet) error {
 }
 
 // childPath joins one field to its parent's dotted path.
-func childPath(parent FieldPath, name FieldPath) FieldPath {
+func childPath(parent, name FieldPath) FieldPath {
 	if parent == "" {
 		return name
 	}
