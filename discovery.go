@@ -121,7 +121,6 @@ func extOf(file FileName, name configName) Extension {
 	return ext
 }
 
-
 // candidatePath builds one candidate file path from a searched directory
 // and the config name.
 func candidatePath(dir DirPath, name configName, ext Extension) (FilePath, error) {

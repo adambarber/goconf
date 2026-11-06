@@ -162,4 +162,3 @@ func TestLoadDigestStampsEachSource(t *testing.T) {
 		t.Fatalf("fixture drifted: %q", raw)
 	}
 }
-
