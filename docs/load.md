@@ -4,10 +4,16 @@
 
 ## The contract
 
-The caller declares a config NAME and a required FORMAT. The format is
+The caller declares a config NAME and optionally a FORMAT. A format is
 spelled only by its full extension — `FormatJSON`, `FormatYAML`,
 `FormatTOML`; `.yml` is deliberately absent. An invented `Format` value is
 refused at load, naming the accepted spellings.
+
+Leaving the format undetermined (the zero value) is documented behavior:
+discovery then demands that each directory hold exactly one candidate
+extension, and each discovered file is decoded through its own format, so
+search legs may legitimately mix formats (a global `.json` and a local
+`.toml` load together, later legs overriding earlier ones).
 
 ## Discovery
 
@@ -35,7 +41,8 @@ Unknown fields are refused by every decode, in every format. If a
 directory holds candidates with different-format extensions and the
 format does not narrow the search, the load is refused naming the
 directory and both files. Ambiguity is never resolved by guessing;
-declaring the format is the deterministic way out.
+declaring the format is the deterministic way out. A candidate whose
+extension no format spells (e.g. `app.bak`) is refused by name.
 
 ## Defaults
 

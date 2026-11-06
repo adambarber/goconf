@@ -1,8 +1,8 @@
 package goconf
 
 // decodeFormat decodes one source's bytes into the target through the
-// format's strict decoder. Format is a closed enum, so the switch is
-// total over its constants.
+// format's strict decoder; the undetermined arm is unreachable by
+// construction (discovery stamps each file's format; Load checks spec's).
 func decodeFormat(src SourceBytes, dst Target, f Format) error {
 	switch f {
 	case FormatJSON:
@@ -35,12 +35,13 @@ func presenceOf(src SourceBytes, f Format) (KeySet, error) {
 }
 
 // unionPresence merges the presence views of all sources, later sources
-// adding to earlier ones.
-func unionPresence(sources []SourceBytes, f Format) (KeySet, error) {
+// adding to earlier ones. Sources may carry different formats: each is
+// decoded through its own.
+func unionPresence(sources []SourceBytes, formats []Format) (KeySet, error) {
 	union := KeySet{paths: nil}
 
-	for _, src := range sources {
-		keys, err := presenceOf(src, f)
+	for i, src := range sources {
+		keys, err := presenceOf(src, formats[i])
 		if err != nil {
 			return union, err
 		}

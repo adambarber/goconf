@@ -33,7 +33,7 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 
 	dst := Target{Value: reflect.ValueOf(new(T)).Elem()}
 
-	prov, err := decodeInto(dst, files, spec.Format, s.defaults)
+	prov, err := decodeInto(dst, files, s.defaults)
 	if err != nil {
 		return zero, nil, err
 	}
@@ -47,21 +47,21 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 }
 
 // decodeInto reads every file, layers their presence, decodes in order
-// (later sources override earlier ones), then fills absent fields from
-// the defaults layers.
-func decodeInto(dst Target, files []FoundFile, format Format, defaults []LayeredDefault) ([]Provenance, error) {
+// (later sources override earlier ones), then fills absents from the
+// defaults; each source decodes through its own file's format.
+func decodeInto(dst Target, files []FoundFile, defaults []LayeredDefault) ([]Provenance, error) {
 	sources, prov, err := readSources(files)
 	if err != nil {
 		return nil, err
 	}
 
-	present, err := unionPresence(sources, format)
+	present, err := unionPresence(sources, fileFormats(files))
 	if err != nil {
 		return nil, err
 	}
 
-	for _, src := range sources {
-		if err := decodeFormat(src, dst, format); err != nil {
+	for i, src := range sources {
+		if err := decodeFormat(src, dst, files[i].Format); err != nil {
 			return nil, err
 		}
 	}
@@ -71,4 +71,14 @@ func decodeInto(dst Target, files []FoundFile, format Format, defaults []Layered
 	}
 
 	return prov, nil
+}
+
+// fileFormats renders one format per file, in discovery order.
+func fileFormats(files []FoundFile) []Format {
+	out := make([]Format, 0, len(files))
+	for _, f := range files {
+		out = append(out, f.Format)
+	}
+
+	return out
 }
