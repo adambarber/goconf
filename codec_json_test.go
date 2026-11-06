@@ -6,26 +6,11 @@ import (
 	"testing"
 )
 
-type region string
-
-type host string
-
-type nestedCfg struct {
-	Host host `json:"host"`
-	Port int  `json:"port"`
-}
-
 type jsonCfg struct {
 	Region  region    `json:"region"`
 	Nested  nestedCfg `json:"nested"`
 	Retries int       `json:"retries"`
 }
-
-// refusalNeed is the test's named kind for an expected refusal fragment.
-type refusalNeed string
-
-// caseName is the name of one test case.
-type caseName string
 
 // jsonCase is one strict-decode behavior: bytes in, value or refusal out.
 type jsonCase struct {
@@ -35,39 +20,41 @@ type jsonCase struct {
 	want    jsonCfg
 }
 
-// none marks a case that must decode without refusal.
-const none refusalNeed = ""
+// jsonWant is the zero-retries value a json refusal case decodes to.
+func jsonWant() jsonCfg {
+	return jsonCfg{Nested: nestedCfg{Host: "", Port: 0}, Region: "eu", Retries: 0}
+}
 
 func TestDecodeJSONStrict(t *testing.T) {
 	cases := []jsonCase{
 		{
-			name:    "valid config decodes",
+			name:    nameValid,
 			data:    SourceBytes(`{"region":"eu","retries":3,"nested":{"host":"h","port":1}}`),
-			want:    jsonCfg{Region: "eu", Retries: 3, Nested: nestedCfg{Host: "h", Port: 1}},
+			want:    jsonCfg{Nested: nestedCfg{Host: "h", Port: 1}, Region: "eu", Retries: 3},
 			wantErr: none,
 		},
 		{
-			name:    "unknown field is refused naming the field",
+			name:    nameUnknown,
 			data:    SourceBytes(`{"region":"eu","extra":1}`),
-			want:    jsonCfg{Region: "", Retries: 0, Nested: nestedCfg{Host: "", Port: 0}},
+			want:    jsonWant(),
 			wantErr: refusalNeed(`unknown field "extra"`),
 		},
 		{
 			name:    "trailing data is refused",
 			data:    SourceBytes(`{"region":"eu"} {"region":"us"}`),
-			want:    jsonCfg{Region: "", Retries: 0, Nested: nestedCfg{Host: "", Port: 0}},
+			want:    jsonWant(),
 			wantErr: refusalNeed("trailing data"),
 		},
 		{
 			name:    "syntax error names the line",
 			data:    SourceBytes("{\n  \"region\": eu\n}"),
-			want:    jsonCfg{Region: "", Retries: 0, Nested: nestedCfg{Host: "", Port: 0}},
+			want:    jsonWant(),
 			wantErr: refusalNeed("line 2:"),
 		},
 		{
 			name:    "type error names the field and line",
 			data:    SourceBytes("{\n  \"retries\": \"many\"\n}"),
-			want:    jsonCfg{Region: "", Retries: 0, Nested: nestedCfg{Host: "", Port: 0}},
+			want:    jsonWant(),
 			wantErr: refusalNeed("line 2:"),
 		},
 	}
@@ -81,7 +68,6 @@ func TestDecodeJSONStrict(t *testing.T) {
 	}
 }
 
-// assertJSONCase checks one decode case's refusal or value against want.
 func assertJSONCase(t *testing.T, tc *jsonCase, got jsonCfg, err error) {
 	t.Helper()
 
@@ -107,13 +93,13 @@ func TestPresentJSONKeys(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	for _, want := range []FieldPath{"region", "nested", "nested.host", "list"} {
+	for _, want := range []FieldPath{fpRegion, fpNested, fpNestedHost, fpList} {
 		if !keys.Has(want) {
 			t.Errorf("expected key %q in %v", want, keys)
 		}
 	}
 
-	if keys.Has("nested.port") {
+	if keys.Has(fpNestedPort) {
 		t.Errorf("nested.port is absent and must not be present")
 	}
 }

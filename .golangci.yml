@@ -234,12 +234,14 @@ linters:
 
   exclusions:
     generated: strict
-    # policy/fixtures/* are intentionally rule-violating examples: the BPL
-    # budget rules (file_budget, function_budget, branching_budget,
-    # comment_budget) are supposed to fire on them. Excluding them from lint
-    # keeps the gate clean without weakening it — a fixture that passes lint
-    # is a fixture that doesn't test its rule.
+    # The two local replaces in go.mod are the degraded-network workaround:
+    # module zips fetched over HTTPS and parked in deps/ while the host's
+    # direct module fetch fails. gomoddirectives must not fire on them; the
+    # replaces move out with the workaround (report, not a code TODO).
     rules:
+      - path: go\.mod
+        linters:
+          - gomoddirectives
       - path: policy/fixtures/.*_positive/.*\.go
         linters:
           - forbidigo   # the no_untyped_value positive fixture must spell `any` to prove the rule bites
