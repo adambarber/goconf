@@ -49,7 +49,7 @@ func TestDiscoverGlobalThenLocal(t *testing.T) {
 	data := SourceBytes(`{"region":"eu"}`)
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
 		dirGlobal: {fileNameJSON: data},
-		dirLocal: {fileNameJSON: SourceBytes(`{"region":"us"}`)},
+		dirLocal:  {fileNameJSON: SourceBytes(`{"region":"us"}`)},
 	})
 	paths := []DirPath{DirPath(filepath.Join(string(root), "global")), DirPath(filepath.Join(string(root), "local"))}
 
@@ -112,3 +112,64 @@ func TestDiscoverRefusesInventedFormat(t *testing.T) {
 // testText is text inside a discovery test assertion.
 type testText string
 
+// escapeCase is one hostile config name discovery must refuse.
+type escapeCase struct {
+	name configName
+	hint testText
+}
+
+func TestDiscoverRefusesPathEscapingConfigNames(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
+	paths := []DirPath{DirPath(filepath.Join(string(root), "search"))}
+
+	cases := []escapeCase{
+		{name: configName("../outside-cfg"), hint: "../outside-cfg"},
+		{name: configName("/etc/app"), hint: "/etc/app"},
+		{name: configName("a/b"), hint: "a/b"},
+		{name: configName("..\\x"), hint: "..\\\\x"},
+	}
+
+	for _, tc := range cases {
+		_, err := discover(Discovery{Search: paths, Name: tc.name, Format: FormatJSON})
+		if err == nil {
+			t.Errorf("name %q must be refused", tc.name)
+		} else if !strings.Contains(err.Error(), string(tc.hint)) {
+			t.Errorf("refusal %q must name the offending name %q", err, tc.hint)
+		}
+	}
+}
+
+func TestDiscoverValidNamesStillBuildCandidates(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		"search": {fileNameJSON: SourceBytes(`{"region":"eu"}`)},
+	})
+	paths := []DirPath{DirPath(filepath.Join(string(root), "search"))}
+
+	found, err := discover(Discovery{Search: paths, Name: configName("app"), Format: FormatJSON})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(found) != 1 || found[0].Path != FilePath(filepath.Join(string(root), "search", string(fileNameJSON))) {
+		t.Fatalf("valid name must still locate candidates, got %v", found)
+	}
+}
+
+func TestLoadCannotEscapeSearchPathsByName(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
+
+	outside := filepath.Join(string(root), "outside-cfg.json")
+	if err := os.WriteFile(outside, SourceBytes(`{"region":"SECRET"}`), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	_, _, err := Load[loadCfg](Spec{Name: configName("../outside-cfg"), Format: FormatJSON},
+		WithSearchPaths(DirPath(filepath.Join(string(root), "search"))))
+	if err == nil {
+		t.Fatalf("path escape via config name must be refused")
+	}
+
+	if !strings.Contains(err.Error(), outside) && !strings.Contains(err.Error(), "../outside-cfg") {
+		t.Errorf("refusal %q must name the escape", err)
+	}
+}

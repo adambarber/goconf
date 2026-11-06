@@ -38,6 +38,10 @@ func discover(d Discovery) ([]FoundFile, error) {
 		return nil, fmt.Errorf("discover: %w", err)
 	}
 
+	if err := checkCandidateName(d.Name); err != nil {
+		return nil, err
+	}
+
 	found := []FoundFile{}
 
 	for _, dir := range d.Search {
@@ -69,10 +73,10 @@ func discoverDir(dir DirPath, name configName, required Format) ([]FoundFile, er
 	}
 
 	if !required.IsUndetermined() {
-		return narrow(required, dir, name), nil
+		return narrow(required, dir, name)
 	}
 
-	return onePer(cands, dir, name), nil
+	return onePer(cands, dir, name)
 }
 
 // candidateExts lists the extensions of files named NAME.EXT in entries.
@@ -109,26 +113,61 @@ func extOf(file FileName, name configName) Extension {
 	return ext
 }
 
-// narrow returns the single candidate a required format selects, if the
-// file exists.
-func narrow(required Format, dir DirPath, name configName) []FoundFile {
-	p := filepath.Join(string(dir), string(name)+string(required))
-	if _, err := os.Stat(p); err != nil {
-		return nil
+
+// candidatePath builds one candidate file path from a searched directory
+// and the config name.
+func candidatePath(dir DirPath, name configName, ext Extension) (FilePath, error) {
+	if err := checkCandidateName(name); err != nil {
+		return "", err
 	}
 
-	return []FoundFile{{Path: FilePath(p), Format: required}}
+	return FilePath(filepath.Join(string(dir), string(name)+string(ext))), nil
+}
+
+// errEscapingName is the refusal for a config name that would place the
+// candidate file outside the searched directories.
+var errEscapingName = errors.New("config name must be a bare file name with no path separators or '..'; got")
+
+// checkCandidateName refuses a config name that could escape the search.
+func checkCandidateName(name configName) error {
+	n := string(name)
+	if n == "" || filepath.IsAbs(n) || strings.ContainsAny(n, `\`) || strings.Contains(n, "..") || strings.Contains(n, "/") {
+		return fmt.Errorf("discover: %w %q", errEscapingName, n)
+	}
+
+	return nil
+}
+
+// narrow returns the single candidate a required format selects, if the
+// file exists.
+func narrow(required Format, dir DirPath, name configName) ([]FoundFile, error) {
+	p, err := candidatePath(dir, name, Extension(required))
+	if err != nil {
+		return nil, err
+	}
+
+	_, statErr := os.Stat(string(p))
+	if statErr == nil {
+		return []FoundFile{{Path: p, Format: required}}, nil
+	}
+
+	// a stat failure is absence for now; M5 hardens the other errors
+	return nil, nil
 }
 
 // onePer builds one FoundFile per candidate extension.
-func onePer(cands []Extension, dir DirPath, name configName) []FoundFile {
+func onePer(cands []Extension, dir DirPath, name configName) ([]FoundFile, error) {
 	out := make([]FoundFile, 0, len(cands))
 	for _, ext := range cands {
-		p := filepath.Join(string(dir), string(name)+string(ext))
-		out = append(out, FoundFile{Path: FilePath(p), Format: formatOf(ext)})
+		p, err := candidatePath(dir, name, ext)
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, FoundFile{Path: p, Format: formatOf(ext)})
 	}
 
-	return out
+	return out, nil
 }
 
 // refusalText is rendered text inside a refusal message.
