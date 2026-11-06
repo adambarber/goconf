@@ -3,9 +3,11 @@ package goconf
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Provenance records one source that contributed to a load: where its
@@ -29,12 +31,18 @@ func provenanceOf(f FoundFile, data SourceBytes) Provenance {
 	return Provenance{Digest: digestOf(data), Path: f.Path}
 }
 
-// readSources reads every located file, in discovery order.
+// readSources reads every located file, in discovery order. Each file is
+// confined at read time: its resolved target must stay inside the searched
+// directory, so a symlink cannot smuggle bytes in from outside.
 func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 	sources := make([]SourceBytes, 0, len(files))
 
 	prov := make([]Provenance, 0, len(files))
 	for _, f := range files {
+		if err := confine(f.Path); err != nil {
+			return nil, nil, err
+		}
+
 		raw, err := os.ReadFile(string(f.Path))
 		if err != nil {
 			return nil, nil, fmt.Errorf("read %s: %w", f.Path, err)
@@ -45,6 +53,48 @@ func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 	}
 
 	return sources, prov, nil
+}
+
+// errOutsideSearch is the refusal for a candidate whose resolved target
+// leaves the searched directory.
+var errOutsideSearch = errors.New("config file resolves outside the searched directory")
+
+// confine refuses a candidate file whose symlink-resolved target leaves
+// the directory that was searched, naming the file and the target.
+func confine(p FilePath) error {
+	file := string(p)
+
+	resolved, err := filepath.EvalSymlinks(file)
+	if err != nil {
+		return fmt.Errorf("discover: %s: %w", file, err)
+	}
+
+	dir := filepath.Dir(file)
+
+	resolvedDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return fmt.Errorf("discover: %s: %w", dir, err)
+	}
+
+	if !withinDir(resolvedPath(resolved), resolvedPath(resolvedDir)) {
+		return fmt.Errorf("discover: %w: %s points at %s", errOutsideSearch, file, resolved)
+	}
+
+	return nil
+}
+
+// resolvedPath is a symlink-resolved absolute file path.
+type resolvedPath string
+
+// withinDir reports whether the resolved path stays inside the searched
+// directory: the same directory, or one nested beneath it.
+func withinDir(resolved, searched resolvedPath) bool {
+	rel, err := filepath.Rel(string(searched), string(resolved))
+	if err != nil {
+		return false
+	}
+
+	return rel == "." || (!strings.HasPrefix(rel, "..") && rel != "..")
 }
 
 // defaultSearchPaths is the discovery default: the user's global config

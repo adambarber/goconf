@@ -20,6 +20,15 @@ Later sources override earlier ones field by field; nested objects deep
 merge. `WithSearchPaths(...)` replaces the list; `WithGlobalDir(...)`
 replaces only the global layer.
 
+## Symlink confinement
+
+A candidate file whose symlink-resolved target leaves the directory that
+was searched is refused at read time: the refusal names the file and where
+it points. A symlink whose target stays inside the searched directory is a
+legitimate candidate and loads. Confinement lives in the read path
+(`readSources`), the one chokepoint every candidate's bytes pass through,
+so the window between check and read is minimal.
+
 ## Refusals
 
 Unknown fields are refused by every decode, in every format. If a
