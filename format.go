@@ -45,18 +45,19 @@ func (f Format) IsUndetermined() bool {
 }
 
 // formatOf maps one file extension to its format; the empty extension
-// yields the undetermined format.
-func formatOf(ext Extension) Format {
+// yields the undetermined format and false. An extension no constant
+// spells yields false: the caller must refuse what it cannot spell.
+func formatOf(ext Extension) (Format, bool) {
 	switch Format(ext) {
 	case FormatJSON:
-		return FormatJSON
+		return FormatJSON, true
 	case FormatYAML:
-		return FormatYAML
+		return FormatYAML, true
 	case FormatTOML:
-		return FormatTOML
+		return FormatTOML, true
 	case undetermined:
-		return undetermined
+		return undetermined, true
 	default:
-		return undetermined
+		return undetermined, false
 	}
 }

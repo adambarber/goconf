@@ -169,7 +169,13 @@ func narrow(required Format, dir DirPath, name configName) ([]FoundFile, error) 
 	return nil, fmt.Errorf("discover: %s: %w", p, statErr)
 }
 
-// onePer builds one FoundFile per candidate extension.
+// errUnknownCandidate is the refusal for a candidate file whose
+// extension no format spells: discovery never silently skips a file the
+// name boundary selected.
+var errUnknownCandidate = errors.New("candidate file has an extension no format spells; the file must be renamed or removed")
+
+// onePer builds one FoundFile per candidate extension, refusing any
+// extension no format spells by naming the file.
 func onePer(cands []Extension, dir DirPath, name configName) ([]FoundFile, error) {
 	out := make([]FoundFile, 0, len(cands))
 	for _, ext := range cands {
@@ -178,7 +184,12 @@ func onePer(cands []Extension, dir DirPath, name configName) ([]FoundFile, error
 			return nil, err
 		}
 
-		out = append(out, FoundFile{Path: p, Format: formatOf(ext)})
+		format, ok := formatOf(ext)
+		if !ok {
+			return nil, fmt.Errorf("discover: %w: %s", errUnknownCandidate, p)
+		}
+
+		out = append(out, FoundFile{Path: p, Format: format})
 	}
 
 	return out, nil
