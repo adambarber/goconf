@@ -13,10 +13,12 @@ import (
 // as NAME.EXT in each directory.
 type configName string
 
-// FoundFile is one config file discovery located, with its format.
+// FoundFile is one config file discovery located, with its format and
+// the search leg (directory) it was located in.
 type FoundFile struct {
 	Path   FilePath
 	Format Format
+	Leg    DirPath
 }
 
 // Discovery is the search the loader performs: the directories to look in
@@ -157,7 +159,7 @@ func narrow(required Format, dir DirPath, name configName) ([]FoundFile, error) 
 
 	_, statErr := os.Stat(string(p))
 	if statErr == nil {
-		return []FoundFile{{Path: p, Format: required}}, nil
+		return []FoundFile{{Path: p, Format: required, Leg: dir}}, nil
 	}
 
 	if errors.Is(statErr, fs.ErrNotExist) {
@@ -189,7 +191,7 @@ func onePer(cands []Extension, dir DirPath, name configName) ([]FoundFile, error
 			return nil, fmt.Errorf("discover: %w: %s", errUnknownCandidate, p)
 		}
 
-		out = append(out, FoundFile{Path: p, Format: format})
+		out = append(out, FoundFile{Path: p, Format: format, Leg: dir})
 	}
 
 	return out, nil

@@ -31,9 +31,9 @@ func provenanceOf(f FoundFile, data SourceBytes) Provenance {
 	return Provenance{Digest: digestOf(data), Path: f.Path}
 }
 
-// readSources reads every located file, in discovery order. Each file is
-// confined at read time: its resolved target must stay inside the searched
-// directory, so a symlink cannot smuggle bytes in from outside.
+// readSources reads every located file, in discovery order, naming the
+// full path and search leg on a read failure. Each file is confined at
+// read time so a symlink cannot smuggle bytes in from outside.
 func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 	sources := make([]SourceBytes, 0, len(files))
 
@@ -45,7 +45,7 @@ func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 
 		raw, err := os.ReadFile(string(f.Path))
 		if err != nil {
-			return nil, nil, fmt.Errorf("read %s: %w", f.Path, err)
+			return nil, nil, fmt.Errorf("read %s in search leg %s: %w", f.Path, f.Leg, err)
 		}
 
 		sources = append(sources, raw)
