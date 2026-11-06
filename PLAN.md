@@ -59,3 +59,15 @@ Each item lands as its own TDD cluster after the current fix program and reviewe
 3. **Product limit on source size**: a public-interface option (`WithMaxBytes`) with a reasonable default value and a hard upper maximum — values above the maximum are refused outright; a source exceeding the limit refuses with a named sentinel.
 4. **Env-var overlay** (documented progression path, not built now): a third source that slots into the existing layer chain as an env layer; the layer architecture keeps the seam open for it.
 5. **Watch/reload is not a feature**: Load stays one-shot; watch/reload orchestration belongs to the caller. The README carries a sample watch/reload implementation built on `Load` + `Provenance` digests, so consumers have a worked starting point.
+
+## Fix Program Status (2026-11-06)
+
+Clusters 1-4 landed: path-escape chokepoint (f0bea95), leaf presence (eb530fa), default shapes + name boundary + empty-discovery refusal (c53f95a), symlink confinement (868ca94). Formatter gate (f87afca) and policy command ledger (80c309e) landed.
+
+Cluster 5 landed:
+
+- **m5 — narrow() surfaces non-IsNotExist stat errors**: only `fs.ErrNotExist` is absence; any other stat failure is refused naming the candidate path.
+- **m1 — unknown candidate extensions refused by name**: `formatOf`'s silent undetermined arm removed; onePer refuses files the name boundary selected but no format spells, naming the file.
+- **m2 — ReadFile refusal names path + leg**: discovery stamps each `FoundFile` with its search leg; read failures name the full path and the leg.
+- **m3 — dead merge layer deleted**: `Layers`, `Layers.Present`, `layerSources`, `decodeMerged` were referenced only by their own tests (the Load path composes presence + decode inline); deleted together with those tests, their behaviors remaining pinned through Load.
+- **Seam test**: the real `os.UserConfigDir` branch of `defaultSearchPaths` is pinned hermetically (HOME pinned to scratch; failure branch falls to the local leg).
