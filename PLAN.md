@@ -10,17 +10,15 @@ goconf is a **leaf package**: it imports nothing from the three consuming projec
 
 | Chokepoint | What it owns | Derived from |
 |---|---|---|
-| Config loading | strict decode, unknown-field refusal, defaults only for absent fields, explicit-vs-absent via pointers, digest stamping | control-point `internal/policy/`, hardstand `config/`, birdcage `bpl/` |
+| Config loading | strict decode, unknown-field refusal, defaults only for absent fields, digest stamping | control-point `internal/policy/`, hardstand `config/`, birdcage `bpl/` |
 | Refusal vocabulary | `Refusal{File, Line, Subject, Why}`, `At()` constructor, `Describable` interface, generic `Because[R]` carrier | hardstand `refusal/` |
 | Boundary types | named string kinds for account, model, address; no bare `string` at domain positions | control-point `internal/domain/` |
 
-These chokepoints do not yet exist — see the Planned Feature Set below and the Next Steps section for what remains to implement.
+The loader chokepoint ships as `Load[T]` (not `LoadBytes`), with file discovery, per-file format handling, layered defaults (`WithDefaults`), provenance with digest stamping, and symlink confinement. What remains of the chokepoints: wiring the loader's refusals into the gorefuse refusal vocabulary, and the boundary newtypes.
 
 ## Feature Set (Phase 1 — MVP)
 
-These are planned, not yet implemented:
-
-1. **Strict config loader** (`LoadBytes`): JSON decode with `DisallowUnknownFields`, `orElse` defaults for absent optional fields, pointer-based explicit-vs-absent distinction, digest stamped on the loaded value. — *not yet implemented*
+1. **Strict config loader** — *shipped as `Load[T]`*: strict JSON/YAML/TOML decode with unknown-field refusal, defaults for absent fields only (`WithDefaults`), explicit-vs-absent via presence KeySets (not pointer sentinels), digest stamped per source in `Provenance`.
 2. **Typed refusal carrier** (`Because[R]`): generic, compile-time-incompatible reason types per package; `Frame`, `Reason`, `Subject`, `Tail`, `Cause`; `Error()` renders prose for people; `Describe()` renders `Refusal` for machines. — *not yet implemented*
 3. **Refusal verdict** (`Refusal{File, Line, Subject, Why}`): `At(file, line, subject, why)` single constructor; `Describable` interface. — *not yet implemented*
 4. **Domain newtypes** (`Account`, `Model`, `Addr`): named string types with `AddrOf`/`SplitProvider` as the only join/split points. — *not yet implemented*
@@ -46,10 +44,9 @@ The `.golangci.yml` merges all three repos' enable lists (default: none, explici
 ## Next Steps
 
 1. Implement the `refusal` package (`carrier.go` shape from hardstand) in goconf.
-2. Implement the config loader (`LoadBytes`) with strict decode + `orElse` defaults.
+2. Wire `Load`'s refusal sentinels into the refusal vocabulary (see Backlog item 2).
 3. Implement domain newtypes.
-4. Write tests that exercise behavior (not implementation), including falsifiable checks that each refusal fires on invalid input.
-5. Have each target repo import goconf and remove its inline copy.
+4. Have each target repo import goconf and remove its inline copy.
 
 ## Backlog (from the parity review, 2026-11-06)
 
