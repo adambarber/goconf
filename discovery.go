@@ -3,6 +3,7 @@ package goconf
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146,7 +147,8 @@ func checkCandidateName(name configName) error {
 }
 
 // narrow returns the single candidate a required format selects, if the
-// file exists.
+// file exists; a stat failure other than not-exists is refused, naming
+// the candidate path, never treated as absence.
 func narrow(required Format, dir DirPath, name configName) ([]FoundFile, error) {
 	p, err := candidatePath(dir, name, Extension(required))
 	if err != nil {
@@ -158,8 +160,13 @@ func narrow(required Format, dir DirPath, name configName) ([]FoundFile, error) 
 		return []FoundFile{{Path: p, Format: required}}, nil
 	}
 
-	// a stat failure is absence for now; M5 hardens the other errors
-	return nil, nil
+	if errors.Is(statErr, fs.ErrNotExist) {
+		return nil, nil
+	}
+
+	// any other stat failure is a real fault in the searched directory,
+	// not absence: a load that could not look did not look
+	return nil, fmt.Errorf("discover: %s: %w", p, statErr)
 }
 
 // onePer builds one FoundFile per candidate extension.
