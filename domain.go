@@ -52,3 +52,13 @@ func (k KeySet) Add(p FieldPath) KeySet {
 
 	return k
 }
+
+// pathsList lists the present field paths in map order.
+func (k KeySet) pathsList() []FieldPath {
+	out := make([]FieldPath, 0, len(k.paths))
+	for p := range k.paths {
+		out = append(out, p)
+	}
+
+	return out
+}

@@ -30,6 +30,7 @@ const (
 // Field paths shared across the codec key-walk tests.
 const (
 	fpRegion     FieldPath = "region"
+	fpRetries    FieldPath = "retries"
 	fpNested     FieldPath = "nested"
 	fpNestedHost FieldPath = "nested.host"
 	fpNestedPort FieldPath = "nested.port"
