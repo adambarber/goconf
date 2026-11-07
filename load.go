@@ -9,7 +9,7 @@ import (
 var errLoadAnyCast = errors.New("decode target does not hold the requested type")
 
 // Load discovers, merges, and decodes one config into T, strictly: the
-// caller declares the config NAME and the required FORMAT; the details
+// caller declares the config NAME and optionally a FORMAT; the details
 // are in docs/load.md.
 func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 	var zero T
