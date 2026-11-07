@@ -37,7 +37,12 @@ so the window between check and read is minimal.
 
 ## Refusals
 
-Unknown fields are refused by every decode, in every format. If a
+Unknown fields are refused by every decode, in every format. Duplicate
+keys are refused by every decode, in every format: a key re-declared in
+the same object — a whole object re-opened, or one re-declaring part of a
+struct that would otherwise silently merge — is refused naming the key
+and, in JSON, the line of its first definition. Repeated field names
+across different array elements are not duplication and decode. If a
 directory holds candidates with different-format extensions and the
 format does not narrow the search, the load is refused naming the
 directory and both files. Ambiguity is never resolved by guessing;
