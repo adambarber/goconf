@@ -70,7 +70,8 @@ management. It loads one config, strictly.
 - Every refusal names what was refused — the key, the file, the line, or
   the directory — and why. Refusal text names keys, paths, types, and
   line numbers. Config values never appear in refusal text, including
-  fragments of values echoed by third-party decoders.
+  fragments of values echoed by third-party decoders, in every format,
+  on every error path.
 - Discovery ambiguity is never resolved by guessing: if a directory holds
   candidates with different-format extensions and the format does not
   narrow the search, the load is refused naming both files; declaring the
@@ -78,8 +79,9 @@ management. It loads one config, strictly.
 - Symlinks are confined: a candidate whose symlink-resolved target leaves
   the searched directory is refused at read time, naming the file and
   where it points. This holds in both discovery legs.
-- A broken default fails loud at option construction
-  (`WithDefaults`), never silently at load.
+- A broken default fails loud at option construction (`WithDefaults`
+  panics, a Must-style contract like `regexp.MustCompile`), never
+  silently at load.
 - Errors are wrapped `fmt.Errorf`/`%w` today; sentinel-error identity via
   `errors.Is` is not yet part of the public API.
 

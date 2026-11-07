@@ -50,14 +50,30 @@ declaring the format is the deterministic way out. A candidate whose
 extension no format spells (e.g. `app.bak`) is refused by name. Refusal
 text names keys, paths, types, and line numbers. Config values never
 appear in refusal text, including fragments of values echoed by
-third-party decoders.
+third-party decoders — in every format, on every error path.
+Unknown-field refusals name the offending key; JSON unknown-field
+refusals also name the key's line.
 
 ## Defaults
 
 `WithDefaults(value)` fills only the fields absent from every source.
 A field present with an explicit zero value is kept; an explicit null is
 a decision and is never overridden. A default whose value cannot marshal
-fails loud at option construction.
+fails loud at option construction: `WithDefaults` panics, a Must-style
+contract like `regexp.MustCompile`.
+
+The presence-path vocabulary is one across formats: a field's config key
+is the first non-empty of its `json`, `yaml`, and `toml` tags, falling
+back to the Go field name. Defaults fill exactly the fields no source —
+any format — recorded as present.
+
+## Multi-document streams
+
+A YAML stream holding more than one document is refused, naming the line
+of the separator: first-wins would silently resolve what must be
+refused. JSON and TOML cannot express multi-document streams. YAML
+anchors and aliases resolve in the presence walk, so an alias-resolved
+value is never overridden by a default.
 
 ## Per-format capabilities
 

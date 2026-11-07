@@ -73,8 +73,8 @@ func WithGlobalDir(dir DirPath) *globalDirOption {
 }
 
 // WithDefaults appends one defaults layer. The value must be marshalable
-// by the spec's format and struct-shaped: a broken default fails loud
-// here, at option construction, and is never silently stored.
+// by the spec's format and struct-shaped: a broken default PANICS here —
+// a Must-style contract — and is never silently stored.
 func WithDefaults[T any](value T) *defaultsOption {
 	v := reflect.ValueOf(value)
 	if err := marshalable(v); err != nil {
