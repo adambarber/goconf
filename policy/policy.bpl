@@ -103,7 +103,7 @@ command gofumpt {
 
 command lint {
     run    = "golangci-lint run ./..."
-    why    = "the merged lint gate from control-point, hardstand, and birdcage; any finding refuses the commit"
+    why    = "the strict merged lint gate; any finding refuses the commit"
     owner  = "platform"
 }
 

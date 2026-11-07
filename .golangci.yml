@@ -1,9 +1,8 @@
 version: "2"
 
-# The strictest lint gate derived from control-point, hardstand, and birdcage.
-# Every linter listed below is enabled in at least one of the three repos; where
-# settings differ, the stricter value wins. A linter appears once, with every
-# setting that any of the three repos applies to it, merged.
+# The strictest lint gate: every linter listed below is enabled deliberately,
+# and where settings could differ, the stricter value wins. A linter appears
+# once, with every setting applied to it, merged.
 #
 # What is NOT here, and why — goconf's policy declares only no_clones.
 # No BPL budget, layers, or rule table rules exist in this tree;
@@ -86,12 +85,11 @@ linters:
     - exptostd
     - mnd
 
-    # budget discipline: size and complexity rules. The five budget linters below
-    # mirror the thresholds birdcage and hardstand enforce through their lint
-    # configs; goconf's policy declares them too (file_budget, function_budget,
-    # branching_budget, comment_budget), so each linter below has a single owner.
-    # When the BPL budget rules take over these checks, these five are removed
-    # in the same commit — never both at once.
+    # budget discipline: size and complexity rules. The five budget linters
+    # below mirror the thresholds the birdcage policy declares (file_budget,
+    # function_budget, branching_budget, comment_budget), so each linter below
+    # has a single owner. When the BPL budget rules take over these checks,
+    # these five are removed in the same commit — never both at once.
     - funlen
     - gocyclo
     - gocognit
