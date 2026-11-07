@@ -3,6 +3,7 @@ package goconf
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -23,8 +24,17 @@ func decodeYAMLStrict(data SourceBytes, dst Target) error {
 		return fmt.Errorf("yaml: %w", errValueFree(err))
 	}
 
+	var extra yaml.Node
+	if err := dec.Decode(&extra); !errors.Is(err, io.EOF) {
+		return fmt.Errorf("yaml: %w %d", errMultiDoc, extra.Line)
+	}
+
 	return nil
 }
+
+// errMultiDoc is the refusal for a stream of more than one YAML
+// document: first-wins silently resolves what must be refused.
+var errMultiDoc = errors.New("stream holds more than one document; separator at line")
 
 // presentYAMLKeys records the dotted field paths of every key present in
 // the YAML document, walking the node tree so presence is recorded no
@@ -32,23 +42,48 @@ func decodeYAMLStrict(data SourceBytes, dst Target) error {
 func presentYAMLKeys(data SourceBytes) (KeySet, error) {
 	keys := KeySet{paths: nil}
 
-	var root yaml.Node
-	if err := yaml.Unmarshal(data, &root); err != nil {
-		return keys, fmt.Errorf("yaml: %w", errValueFree(err))
+	docs, err := yamlDocuments(data)
+	if err != nil {
+		return keys, err
 	}
 
-	if len(root.Content) == 0 {
+	if len(docs) == 0 {
 		return keys, nil
 	}
 
-	doc := root.Content[0]
-	if doc.Kind != yaml.MappingNode {
+	if len(docs) > 1 {
+		return keys, fmt.Errorf("yaml: %w %d", errMultiDoc, docs[1].Line)
+	}
+
+	doc := docs[0]
+	if doc.Kind != yaml.DocumentNode {
 		return keys, fmt.Errorf("yaml: %w", errYAMLNotAMapping)
 	}
 
-	walkYAMLNode(&keys, "", doc)
+	walkYAMLNode(&keys, "", doc.Content[0])
 
 	return keys, nil
+}
+
+// yamlDocuments decodes every document of the stream as a bare node;
+// the second document's Line names the separator for the refusal.
+func yamlDocuments(data SourceBytes) ([]yaml.Node, error) {
+	dec := yaml.NewDecoder(strings.NewReader(string(data)))
+
+	docs := []yaml.Node{}
+
+	for {
+		var doc yaml.Node
+		if err := dec.Decode(&doc); err != nil {
+			if errors.Is(err, io.EOF) {
+				return docs, nil
+			}
+
+			return docs, fmt.Errorf("yaml: %w", errValueFree(err))
+		}
+
+		docs = append(docs, doc)
+	}
 }
 
 // walkYAMLNode records every mapping key under the dotted prefix. A
