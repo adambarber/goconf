@@ -20,6 +20,12 @@ func TestDecodeJSONStrict(t *testing.T) {
 			wantErr: refusalNeed(`unknown field "extra"`),
 		},
 		{
+			name:    "unknown field names the key's line, no doubled prefix",
+			data:    SourceBytes("{\n  \"region\": \"eu\",\n  \"extra\": 1\n}"),
+			want:    zeroCodecWant(),
+			wantErr: refusalNeed(`line 3: unknown field "extra"`),
+		},
+		{
 			name:    "trailing data is refused",
 			data:    SourceBytes(`{"region":"eu"} {"region":"us"}`),
 			want:    zeroCodecWant(),
