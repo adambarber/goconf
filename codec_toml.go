@@ -14,7 +14,7 @@ import (
 func decodeTOMLStrict(data SourceBytes, dst Target) error {
 	md, err := toml.NewDecoder(bytes.NewReader(data)).Decode(dst.Value.Addr().Interface())
 	if err != nil {
-		return fmt.Errorf("toml: %w", err)
+		return fmt.Errorf("toml: %w", errTOMLValueFree(err))
 	}
 
 	return tomlUndecoded(&md)
