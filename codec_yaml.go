@@ -20,7 +20,7 @@ func decodeYAMLStrict(data SourceBytes, dst Target) error {
 	dec.KnownFields(true)
 
 	if err := dec.Decode(dst.Value.Addr().Interface()); err != nil {
-		return fmt.Errorf("yaml: %w", err)
+		return fmt.Errorf("yaml: %w", errValueFree(err))
 	}
 
 	return nil
@@ -34,7 +34,7 @@ func presentYAMLKeys(data SourceBytes) (KeySet, error) {
 
 	var root yaml.Node
 	if err := yaml.Unmarshal(data, &root); err != nil {
-		return keys, fmt.Errorf("yaml: %w", err)
+		return keys, fmt.Errorf("yaml: %w", errValueFree(err))
 	}
 
 	if len(root.Content) == 0 {

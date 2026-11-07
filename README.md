@@ -68,7 +68,9 @@ management. It loads one config, strictly.
 - `Load` never partially succeeds: on any refusal the returned config is
   the zero value and provenance is nil.
 - Every refusal names what was refused — the key, the file, the line, or
-  the directory — and why.
+  the directory — and why. Refusal text names keys, paths, types, and
+  line numbers. Config values never appear in refusal text, including
+  fragments of values echoed by third-party decoders.
 - Discovery ambiguity is never resolved by guessing: if a directory holds
   candidates with different-format extensions and the format does not
   narrow the search, the load is refused naming both files; declaring the

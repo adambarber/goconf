@@ -47,7 +47,10 @@ directory holds candidates with different-format extensions and the
 format does not narrow the search, the load is refused naming the
 directory and both files. Ambiguity is never resolved by guessing;
 declaring the format is the deterministic way out. A candidate whose
-extension no format spells (e.g. `app.bak`) is refused by name.
+extension no format spells (e.g. `app.bak`) is refused by name. Refusal
+text names keys, paths, types, and line numbers. Config values never
+appear in refusal text, including fragments of values echoed by
+third-party decoders.
 
 ## Defaults
 
