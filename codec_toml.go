@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -64,7 +65,7 @@ func toStrings(parts []keyRender) []string {
 // presentTOMLKeys records the dotted field paths of every key present in
 // the TOML document: the decoder's key report covers table headers and
 // leaf keys, dotted in document order; values are never inspected.
-func presentTOMLKeys(data SourceBytes) (KeySet, error) {
+func presentTOMLKeys(data SourceBytes, t reflect.Type) (KeySet, error) {
 	keys := KeySet{paths: nil}
 
 	var raw tomlKeyMap
@@ -75,10 +76,62 @@ func presentTOMLKeys(data SourceBytes) (KeySet, error) {
 	}
 
 	for _, k := range md.Keys() {
-		keys = keys.Add(FieldPath(k.String()))
+		p, err := canonicalTOMLPath(k, t)
+		if err != nil {
+			return keys, err
+		}
+
+		keys = keys.Add(p)
 	}
 
 	return keys, nil
+}
+
+// keySegment is one segment of a document key being mapped to a field.
+type keySegment string
+
+// errTOMLKeyUnmappable is the refusal for a document key whose segments
+// cannot be mapped to the decode target's field vocabulary.
+var errTOMLKeyUnmappable = errors.New("cannot map key to the decode target's fields")
+
+// canonicalTOMLPath maps one document key through the decode target's
+// field vocabulary: each segment matches a field's tag or Go name
+// case-insensitively, and the canonical (tagPathOf) spelling is recorded.
+func canonicalTOMLPath(k toml.Key, t reflect.Type) (FieldPath, error) {
+	path := FieldPath("")
+
+	for _, seg := range k {
+		for t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+
+		f, ok := fieldMatching(t, keySegment(seg))
+		if !ok {
+			return "", fmt.Errorf("toml: key %q: %w", k.String(), errTOMLKeyUnmappable)
+		}
+
+		path = childPath(path, tagPathOf(f))
+		t = f.Type
+	}
+
+	return path, nil
+}
+
+// fieldMatching returns the struct field whose tag or Go name matches
+// seg case-insensitively, unexported fields skipped.
+func fieldMatching(t reflect.Type, seg keySegment) (*reflect.StructField, bool) {
+	for i := range t.NumField() {
+		f := fieldAt(t, i)
+		if !f.IsExported() {
+			continue
+		}
+
+		if strings.EqualFold(string(tagPathOf(f)), string(seg)) {
+			return f, true
+		}
+	}
+
+	return nil, false
 }
 
 // tomlKeyMap is the decode target of the key walk, keyed by table name.

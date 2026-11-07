@@ -55,7 +55,7 @@ func decodeInto(dst Target, files []FoundFile, defaults []layeredDefault) ([]Pro
 		return nil, err
 	}
 
-	present, err := unionPresence(sources, fileFormats(files))
+	present, err := unionPresence(sources, fileFormats(files), dst.Value.Type())
 	if err != nil {
 		return nil, err
 	}

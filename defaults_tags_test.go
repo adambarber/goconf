@@ -112,15 +112,15 @@ func assertDefaultDoesNotOverride(t *testing.T, combo tagComboTarget, format For
 	t.Helper()
 
 	data := combo.data[format]
+	dst := combo.shape
 
-	present := presenceOK(t, format, data)
+	present := presenceOK(t, format, data, dst.Type())
 	if !present.Has(combo.key) {
 		t.Fatalf("presence walk missed %q: %v", combo.key, present)
 	}
 
 	// decode into the fresh target, then fill absents from a default
 	// whose leaf differs from the explicit value
-	dst := combo.shape
 
 	if err := decodeFormat(data, Target{Value: dst}, format); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -139,11 +139,12 @@ func assertDefaultDoesNotOverride(t *testing.T, combo tagComboTarget, format For
 	}
 }
 
-// presenceOK runs one format's presence walk, failing the test on error.
-func presenceOK(t *testing.T, format Format, data SourceBytes) KeySet {
+// presenceOK runs one format's presence walk against the combo's target
+// shape, failing the test on error.
+func presenceOK(t *testing.T, format Format, data SourceBytes, shape reflect.Type) KeySet {
 	t.Helper()
 
-	keys, err := presenceOf(data, format)
+	keys, err := presenceOf(data, format, shape)
 	if err != nil {
 		t.Fatalf("presence: %v", err)
 	}

@@ -1,6 +1,9 @@
 package goconf
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestDecodeTOMLStrict(t *testing.T) {
 	cases := []codecCase{
@@ -33,7 +36,11 @@ func TestDecodeTOMLStrict(t *testing.T) {
 func TestPresentTOMLKeys(t *testing.T) {
 	data := SourceBytes("region = \"eu\"\n\n[nested]\nhost = \"h\"\n")
 
-	keys := presentKeysOK(t, presentTOMLKeys, data)
+	var want codecCfg
+
+	keys := presentKeysOK(t, func(data SourceBytes) (KeySet, error) {
+		return presentTOMLKeys(data, reflect.TypeOf(want))
+	}, data)
 
 	keysPresent(t, keys, []FieldPath{fpRegion, fpNested, fpNestedHost}, []FieldPath{fpNestedPort})
 }
