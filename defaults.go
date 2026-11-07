@@ -76,20 +76,22 @@ func copyMissing(dst, def reflect.Value, prefix FieldPath, present KeySet) error
 	return nil
 }
 
-// tagPathOf returns the config key of one struct field: the first part
-// of its json tag, or the Go field name when untagged.
+// tagPathOf returns the config key of one struct field: the first
+// non-empty of its json, yaml, and toml tags, or the Go name.
 func tagPathOf(f *reflect.StructField) FieldPath {
-	tag, ok := f.Tag.Lookup("json")
-	if !ok {
-		return FieldPath(f.Name)
+	for _, tagKey := range []string{"json", "yaml", "toml"} {
+		tag, ok := f.Tag.Lookup(tagKey)
+		if !ok {
+			continue
+		}
+
+		name, _, _ := strings.Cut(tag, ",")
+		if name != "" {
+			return FieldPath(name)
+		}
 	}
 
-	name, _, _ := strings.Cut(tag, ",")
-	if name == "" {
-		return FieldPath(f.Name)
-	}
-
-	return FieldPath(name)
+	return FieldPath(f.Name)
 }
 
 // copyField fills one field: structs recurse so presence is decided at
