@@ -5,9 +5,8 @@ import (
 	"testing"
 )
 
-// anchor's keys in the presence walk: a defaults layer must not override
-// a value the alias resolves to. Data: creds anchors a mapping, auth
-// aliases it, so auth.host and auth.port are present.
+// TestYAMLAliasKeysArePresent pins that an alias resolves to its
+// anchor's keys in the presence walk, so defaults never override them.
 func TestYAMLAliasKeysArePresent(t *testing.T) {
 	data := SourceBytes("creds: &c\n  host: h\n  port: 1\nauth: *c\n")
 
@@ -57,4 +56,15 @@ func TestYAMLAliasCycleDoesNotLoop(t *testing.T) {
 	if !keys.Has("creds.host") {
 		t.Fatalf("anchor keys must be present: %v", keys)
 	}
+}
+
+// TestYAMLScalarRootRefusalNamesLine pins that a scalar-root yaml
+// document is refused with its line named.
+func TestYAMLScalarRootRefusalNamesLine(t *testing.T) {
+	_, err := presentYAMLKeys(SourceBytes("# a comment\njust a scalar\n"))
+	if err == nil {
+		t.Fatalf("scalar root must be refused")
+	}
+
+	mustRefuseNames(t, err, "line 2")
 }

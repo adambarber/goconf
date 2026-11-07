@@ -55,18 +55,23 @@ func presentYAMLKeys(data SourceBytes) (KeySet, error) {
 		return keys, fmt.Errorf("yaml: %w %d", errMultiDoc, docs[1].Line)
 	}
 
-	doc := docs[0]
-	if doc.Kind != yaml.DocumentNode {
-		return keys, fmt.Errorf("yaml: %w", errYAMLNotAMapping)
+	if len(docs[0].Content) == 0 {
+		return keys, nil
 	}
 
-	walkYAMLNode(&keys, "", doc.Content[0])
+	root := docs[0].Content[0]
+	if root.Kind != yaml.MappingNode {
+		return keys, fmt.Errorf("yaml: line %d: %w", root.Line, errYAMLNotAMapping)
+	}
+
+	walkYAMLNode(&keys, "", root)
 
 	return keys, nil
 }
 
 // yamlDocuments decodes every document of the stream as a bare node;
-// the second document's Line names the separator for the refusal.
+// the second document's Line names the separator for the refusal. The
+// second parse (next to decodeYAMLStrict's) guards presence, not merges.
 func yamlDocuments(data SourceBytes) ([]yaml.Node, error) {
 	dec := yaml.NewDecoder(strings.NewReader(string(data)))
 
