@@ -50,6 +50,21 @@ func TestRefusalNeverEchoesValues(t *testing.T) {
 			decode: decodeYAMLStrict,
 		},
 		{
+			name:   "yaml backquoted value inside backquote wrap",
+			data:   SourceBytes("region: eu\nretries: `SE`CRET`VALUE`\n"),
+			decode: decodeYAMLStrict,
+		},
+		{
+			name:   "yaml unbalanced backquote in value",
+			data:   SourceBytes("retries: SE`CRET\n"),
+			decode: decodeYAMLStrict,
+		},
+		{
+			name:   "yaml backquoted value on line 2 refuses with line named",
+			data:   SourceBytes("region: eu\nretries: `SE`CRET`VALUE`\n"),
+			decode: decodeYAMLStrict,
+		},
+		{
 			name:   "json wrong-typed value",
 			data:   SourceBytes(`{"region": "eu", "retries": "` + secretShape + `"}` + "\n"),
 			decode: decodeJSONStrict,
@@ -65,12 +80,13 @@ func TestRefusalNeverEchoesValues(t *testing.T) {
 		t.Run(string(tc.name), func(t *testing.T) {
 			refusal := decodeExpectingRefusal(t, tc.decode, tc.data)
 			assertNoValueEcho(t, refusal, fragments)
+			assertNoValueEchoWithLine(t, refusal, fragments)
 		})
 	}
 }
 
 // assertNoValueEcho fails the test if the refusal echoes any value
-// fragment or drops the line number the decoder reported.
+// fragment; the line-name variant additionally demands a line number.
 func assertNoValueEcho(t *testing.T, refusal refusalText, fragments echoFragments) {
 	t.Helper()
 
@@ -79,6 +95,14 @@ func assertNoValueEcho(t *testing.T, refusal refusalText, fragments echoFragment
 			t.Fatalf("refusal %q leaks value fragment %q", refusal, fragment)
 		}
 	}
+}
+
+// assertNoValueEchoWithLine also pins that the refusal still names the
+// line the decoder reported, so sanitizing never erases the location.
+func assertNoValueEchoWithLine(t *testing.T, refusal refusalText, fragments echoFragments) {
+	t.Helper()
+
+	assertNoValueEcho(t, refusal, fragments)
 
 	if !strings.Contains(string(refusal), "line") {
 		t.Fatalf("refusal %q must still name the line", refusal)
