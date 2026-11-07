@@ -89,23 +89,40 @@ func yamlDocuments(data SourceBytes) ([]yaml.Node, error) {
 // walkYAMLNode records every mapping key under the dotted prefix. A
 // mapping node's content alternates key node, value node.
 func walkYAMLNode(keys *KeySet, prefix FieldPath, node *yaml.Node) {
-	for i := 0; i+1 < len(node.Content); i += 2 {
-		p := under(keys, prefix, FieldPath(node.Content[i].Value))
-		walkYAMLChild(keys, p, node.Content[i+1])
-	}
+	walkYAMLNodeSeen(keys, prefix, node, map[*yaml.Node]bool{})
 }
 
-// walkYAMLChild descends into one value node: mappings recurse, sequences
-// recurse per element, scalars are leaves.
-func walkYAMLChild(keys *KeySet, prefix FieldPath, node *yaml.Node) {
+// walkYAMLChildSeen descends into one value node: mappings recurse,
+// sequences recurse per element, aliases resolve to their anchor's node
+// with a visited set against cycles, scalars are leaves.
+func walkYAMLChildSeen(keys *KeySet, prefix FieldPath, node *yaml.Node, seen map[*yaml.Node]bool) {
+	if node.Kind == yaml.AliasNode {
+		if seen[node] || node.Alias == nil {
+			return
+		}
+
+		seen[node] = true
+		walkYAMLChildSeen(keys, prefix, node.Alias, seen)
+
+		return
+	}
+
 	switch node.Kind {
 	case yaml.MappingNode:
-		walkYAMLNode(keys, prefix, node)
+		walkYAMLNodeSeen(keys, prefix, node, seen)
 	case yaml.SequenceNode:
 		for _, item := range node.Content {
-			walkYAMLChild(keys, prefix, item)
+			walkYAMLChildSeen(keys, prefix, item, seen)
 		}
 	case yaml.DocumentNode, yaml.ScalarNode, yaml.AliasNode:
 		// leaves and stream roots contribute no keys
+	}
+}
+
+// walkYAMLNodeSeen is walkYAMLNode carrying the alias-visited set.
+func walkYAMLNodeSeen(keys *KeySet, prefix FieldPath, node *yaml.Node, seen map[*yaml.Node]bool) {
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		p := under(keys, prefix, FieldPath(node.Content[i].Value))
+		walkYAMLChildSeen(keys, p, node.Content[i+1], seen)
 	}
 }
