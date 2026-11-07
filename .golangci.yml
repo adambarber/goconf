@@ -72,7 +72,6 @@ linters:
     - usetesting
     - testableexamples
     - misspell
-    - gomoddirectives
     - tagalign
     - modernize
     - godox
@@ -233,17 +232,10 @@ linters:
 
   exclusions:
     generated: strict
-    # The two local replaces in go.mod are the degraded-network workaround:
-    # module zips fetched over HTTPS and parked in deps/ while the host's
-    # direct module fetch fails. gomoddirectives must not fire on them; the
-    # replaces move out with the workaround (report, not a code TODO).
     rules:
       - path: (load|options)\.go$
         linters:
           - forbidigo   # the sanctioned `any` lives in type-parameter constraint positions: Load[T any], WithDefaults[T any]
-      - path: go\.mod
-        linters:
-          - gomoddirectives
       - path: policy/fixtures/.*_positive/.*\.go
         linters:
           - forbidigo   # the no_untyped_value positive fixture must spell `any` to prove the rule bites
@@ -286,14 +278,8 @@ formatters:
   enable:
     - gofumpt
     - goimports
-  # deps/ is the degraded-network workaround: module zips fetched over HTTPS
-  # and parked as third-party source. It is not written under this policy and
-  # moves out with the workaround (the recipe is in PLAN.md); until then its
-  # formatter drift is a sanctioned path-scoped exemption, not a policy
-  # weakening. The gomoddirectives exclusion above covers the same workaround.
   exclusions:
-    paths:
-      - deps/.*
+    paths: []
   settings:
     gofumpt:
       extra:
