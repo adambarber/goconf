@@ -183,11 +183,10 @@ linters:
         - return
         - assign
     forbidigo:
+      analyze-types: true
       forbid:
         - pattern: '^any$'
-          analyze-types: true
           msg: "a bare `any` is an untyped value; name the domain kind"
-    gosec:
     gocognit:
       min-complexity: 10
     cyclop:
@@ -264,15 +263,15 @@ linters:
           - gochecknoglobals
           - wastedassign
 
-  run:
-    timeout: 5m
-    tests: true
-    modules-download-mode: readonly
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
 
-  issues:
-    max-same-issues: 0
-    max-issues-per-linter: 0
-    new: false
+issues:
+  max-same-issues: 0
+  max-issues-per-linter: 0
+  new: false
 
 formatters:
   enable:
