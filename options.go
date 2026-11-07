@@ -9,11 +9,17 @@ import (
 // errUnmarshalable is the refusal for a default JSON cannot represent.
 var errUnmarshalable = errors.New("default cannot marshal")
 
+// Name is the caller-declared name of a config: files are searched as
+// NAME.EXT in each directory.
+type Name = configName
+
 // Spec declares one config load: the config name and the required format.
 type Spec struct {
 	Format Format
-	Name   configName
+	Name   Name
 }
+
+// Option customizes one Load call.
 
 // Option customizes one Load call.
 type Option interface {
@@ -24,12 +30,13 @@ type Option interface {
 type settings struct {
 	search    []DirPath
 	globalDir DirPath
-	defaults  []LayeredDefault
+	defaults  []layeredDefault
 }
 
-// LayeredDefault is one defaults layer whose filled fields are exactly
-// the fields absent from every source.
-type LayeredDefault struct {
+// layeredDefault is one defaults layer whose filled fields are exactly
+// the fields absent from every source. Unexported: it is built only by
+// WithDefaults and carries no constructable public surface.
+type layeredDefault struct {
 	value reflect.Value
 }
 
@@ -57,7 +64,7 @@ type defaultsOption struct {
 }
 
 func (o defaultsOption) apply(s *settings) {
-	s.defaults = append(s.defaults, LayeredDefault{value: o.value})
+	s.defaults = append(s.defaults, layeredDefault{value: o.value})
 }
 
 // WithSearchPaths replaces the default discovery paths (user config

@@ -49,7 +49,7 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 // decodeInto reads every file, layers their presence, decodes in order
 // (later sources override earlier ones), then fills absents from the
 // defaults; each source decodes through its own file's format.
-func decodeInto(dst Target, files []FoundFile, defaults []LayeredDefault) ([]Provenance, error) {
+func decodeInto(dst Target, files []FoundFile, defaults []layeredDefault) ([]Provenance, error) {
 	sources, prov, err := readSources(files)
 	if err != nil {
 		return nil, err

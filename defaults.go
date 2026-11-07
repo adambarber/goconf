@@ -8,7 +8,7 @@ import (
 // fillAbsents applies the defaults layers to the fields no source set:
 // a field present in any source (including an explicit null) is kept as
 // decoded; only true absences are filled, layer by layer.
-func fillAbsents(dst Target, present KeySet, defaults []LayeredDefault) error {
+func fillAbsents(dst Target, present KeySet, defaults []layeredDefault) error {
 	for _, d := range defaults {
 		if err := checkDefaultShape(d.value); err != nil {
 			// the option-construction check did not run (a hand-built
@@ -27,7 +27,7 @@ func fillAbsents(dst Target, present KeySet, defaults []LayeredDefault) error {
 }
 
 // fillOne copies each absent field of one defaults layer into the target.
-func fillOne(dst Target, present KeySet, d LayeredDefault) error {
+func fillOne(dst Target, present KeySet, d layeredDefault) error {
 	return copyMissing(dst.Value, d.value, "", present)
 }
 

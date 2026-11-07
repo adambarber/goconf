@@ -129,7 +129,7 @@ func assertDefaultDoesNotOverride(t *testing.T, combo tagComboTarget, format For
 	def := reflect.New(dst.Type()).Elem()
 	def.Field(0).Field(0).SetString(string(defaultValue))
 
-	if err := fillAbsents(Target{Value: dst}, present, []LayeredDefault{{value: def}}); err != nil {
+	if err := fillAbsents(Target{Value: dst}, present, []layeredDefault{{value: def}}); err != nil {
 		t.Fatalf("fill: %v", err)
 	}
 
