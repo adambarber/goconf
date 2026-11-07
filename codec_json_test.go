@@ -130,6 +130,12 @@ func dupCases() []dupCase {
 			wantErr: refusalNeed(`duplicate key "host"`),
 		},
 		{
+			name:    "duplicate key after an array close is refused",
+			data:    SourceBytes(`{"servers":[{"host":"a"}],"servers":[{"host":"b"}]}`),
+			want:    dupCfg{Servers: nil, Server: nestedCfg{Host: "", Port: 0}, Admin: false, Port: 0},
+			wantErr: refusalNeed(`duplicate key "servers"`),
+		},
+		{
 			name:    caseName("no duplicate keys still decodes"),
 			data:    SourceBytes(`{"admin":true,"port":1,"server":{"host":"h","port":2}}`),
 			want:    dupCfg{Server: nestedCfg{Host: "h", Port: 2}, Servers: nil, Admin: true, Port: 1},

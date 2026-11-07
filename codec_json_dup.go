@@ -67,14 +67,14 @@ func (dw *dupWalk) step(tok json.Token, line int) error {
 	return dw.stepKey(tok, line)
 }
 
-// stepDelim handles one structural token: an open brace pushes a scope,
-// a close pops one, an open bracket enters a sequence of object scopes.
+// stepDelim handles one structural token: { pushes a scope, } pops one;
+// brackets carry no scope — array elements open their own object scopes
+// and a close bracket returns to the enclosing scope untouched.
 func (dw *dupWalk) stepDelim(d json.Delim) error {
 	switch d {
 	case '{':
 		dw.scopes = append(dw.scopes, dupScope{seen: make(map[ObjectKey]int)})
-	case '[':
-	default:
+	case '}':
 		if len(dw.scopes) > 0 {
 			dw.scopes = dw.scopes[:len(dw.scopes)-1]
 		}
