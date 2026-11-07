@@ -28,8 +28,8 @@ type dupWalk struct {
 }
 
 // refuseDuplicateJSONKeys refuses the first key re-declared in the same
-// enclosing object; array elements open distinct scopes. Contract pinned
-// in docs/load.md, Refusals.
+// enclosing object; each object element of an array opens its own scope.
+// Contract pinned in docs/load.md, Refusals.
 func refuseDuplicateJSONKeys(data SourceBytes) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()

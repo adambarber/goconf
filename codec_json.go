@@ -63,6 +63,7 @@ func decodeJSONStrict(data SourceBytes, dst Target) error {
 	return nil
 }
 
+// presentJSONKeys records the dotted field paths of every key present in
 // the JSON document, walking the token stream so presence is recorded no
 // matter how deeply it is nested, including inside arrays of objects.
 func presentJSONKeys(data SourceBytes) (KeySet, error) {
