@@ -6,12 +6,6 @@ ignore positiveFixtures {
     owner  = "platform"
 }
 
-ignore deps {
-    paths  = ["deps/**"]
-    reason = "local copies of the two external deps, parked here by a degraded-network workaround; third-party source is not written under this policy, and the replace directives move out with the workaround"
-    owner  = "platform"
-}
-
 rule branching_budget {
     lang    = go
     type    = budget
