@@ -30,15 +30,13 @@ func writeTree(t *testing.T, files map[searchDir]map[FileName]SourceBytes) DirPa
 	root := t.TempDir()
 
 	for dir, entries := range files {
-		full := filepath.Join(root, string(dir))
-		if err := os.MkdirAll(full, 0o750); err != nil {
+		full := DirPath(filepath.Join(root, string(dir)))
+		if err := os.MkdirAll(string(full), 0o750); err != nil {
 			t.Fatalf("mkdir: %v", err)
 		}
 
 		for name, data := range entries {
-			if err := os.WriteFile(filepath.Join(full, string(name)), data, 0o600); err != nil {
-				t.Fatalf("write: %v", err)
-			}
+			writeFileAt(t, full, name, data)
 		}
 	}
 
@@ -46,17 +44,13 @@ func writeTree(t *testing.T, files map[searchDir]map[FileName]SourceBytes) DirPa
 }
 
 func TestDiscoverGlobalThenLocal(t *testing.T) {
-	data := SourceBytes(`{"region":"eu"}`)
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameJSON: data},
+		dirGlobal: {fileNameJSON: SourceBytes(`{"region":"eu"}`)},
 		dirLocal:  {fileNameJSON: SourceBytes(`{"region":"us"}`)},
 	})
-	paths := []DirPath{DirPath(filepath.Join(string(root), "global")), DirPath(filepath.Join(string(root), "local"))}
+	paths := legPaths(root, dirGlobal, dirLocal)
 
-	found, err := discover(Discovery{Search: paths, Name: configName("app"), Format: FormatJSON})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	found := discoverOK(t, Discovery{Search: paths, Name: configName("app"), Format: FormatJSON})
 
 	if len(found) != 2 {
 		t.Fatalf("got %d files, want 2: %v", len(found), found)
@@ -71,12 +65,9 @@ func TestDiscoverFormatNarrowsSearch(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
 		dirGlobal: {fileNameJSON: SourceBytes(`{"region":"eu"}`), fileNameYAML: SourceBytes("region: eu\n")},
 	})
-	paths := []DirPath{DirPath(filepath.Join(string(root), "global"))}
+	paths := legPaths(root, dirGlobal)
 
-	found, err := discover(Discovery{Search: paths, Name: configName("app"), Format: FormatYAML})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	found := discoverOK(t, Discovery{Search: paths, Name: configName("app"), Format: FormatYAML})
 
 	if len(found) != 1 || found[0].Path != FilePath(filepath.Join(string(root), "global", string(fileNameYAML))) {
 		t.Fatalf("got %v, want only app.yaml", found)
@@ -87,18 +78,11 @@ func TestDiscoverRefusesAmbiguousDirectory(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
 		dirGlobal: {fileNameJSON: SourceBytes(`{}`), fileNameTOML: SourceBytes("")},
 	})
-	paths := []DirPath{DirPath(filepath.Join(string(root), "global"))}
+	paths := legPaths(root, dirGlobal)
 
 	_, err := discover(Discovery{Search: paths, Name: configName("app"), Format: undetermined})
-	if err == nil {
-		t.Fatalf("expected ambiguous refusal, got nil")
-	}
 
-	for _, need := range []testText{testText(root), testText(fileNameJSON), testText(fileNameTOML)} {
-		if !strings.Contains(err.Error(), string(need)) {
-			t.Errorf("refusal %q must name %q", err, need)
-		}
-	}
+	mustRefuseNames(t, err, string(root), string(fileNameJSON), string(fileNameTOML))
 }
 
 func TestDiscoverRefusesInventedFormat(t *testing.T) {
@@ -120,7 +104,7 @@ type escapeCase struct {
 
 func TestDiscoverRefusesPathEscapingConfigNames(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
-	paths := []DirPath{DirPath(filepath.Join(string(root), "search"))}
+	paths := legPaths(root, "search")
 
 	cases := []escapeCase{
 		{name: configName("../outside-cfg"), hint: "../outside-cfg"},
@@ -143,12 +127,9 @@ func TestDiscoverValidNamesStillBuildCandidates(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
 		"search": {fileNameJSON: SourceBytes(`{"region":"eu"}`)},
 	})
-	paths := []DirPath{DirPath(filepath.Join(string(root), "search"))}
+	paths := legPaths(root, "search")
 
-	found, err := discover(Discovery{Search: paths, Name: configName("app"), Format: FormatJSON})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	found := discoverOK(t, Discovery{Search: paths, Name: configName("app"), Format: FormatJSON})
 
 	if len(found) != 1 || found[0].Path != FilePath(filepath.Join(string(root), "search", string(fileNameJSON))) {
 		t.Fatalf("valid name must still locate candidates, got %v", found)
@@ -158,10 +139,7 @@ func TestDiscoverValidNamesStillBuildCandidates(t *testing.T) {
 func TestLoadCannotEscapeSearchPathsByName(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
 
-	outside := filepath.Join(string(root), "outside-cfg.json")
-	if err := os.WriteFile(outside, SourceBytes(`{"region":"SECRET"}`), 0o600); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	outside := writeFileAt(t, root, "outside-cfg.json", SourceBytes(`{"region":"SECRET"}`))
 
 	_, _, err := Load[loadCfg](Spec{Name: configName("../outside-cfg"), Format: FormatJSON},
 		WithSearchPaths(DirPath(filepath.Join(string(root), "search"))))
@@ -169,7 +147,7 @@ func TestLoadCannotEscapeSearchPathsByName(t *testing.T) {
 		t.Fatalf("path escape via config name must be refused")
 	}
 
-	if !strings.Contains(err.Error(), outside) && !strings.Contains(err.Error(), "../outside-cfg") {
+	if !strings.Contains(err.Error(), string(outside)) && !strings.Contains(err.Error(), "../outside-cfg") {
 		t.Errorf("refusal %q must name the escape", err)
 	}
 }

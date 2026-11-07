@@ -24,9 +24,7 @@ type loadCfg struct {
 
 // loadOpts builds the common options: one global dir, cwd as local.
 func loadOpts(global DirPath) []Option {
-	opt := WithGlobalDir(global)
-
-	return []Option{opt}
+	return []Option{WithGlobalDir(global)}
 }
 
 // globalPathOf returns the tree's global directory for the temp root.
@@ -40,18 +38,12 @@ func TestLoadMergesGlobalThenLocal(t *testing.T) {
 		dirLocal:  {fileNameJSON: SourceBytes(`{"region":"us"}`)},
 	})
 
-	t.Chdir(filepath.Join(string(root), string(dirLocal)))
+	chdirLocal(t, root)
 
-	got, prov, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		loadOpts(DirPath(filepath.Join(string(root), string(dirGlobal))))...)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	got, prov := loadOK(t, Spec{Name: configName("app"), Format: FormatJSON},
+		loadOpts(legPaths(root, dirGlobal)[0])...)
 
-	want := loadCfgWant(0, "us", nestedCfgWant("h", 1))
-	if got != want {
-		t.Fatalf("got %+v, want %+v", got, want)
-	}
+	cfgEquals(t, got, loadCfgWant(0, "us", nestedCfgWant("h", 1)))
 
 	if len(prov) != 2 {
 		t.Fatalf("got %d provenance entries, want 2: %v", len(prov), prov)
@@ -68,18 +60,11 @@ func TestLoadDefaultsFillOnlyAbsences(t *testing.T) {
 	})
 	t.Chdir(string(root))
 
-	got, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		append(loadOpts(globalPathOf(root)), WithDefaults(loadCfgWant(5, "fill", nestedCfgWant("", 9))))...)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	got := loadDefaultsOK(t, root, FormatJSON, loadCfgWant(5, "fill", nestedCfgWant("", 9)))
 
 	// retries is present with an explicit zero value: the default must not
 	// override it. region and nested.port are absent: defaults fill them.
-	want := loadCfgWant(0, "eu", nestedCfgWant("", 9))
-	if got != want {
-		t.Fatalf("got %+v, want %+v", got, want)
-	}
+	cfgEquals(t, got, loadCfgWant(0, "eu", nestedCfgWant("", 9)))
 }
 
 func TestLoadExplicitNullIsNeverOverridden(t *testing.T) {
@@ -88,15 +73,9 @@ func TestLoadExplicitNullIsNeverOverridden(t *testing.T) {
 	})
 	t.Chdir(string(root))
 
-	got, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		append(loadOpts(globalPathOf(root)), WithDefaults(loadCfgWant(0, "fill", nestedCfgWant("", 0))))...)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	got := loadDefaultsOK(t, root, FormatJSON, loadCfgWant(0, "fill", nestedCfgWant("", 0)))
 
-	if got.Region != "" {
-		t.Fatalf("explicit null is a decision and must not be overridden, got %q", got.Region)
-	}
+	nullNotOverridden(t, got)
 }
 
 func TestLoadDefaultsFailsLoudOnUnmarshalableDefault(t *testing.T) {
@@ -118,15 +97,11 @@ func TestLoadSearchPathsOverridesDefault(t *testing.T) {
 		"custom": {fileNameJSON: SourceBytes(`{"region":"custom"}`)},
 		dirLocal: {fileNameJSON: SourceBytes(`{"region":"local"}`)},
 	})
-	t.Chdir(filepath.Join(string(root), string(dirLocal)))
+	chdirLocal(t, root)
 
-	got, prov, err := Load[loadCfg](
+	got, prov := loadOK(t,
 		Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(filepath.Join(string(root), "custom"))),
-	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+		WithSearchPaths(DirPath(filepath.Join(string(root), "custom"))))
 
 	if got.Region != "custom" {
 		t.Fatalf("got %q, want custom", got.Region)
@@ -143,11 +118,8 @@ func TestLoadDigestStampsEachSource(t *testing.T) {
 	})
 	t.Chdir(string(root))
 
-	_, prov, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
+	_, prov := loadOK(t, Spec{Name: configName("app"), Format: FormatJSON},
 		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 
 	if len(prov) == 0 || len(prov[0].Digest) == 0 {
 		t.Fatalf("digest must be stamped on every contributing source: %v", prov)
@@ -169,19 +141,10 @@ func TestLoadYAMLExplicitNullIsNeverOverridden(t *testing.T) {
 	})
 	t.Chdir(string(root))
 
-	got, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatYAML},
-		append(loadOpts(globalPathOf(root)), WithDefaults(loadCfgWant(7, "fill", nestedCfgWant("dh", 9))))...)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	got := loadDefaultsOK(t, root, FormatYAML, loadCfgWant(7, "fill", nestedCfgWant("dh", 9)))
 
-	if got.Region != "" {
-		t.Fatalf("explicit null is a decision and must not be overridden, got %q", got.Region)
-	}
+	nullNotOverridden(t, got)
 
 	// absent fields still default-fill despite the null sibling.
-	want := loadCfgWant(7, "", nestedCfgWant("dh", 9))
-	if got != want {
-		t.Fatalf("got %+v, want %+v", got, want)
-	}
+	cfgEquals(t, got, loadCfgWant(7, "", nestedCfgWant("dh", 9)))
 }

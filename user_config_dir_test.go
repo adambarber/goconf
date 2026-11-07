@@ -29,28 +29,17 @@ func TestDefaultSearchPathsRealUserConfigDir(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	file := filepath.Join(dir, "app.json")
-	if err := os.WriteFile(file, SourceBytes(`{"region":"xdg"}`), 0o600); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	writeFileAt(t, DirPath(dir), "app.json", SourceBytes(`{"region":"xdg"}`))
 
-	work := filepath.Join(scratch, "work")
-	if err := os.MkdirAll(work, 0o700); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
+	scratchWorkDir(t, DirPath(scratch))
 
-	t.Chdir(work)
-
-	got, prov, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON})
-	if err != nil {
-		t.Fatalf("real UserConfigDir branch must locate the global config: %v", err)
-	}
+	got, prov := loadOK(t, Spec{Name: configName("app"), Format: FormatJSON})
 
 	if got.Region != "xdg" {
 		t.Fatalf("got %q, want the real UserConfigDir leg's value", got.Region)
 	}
 
-	if len(prov) != 1 || prov[0].Path != FilePath(file) {
+	if len(prov) != 1 || prov[0].Path != FilePath(filepath.Join(dir, "app.json")) {
 		t.Fatalf("provenance %v must name the real UserConfigDir leg", prov)
 	}
 }
@@ -62,16 +51,9 @@ func TestDefaultSearchPathsUserConfigDirFailureFallsToLocal(t *testing.T) {
 	scratch := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(scratch, "not-a-dir"))
 
-	work := filepath.Join(scratch, "work")
-	if err := os.MkdirAll(work, 0o700); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
+	scratchWorkDir(t, DirPath(scratch))
 
-	if err := os.WriteFile(filepath.Join(work, "app.json"), SourceBytes(`{"region":"local-only"}`), 0o600); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-
-	t.Chdir(work)
+	writeFileAt(t, DirPath(filepath.Join(scratch, "work")), "app.json", SourceBytes(`{"region":"local-only"}`))
 
 	got, prov, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON})
 	if err != nil {

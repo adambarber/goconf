@@ -1,7 +1,6 @@
 package goconf
 
 import (
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -34,18 +33,13 @@ func TestWithDefaultsRejectsNonStructValue(t *testing.T) {
 // TestLoadNeverPanicsOnBadDefault proves Load survives a bad default even
 // if one is constructed: it surfaces a domain error naming WithDefaults.
 func TestLoadNeverPanicsOnBadDefault(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirLocal: {fileNameJSON: SourceBytes(`{"region":"eu"}`)},
-	})
-	t.Chdir(filepath.Join(string(root), string(dirLocal)))
+	root := oneLegTree(t, map[FileName]SourceBytes{fileNameJSON: SourceBytes(`{"region":"eu"}`)})
+	chdirLocal(t, root)
 
 	bad := defaultsOption{value: reflectValueOf(SourceBytes("a string"))}
 
-	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(filepath.Join(string(root), string(dirLocal)))), &bad)
-	if err == nil {
-		t.Fatalf("a bad default must fail the load, not panic")
-	}
+	err := loadRefused(t, Spec{Name: configName("app"), Format: FormatJSON},
+		WithSearchPaths(legPaths(root, dirLocal)...), &bad)
 
 	if !strings.Contains(err.Error(), "WithDefaults") {
 		t.Errorf("error %q must name its source", err)

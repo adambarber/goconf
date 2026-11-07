@@ -1,7 +1,6 @@
 package goconf
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -13,7 +12,7 @@ func TestLoadRefusesUnknownCandidateExtensionByName(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
 		dirLocal: {FileName("myconf.json.bak"): SourceBytes(`{}`)},
 	})
-	paths := []DirPath{DirPath(filepath.Join(string(root), string(dirLocal)))}
+	paths := legPaths(root, dirLocal)
 
 	_, err := discover(Discovery{Search: paths, Name: configName("myconf"), Format: undetermined})
 	if err == nil {

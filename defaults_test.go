@@ -1,9 +1,6 @@
 package goconf
 
-import (
-	"path/filepath"
-	"testing"
-)
+import "testing"
 
 // loadDeepCase is one deep default-fill scenario: a source setting part of
 // a nested object, defaults filling the absent leaves.
@@ -35,19 +32,11 @@ func TestLoadDefaultsFillDeepAbsences(t *testing.T) {
 			root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
 				dirLocal: {tc.fileName: tc.src},
 			})
-			t.Chdir(filepath.Join(string(root), string(dirLocal)))
+			chdirLocal(t, root)
 
-			got, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: tc.format},
-				WithSearchPaths(DirPath(filepath.Join(string(root), string(dirLocal)))),
-				WithDefaults(loadCfgWant(0, "fill", nestedCfgWant("DEF", 0))))
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			got := loadDefaultsOK(t, root, tc.format, loadCfgWant(0, "fill", nestedCfgWant("DEF", 0)))
 
-			want := loadCfgWant(0, "fill", nestedCfgWant("DEF", 3))
-			if got != want {
-				t.Fatalf("got %+v, want %+v", got, want)
-			}
+			cfgEquals(t, got, loadCfgWant(0, "fill", nestedCfgWant("DEF", 3)))
 		})
 	}
 }

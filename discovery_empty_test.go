@@ -1,7 +1,6 @@
 package goconf
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -12,7 +11,7 @@ func TestDiscoverExtensionBoundary(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
 		dirLocal: {FileName("apple.json"): SourceBytes(`{"region":"sibling"}`)},
 	})
-	paths := []DirPath{DirPath(filepath.Join(string(root), string(dirLocal)))}
+	paths := legPaths(root, dirLocal)
 
 	_, err := discover(Discovery{Search: paths, Name: configName("app"), Format: undetermined})
 	if err == nil {
@@ -28,10 +27,7 @@ func TestDiscoverExtensionBoundary(t *testing.T) {
 // Zero files after discovery is an error naming every searched path.
 func TestDiscoverEmptyRefusal(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
-	paths := []DirPath{
-		DirPath(filepath.Join(string(root), string(dirGlobal))),
-		DirPath(filepath.Join(string(root), string(dirLocal))),
-	}
+	paths := legPaths(root, dirGlobal, dirLocal)
 
 	_, err := discover(Discovery{Search: paths, Name: configName("app"), Format: FormatJSON})
 	if err == nil {

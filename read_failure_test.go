@@ -3,7 +3,6 @@ package goconf
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -19,29 +18,13 @@ func TestLoadReadFailureNamesPathAndLeg(t *testing.T) {
 		dirGlobal: {fileNameJSON: SourceBytes(`{"region":"eu"}`)},
 		dirLocal:  {fileNameJSON: SourceBytes(`{"region":"us"}`)},
 	})
+	local := writeFileAt(t, DirPath(filepath.Join(string(root), string(dirLocal))), fileNameJSON, SourceBytes(`{"region":"us"}`))
+	stripAccess(t, local, 0o000, 0o600)
 
-	local := filepath.Join(string(root), string(dirLocal), string(fileNameJSON))
-	if err := os.Chmod(local, 0o000); err != nil {
-		t.Fatalf("chmod: %v", err)
-	}
+	chdirLocal(t, root)
 
-	t.Cleanup(func() {
-		if err := os.Chmod(local, 0o600); err != nil {
-			t.Logf("cleanup chmod: %v", err)
-		}
-	})
+	err := loadRefused(t, Spec{Name: configName("app"), Format: FormatJSON},
+		WithSearchPaths(globalPathOf(root), legPaths(root, dirLocal)[0]))
 
-	t.Chdir(filepath.Join(string(root), string(dirLocal)))
-
-	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(globalPathOf(root), DirPath(filepath.Join(string(root), string(dirLocal)))))
-	if err == nil {
-		t.Fatalf("unreadable candidate must be refused")
-	}
-
-	for _, need := range []testText{testText(local), testText("local")} {
-		if !strings.Contains(err.Error(), string(need)) {
-			t.Errorf("refusal %q must name %q", err, need)
-		}
-	}
+	mustRefuseNames(t, err, string(local), "local")
 }

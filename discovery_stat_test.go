@@ -2,8 +2,6 @@ package goconf
 
 import (
 	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -15,31 +13,13 @@ func TestDiscoverRefusesStatFailure(t *testing.T) {
 		t.Skip("permission bits do not bind root")
 	}
 
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirLocal: {fileNameJSON: SourceBytes(`{"region":"eu"}`)},
-	})
-	dir := DirPath(filepath.Join(string(root), string(dirLocal)))
+	root := oneLegTree(t, map[FileName]SourceBytes{fileNameJSON: SourceBytes(`{"region":"eu"}`)})
+	dir := legPaths(root, dirLocal)[0]
 
-	const restoreBits os.FileMode = 0o700 // user rwx: TempDir cleanup must traverse and unlink
-
-	if err := os.Chmod(string(dir), 0o400); err != nil {
-		t.Fatalf("chmod: %v", err)
-	}
-
-	t.Cleanup(func() {
-		if err := os.Chmod(string(dir), restoreBits); err != nil {
-			t.Logf("cleanup chmod: %v", err)
-		}
-	})
+	// user rwx: TempDir cleanup must traverse and unlink
+	stripAccess(t, FilePath(dir), 0o400, 0o700)
 
 	_, err := discover(Discovery{Search: []DirPath{dir}, Name: configName("app"), Format: FormatJSON})
-	if err == nil {
-		t.Fatalf("stat failure must be refused, not treated as absence")
-	}
 
-	for _, need := range []testText{testText(fileNameJSON), testText("permission denied")} {
-		if !strings.Contains(err.Error(), string(need)) {
-			t.Errorf("refusal %q must name %q", err, need)
-		}
-	}
+	mustRefuseNames(t, err, string(fileNameJSON), "permission denied")
 }
