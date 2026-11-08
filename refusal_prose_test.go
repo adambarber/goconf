@@ -114,10 +114,10 @@ func goldenShapeCases() []proseCase {
 			format: FormatYAML,
 			body:   SourceBytes("region: eu\n---\nregion: us\n"),
 			contains: []userSpan{
-				"multi-document stream",
-				"hold one document per file",
+				"the file contains more than one document (the second starts at line 2)",
+				`delete the "---" line and everything after it, or split into two files`,
 			},
-			excludes: bannedVocab{"first-wins"},
+			excludes: bannedVocab{"first-wins", "hold one document per file"},
 		},
 		{
 			name:   "json duplicate key",

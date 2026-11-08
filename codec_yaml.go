@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/adambarber/gorefuse"
@@ -151,10 +152,10 @@ func syntaxCheckYAML() gorefuse.Why {
 	return gorefuse.Why("check the line for a missing bracket, quote, or indentation.")
 }
 
-// multiDocRefusal refuses a stream holding more than one document, naming
-// the separator's line.
+// multiDocRefusal refuses a stream holding more than one document,
+// naming the separator's line and giving one action.
 func multiDocRefusal(file FilePath, line int) error {
 	return refuseAt(ErrMultiDoc, file, gorefuse.Line(line),
-		gorefuse.Subject("second document separator"),
-		gorefuse.Why("hold one document per file; only the first would be read."))
+		gorefuse.Subject("the file contains more than one document (the second starts at line "+strconv.Itoa(line)+")"),
+		gorefuse.Why("put one document in the file — delete the \"---\" line and everything after it, or split into two files."))
 }
