@@ -41,17 +41,21 @@ A refusal is typed, not a wrapped sentence: every error `Load` returns
 is a `gorefuse.Because[goconf.Reason]` — extract it with `errors.As`,
 match it with `errors.Is` against the reason constants, or switch on
 `because.Reason`. The constants (`ErrDuplicateKey`, `ErrUnknownField`,
-`ErrAmbiguous`, `ErrNothingFound`, …) are one vocabulary across
-formats: JSON's, TOML's, and YAML's unknown-field refusals share
-`ErrUnknownField`; a YAML multi-document stream is `ErrMultiDoc` in
-decode and in the presence walk alike.
+`ErrTypeMismatch`, `ErrDecoderRefused`, `ErrIO`, `ErrAmbiguous`,
+`ErrNothingFound`, …) are one vocabulary across formats: JSON's, TOML's,
+and YAML's unknown-field refusals share `ErrUnknownField`; a value that
+does not fit a field's declared type is `ErrTypeMismatch` in every
+format; syntax and scanner faults are `ErrDecoderRefused`; discovery and
+read faults are `ErrIO`; a YAML multi-document stream is `ErrMultiDoc`
+in decode and in the presence walk alike.
 
 The rendered text reads as one sentence: the `file:line` frame (when a
-file was refused), the reason, what was refused, the decoder's detail
-(when there is one), and the fix. A refusal raised before any file
-exists — nothing found, ambiguous candidates, an invented format, an
-escaping config name, a bad default — carries no frame and never
-fabricates one.
+file was refused), the reason, what was refused, and the fix. The text
+speaks to the config file's author: the file's objects, the value's
+shape, one labeling of the fault, and one fix. A refusal raised before
+any file exists — nothing found, ambiguous candidates, an invented
+format, an escaping config name, a bad default — carries no frame and
+never fabricates one.
 
 ## Refusals
 
@@ -69,8 +73,8 @@ extension no format spells (e.g. `app.bak`) is refused by name. Refusal
 text names keys, paths, types, and line numbers. Config values never
 appear in refusal text, including fragments of values echoed by
 third-party decoders — in every format, on every error path.
-Unknown-field refusals name the offending key; JSON unknown-field
-refusals also name the key's line.
+Unknown-field refusals name the offending key; JSON and YAML
+unknown-field refusals also name the key's line.
 
 ## Defaults
 

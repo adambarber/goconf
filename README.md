@@ -106,11 +106,16 @@ if errors.As(err, &because) {
 ```
 
 One reason per refusal semantics, across formats: `ErrUnknownField`
-covers JSON's, TOML's, and YAML's unknown-field refusals. The full
-constant list is in `refusal.go`. Refusals that happened before any
-file exists (nothing found, ambiguity, an invented format, a bad
-option) carry no file frame; refusals of a specific file carry the
-`file:line` frame pointing at that file.
+covers JSON's, TOML's, and YAML's unknown-field refusals;
+`ErrTypeMismatch` covers a value that does not fit the field's declared
+type, in every format; `ErrDecoderRefused` covers syntax and scanner
+faults; `ErrIO` covers discovery and read faults — a directory that
+could not be listed, a candidate that could not be stat-ed, a file that
+could not be read, a symlink that could not be resolved. The full
+constant list is in `refusal.go`. Refusals that happened before any file
+exists (nothing found, ambiguity, an invented format, a bad option)
+carry no file frame; refusals of a specific file carry the `file:line`
+frame pointing at that file.
 
 The full contract — discovery order, merge semantics, per-format
 capabilities, refusal shapes — is in
