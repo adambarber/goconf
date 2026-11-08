@@ -1,0 +1,1545 @@
+{
+  "duplicates": [
+    {
+      "firstFile": {
+        "end": 18,
+        "endLoc": {
+          "column": 24,
+          "line": 18,
+          "position": 354
+        },
+        "name": "codec_json_test.go",
+        "start": 12,
+        "startLoc": {
+          "column": 84,
+          "line": 12,
+          "position": 226
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\tdata:    SourceBytes(`{\"region\":\"eu\",\"retries\":3,\"nested\":{\"host\":\"h\",\"port\":1}}`),\n\t\t\twant:    codecWant(3, nestedCfgWant(\"h\", 1)),\n\t\t\twantErr: none,\n\t\t},\n\t\t{\n\t\t\tname:    nameUnknown,\n\t\t\tdata:    SourceBytes(`{\"region\":\"eu\",\"extra\":1}`),",
+      "lines": 7,
+      "secondFile": {
+        "end": 18,
+        "endLoc": {
+          "column": 24,
+          "line": 18,
+          "position": 362
+        },
+        "name": "codec_toml_test.go",
+        "start": 12,
+        "startLoc": {
+          "column": 92,
+          "line": 12,
+          "position": 234
+        }
+      },
+      "tokens": 31
+    },
+    {
+      "firstFile": {
+        "end": 18,
+        "endLoc": {
+          "column": 24,
+          "line": 18,
+          "position": 354
+        },
+        "name": "codec_json_test.go",
+        "start": 12,
+        "startLoc": {
+          "column": 84,
+          "line": 12,
+          "position": 226
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\tdata:    SourceBytes(`{\"region\":\"eu\",\"retries\":3,\"nested\":{\"host\":\"h\",\"port\":1}}`),\n\t\t\twant:    codecWant(3, nestedCfgWant(\"h\", 1)),\n\t\t\twantErr: none,\n\t\t},\n\t\t{\n\t\t\tname:    nameUnknown,\n\t\t\tdata:    SourceBytes(`{\"region\":\"eu\",\"extra\":1}`),",
+      "lines": 7,
+      "secondFile": {
+        "end": 15,
+        "endLoc": {
+          "column": 24,
+          "line": 15,
+          "position": 335
+        },
+        "name": "codec_yaml_test.go",
+        "start": 9,
+        "startLoc": {
+          "column": 81,
+          "line": 9,
+          "position": 207
+        }
+      },
+      "tokens": 31
+    },
+    {
+      "firstFile": {
+        "end": 48,
+        "endLoc": {
+          "column": 45,
+          "line": 48,
+          "position": 1329
+        },
+        "name": "codec_json_test.go",
+        "start": 44,
+        "startLoc": {
+          "column": 37,
+          "line": 44,
+          "position": 1245
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\twantErr: refusalNeed(\"app.json:2:\"),\n\t\t},\n\t}\n\tfor _, tc := range cases {\n\t\tt.Run(string(tc.name), func(t *testing.T) {",
+      "lines": 5,
+      "secondFile": {
+        "end": 80,
+        "endLoc": {
+          "column": 45,
+          "line": 80,
+          "position": 2628
+        },
+        "name": "codec_refusal_test.go",
+        "start": 75,
+        "startLoc": {
+          "column": 52,
+          "line": 75,
+          "position": 2543
+        }
+      },
+      "tokens": 34
+    },
+    {
+      "firstFile": {
+        "end": 49,
+        "endLoc": {
+          "column": 33,
+          "line": 49,
+          "position": 1363
+        },
+        "name": "codec_json_test.go",
+        "start": 44,
+        "startLoc": {
+          "column": 37,
+          "line": 44,
+          "position": 1245
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\twantErr: refusalNeed(\"app.json:2:\"),\n\t\t},\n\t}\n\tfor _, tc := range cases {\n\t\tt.Run(string(tc.name), func(t *testing.T) {\n\t\t\tdecodeCase(t, &tc, fileDecode(decodeJSONStrict, fileNameJSON))",
+      "lines": 6,
+      "secondFile": {
+        "end": 31,
+        "endLoc": {
+          "column": 33,
+          "line": 31,
+          "position": 755
+        },
+        "name": "codec_toml_test.go",
+        "start": 26,
+        "startLoc": {
+          "column": 33,
+          "line": 26,
+          "position": 637
+        }
+      },
+      "tokens": 43
+    },
+    {
+      "firstFile": {
+        "end": 49,
+        "endLoc": {
+          "column": 33,
+          "line": 49,
+          "position": 1363
+        },
+        "name": "codec_json_test.go",
+        "start": 44,
+        "startLoc": {
+          "column": 37,
+          "line": 44,
+          "position": 1245
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\twantErr: refusalNeed(\"app.json:2:\"),\n\t\t},\n\t}\n\tfor _, tc := range cases {\n\t\tt.Run(string(tc.name), func(t *testing.T) {\n\t\t\tdecodeCase(t, &tc, fileDecode(decodeJSONStrict, fileNameJSON))",
+      "lines": 6,
+      "secondFile": {
+        "end": 34,
+        "endLoc": {
+          "column": 33,
+          "line": 34,
+          "position": 917
+        },
+        "name": "codec_yaml_test.go",
+        "start": 29,
+        "startLoc": {
+          "column": 55,
+          "line": 29,
+          "position": 799
+        }
+      },
+      "tokens": 43
+    },
+    {
+      "firstFile": {
+        "end": 48,
+        "endLoc": {
+          "column": 45,
+          "line": 48,
+          "position": 1329
+        },
+        "name": "codec_json_test.go",
+        "start": 44,
+        "startLoc": {
+          "column": 38,
+          "line": 44,
+          "position": 1246
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\twantErr: refusalNeed(\"app.json:2:\"),\n\t\t},\n\t}\n\tfor _, tc := range cases {\n\t\tt.Run(string(tc.name), func(t *testing.T) {",
+      "lines": 5,
+      "secondFile": {
+        "end": 31,
+        "endLoc": {
+          "column": 45,
+          "line": 31,
+          "position": 771
+        },
+        "name": "defaults_test.go",
+        "start": 26,
+        "startLoc": {
+          "column": 23,
+          "line": 26,
+          "position": 687
+        }
+      },
+      "tokens": 33
+    },
+    {
+      "firstFile": {
+        "end": 48,
+        "endLoc": {
+          "column": 45,
+          "line": 48,
+          "position": 1329
+        },
+        "name": "codec_json_test.go",
+        "start": 44,
+        "startLoc": {
+          "column": 38,
+          "line": 44,
+          "position": 1246
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\twantErr: refusalNeed(\"app.json:2:\"),\n\t\t},\n\t}\n\tfor _, tc := range cases {\n\t\tt.Run(string(tc.name), func(t *testing.T) {",
+      "lines": 5,
+      "secondFile": {
+        "end": 61,
+        "endLoc": {
+          "column": 45,
+          "line": 61,
+          "position": 1610
+        },
+        "name": "refusal_yaml_vocab_test.go",
+        "start": 56,
+        "startLoc": {
+          "column": 44,
+          "line": 56,
+          "position": 1526
+        }
+      },
+      "tokens": 33
+    },
+    {
+      "firstFile": {
+        "end": 153,
+        "endLoc": {
+          "column": 1,
+          "line": 153,
+          "position": 4697
+        },
+        "name": "codec_json_test.go",
+        "start": 150,
+        "startLoc": {
+          "column": 64,
+          "line": 150,
+          "position": 4582
+        }
+      },
+      "format": "go",
+      "fragment": "\tkeys := presentKeysOK(t, fileKeys(presentJSONKeys, fileNameJSON), data)\n\n\tkeysPresent(t, keys, []FieldPath{fpRegion, fpNested, fpNestedHost, fpList}, []FieldPath{fpNestedPort})\n}",
+      "lines": 4,
+      "secondFile": {
+        "end": 45,
+        "endLoc": {
+          "column": 1,
+          "line": 45,
+          "position": 1260
+        },
+        "name": "codec_yaml_test.go",
+        "start": 42,
+        "startLoc": {
+          "column": 64,
+          "line": 42,
+          "position": 1145
+        }
+      },
+      "tokens": 31
+    },
+    {
+      "firstFile": {
+        "end": 82,
+        "endLoc": {
+          "column": 32,
+          "line": 82,
+          "position": 2721
+        },
+        "name": "codec_refusal_test.go",
+        "start": 79,
+        "startLoc": {
+          "column": 26,
+          "line": 79,
+          "position": 2581
+        }
+      },
+      "format": "go",
+      "fragment": "\tfor _, tc := range cases {\n\t\tt.Run(string(tc.name), func(t *testing.T) {\n\t\t\trefusal := decodeExpectingRefusal(t, tc.decode, tc.data)\n\t\t\tassertNoValueEcho(t, refusal, fragments)",
+      "lines": 4,
+      "secondFile": {
+        "end": 83,
+        "endLoc": {
+          "column": 32,
+          "line": 83,
+          "position": 2618
+        },
+        "name": "codec_valuefreedom_test.go",
+        "start": 80,
+        "startLoc": {
+          "column": 37,
+          "line": 80,
+          "position": 2478
+        }
+      },
+      "tokens": 42
+    },
+    {
+      "firstFile": {
+        "end": 109,
+        "endLoc": {
+          "column": 33,
+          "line": 109,
+          "position": 3626
+        },
+        "name": "codec_valuefreedom_test.go",
+        "start": 107,
+        "startLoc": {
+          "column": 51,
+          "line": 107,
+          "position": 3514
+        }
+      },
+      "format": "go",
+      "fragment": "func TestNoValueFragmentSurvivesTheTOMLPresenceWalk(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\t\"\": {fileNameTOML: SourceBytes(\"retries = \" + secretFragment + \"\\n\")},",
+      "lines": 3,
+      "secondFile": {
+        "end": 121,
+        "endLoc": {
+          "column": 33,
+          "line": 121,
+          "position": 3957
+        },
+        "name": "refusal_identity_test.go",
+        "start": 119,
+        "startLoc": {
+          "column": 47,
+          "line": 119,
+          "position": 3845
+        }
+      },
+      "tokens": 32
+    },
+    {
+      "firstFile": {
+        "end": 113,
+        "endLoc": {
+          "column": 65,
+          "line": 113,
+          "position": 3759
+        },
+        "name": "codec_valuefreedom_test.go",
+        "start": 109,
+        "startLoc": {
+          "column": 69,
+          "line": 109,
+          "position": 3662
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\"\": {fileNameTOML: SourceBytes(\"retries = \" + secretFragment + \"\\n\")},\n\t})\n\tt.Chdir(string(root))\n\n\t_, _, err := Load[loadCfg](Spec{Name: configName(\"app\"), Format: FormatTOML},",
+      "lines": 5,
+      "secondFile": {
+        "end": 49,
+        "endLoc": {
+          "column": 65,
+          "line": 49,
+          "position": 1735
+        },
+        "name": "load_format_test.go",
+        "start": 45,
+        "startLoc": {
+          "column": 104,
+          "line": 45,
+          "position": 1638
+        }
+      },
+      "tokens": 37
+    },
+    {
+      "firstFile": {
+        "end": 113,
+        "endLoc": {
+          "column": 65,
+          "line": 113,
+          "position": 3759
+        },
+        "name": "codec_valuefreedom_test.go",
+        "start": 109,
+        "startLoc": {
+          "column": 69,
+          "line": 109,
+          "position": 3662
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\"\": {fileNameTOML: SourceBytes(\"retries = \" + secretFragment + \"\\n\")},\n\t})\n\tt.Chdir(string(root))\n\n\t_, _, err := Load[loadCfg](Spec{Name: configName(\"app\"), Format: FormatTOML},",
+      "lines": 5,
+      "secondFile": {
+        "end": 20,
+        "endLoc": {
+          "column": 65,
+          "line": 20,
+          "position": 594
+        },
+        "name": "refusal_identity_test.go",
+        "start": 16,
+        "startLoc": {
+          "column": 64,
+          "line": 16,
+          "position": 497
+        }
+      },
+      "tokens": 37
+    },
+    {
+      "firstFile": {
+        "end": 116,
+        "endLoc": {
+          "column": 11,
+          "line": 116,
+          "position": 3843
+        },
+        "name": "codec_valuefreedom_test.go",
+        "start": 109,
+        "startLoc": {
+          "column": 69,
+          "line": 109,
+          "position": 3662
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\"\": {fileNameTOML: SourceBytes(\"retries = \" + secretFragment + \"\\n\")},\n\t})\n\tt.Chdir(string(root))\n\n\t_, _, err := Load[loadCfg](Spec{Name: configName(\"app\"), Format: FormatTOML},\n\t\tWithSearchPaths(DirPath(string(root))))\n\tif err == nil {\n\t\tt.Fatalf(\"parse-error TOML must be refused\")",
+      "lines": 8,
+      "secondFile": {
+        "end": 47,
+        "endLoc": {
+          "column": 11,
+          "line": 47,
+          "position": 1536
+        },
+        "name": "refusal_identity_test.go",
+        "start": 40,
+        "startLoc": {
+          "column": 78,
+          "line": 40,
+          "position": 1355
+        }
+      },
+      "tokens": 61
+    },
+    {
+      "firstFile": {
+        "end": 116,
+        "endLoc": {
+          "column": 11,
+          "line": 116,
+          "position": 3843
+        },
+        "name": "codec_valuefreedom_test.go",
+        "start": 109,
+        "startLoc": {
+          "column": 69,
+          "line": 109,
+          "position": 3662
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\"\": {fileNameTOML: SourceBytes(\"retries = \" + secretFragment + \"\\n\")},\n\t})\n\tt.Chdir(string(root))\n\n\t_, _, err := Load[loadCfg](Spec{Name: configName(\"app\"), Format: FormatTOML},\n\t\tWithSearchPaths(DirPath(string(root))))\n\tif err == nil {\n\t\tt.Fatalf(\"parse-error TOML must be refused\")",
+      "lines": 8,
+      "secondFile": {
+        "end": 128,
+        "endLoc": {
+          "column": 11,
+          "line": 128,
+          "position": 4171
+        },
+        "name": "refusal_identity_test.go",
+        "start": 121,
+        "startLoc": {
+          "column": 66,
+          "line": 121,
+          "position": 3990
+        }
+      },
+      "tokens": 61
+    },
+    {
+      "firstFile": {
+        "end": 113,
+        "endLoc": {
+          "column": 65,
+          "line": 113,
+          "position": 3759
+        },
+        "name": "codec_valuefreedom_test.go",
+        "start": 109,
+        "startLoc": {
+          "column": 70,
+          "line": 109,
+          "position": 3663
+        }
+      },
+      "format": "go",
+      "fragment": "\t\t\"\": {fileNameTOML: SourceBytes(\"retries = \" + secretFragment + \"\\n\")},\n\t})\n\tt.Chdir(string(root))\n\n\t_, _, err := Load[loadCfg](Spec{Name: configName(\"app\"), Format: FormatTOML},",
+      "lines": 5,
+      "secondFile": {
+        "end": 146,
+        "endLoc": {
+          "column": 65,
+          "line": 146,
+          "position": 4458
+        },
+        "name": "refusal_prose_test.go",
+        "start": 142,
+        "startLoc": {
+          "column": 51,
+          "line": 142,
+          "position": 4362
+        }
+      },
+      "tokens": 36
+    },
+    {
+      "firstFile": {
+        "end": 33,
+        "endLoc": {
+          "column": 2,
+          "line": 33,
+          "position": 1055
+        },
+        "name": "codec_yaml_alias_test.go",
+        "start": 28,
+        "startLoc": {
+          "column": 66,
+          "line": 28,
+          "position": 933
+        }
+      },
+      "format": "go",
+      "fragment": "\tdata := SourceBytes(\"creds: &c\\n  host: h\\n  port: 1\\nauth: *c\\n\")\n\n\tkeys, err := presentYAMLKeys(data, FilePath(string(fileNameYAML)))\n\tif err != nil {\n\t\tt.Fatalf(\"presence: %v\", err)\n\t}",
+      "lines": 6,
+      "secondFile": {
+        "end": 54,
+        "endLoc": {
+          "column": 2,
+          "line": 54,
+          "position": 1747
+        },
+        "name": "codec_yaml_alias_test.go",
+        "start": 49,
+        "startLoc": {
+          "column": 57,
+          "line": 49,
+          "position": 1625
+        }
+      },
+      "tokens": 33
+    },
+    {
+      "firstFile": {
+        "end": 26,
+        "endLoc": {
+          "column": 42,
+          "line": 26,
+          "position": 779
+        },
+        "name": "defaults_untagged_test.go",
+        "start": 24,
+        "startLoc": {
+          "column": 30,
+          "line": 24,
+          "position": 656
+        }
+      },
+      "format": "go",
+      "fragment": "\t\tt.Run(string(spelling), func(t *testing.T) {\n\t\t\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\t\t\tdirGlobal: {fileNameTOML: SourceBytes(string(spelling) + \" = \\\"wins\\\"\\n\")},",
+      "lines": 3,
+      "secondFile": {
+        "end": 46,
+        "endLoc": {
+          "column": 40,
+          "line": 46,
+          "position": 1496
+        },
+        "name": "defaults_untagged_test.go",
+        "start": 44,
+        "startLoc": {
+          "column": 43,
+          "line": 44,
+          "position": 1377
+        }
+      },
+      "tokens": 32
+    },
+    {
+      "firstFile": {
+        "end": 12,
+        "endLoc": {
+          "column": 22,
+          "line": 12,
+          "position": 325
+        },
+        "name": "discovery_empty_test.go",
+        "start": 10,
+        "startLoc": {
+          "column": 34,
+          "line": 10,
+          "position": 224
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverExtensionBoundary(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirLocal: {FileName(\"apple.json\"): SourceBytes(`{\"region\":\"sibling\"}`)},",
+      "lines": 3,
+      "secondFile": {
+        "end": 13,
+        "endLoc": {
+          "column": 22,
+          "line": 13,
+          "position": 405
+        },
+        "name": "discovery_unknown_test.go",
+        "start": 11,
+        "startLoc": {
+          "column": 51,
+          "line": 11,
+          "position": 304
+        }
+      },
+      "tokens": 30
+    },
+    {
+      "firstFile": {
+        "end": 16,
+        "endLoc": {
+          "column": 62,
+          "line": 16,
+          "position": 480
+        },
+        "name": "discovery_empty_test.go",
+        "start": 12,
+        "startLoc": {
+          "column": 69,
+          "line": 12,
+          "position": 372
+        }
+      },
+      "format": "go",
+      "fragment": "\t\tdirLocal: {FileName(\"apple.json\"): SourceBytes(`{\"region\":\"sibling\"}`)},\n\t})\n\tpaths := legPaths(root, dirLocal)\n\n\t_, err := discover(Discovery{Search: paths, Name: configName(\"app\"), Format: undetermined})",
+      "lines": 5,
+      "secondFile": {
+        "end": 17,
+        "endLoc": {
+          "column": 62,
+          "line": 17,
+          "position": 547
+        },
+        "name": "discovery_unknown_test.go",
+        "start": 13,
+        "startLoc": {
+          "column": 56,
+          "line": 13,
+          "position": 439
+        }
+      },
+      "tokens": 33
+    },
+    {
+      "firstFile": {
+        "end": 30,
+        "endLoc": {
+          "column": 24,
+          "line": 30,
+          "position": 1036
+        },
+        "name": "discovery_empty_test.go",
+        "start": 28,
+        "startLoc": {
+          "column": 29,
+          "line": 28,
+          "position": 931
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverEmptyRefusal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{})\n\tpaths := legPaths(root, dirGlobal, dirLocal)",
+      "lines": 3,
+      "secondFile": {
+        "end": 107,
+        "endLoc": {
+          "column": 24,
+          "line": 107,
+          "position": 3218
+        },
+        "name": "discovery_test.go",
+        "start": 105,
+        "startLoc": {
+          "column": 47,
+          "line": 105,
+          "position": 3113
+        }
+      },
+      "tokens": 34
+    },
+    {
+      "firstFile": {
+        "end": 35,
+        "endLoc": {
+          "column": 2,
+          "line": 35,
+          "position": 1215
+        },
+        "name": "discovery_empty_test.go",
+        "start": 28,
+        "startLoc": {
+          "column": 29,
+          "line": 28,
+          "position": 931
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverEmptyRefusal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{})\n\tpaths := legPaths(root, dirGlobal, dirLocal)\n\n\t_, err := discover(Discovery{Search: paths, Name: configName(\"app\"), Format: FormatJSON})\n\tif err == nil {\n\t\tt.Fatalf(\"empty discovery must be refused\")\n\t}",
+      "lines": 8,
+      "secondFile": {
+        "end": 75,
+        "endLoc": {
+          "column": 2,
+          "line": 75,
+          "position": 2533
+        },
+        "name": "refusal_identity_test.go",
+        "start": 68,
+        "startLoc": {
+          "column": 36,
+          "line": 68,
+          "position": 2249
+        }
+      },
+      "tokens": 76
+    },
+    {
+      "firstFile": {
+        "end": 48,
+        "endLoc": {
+          "column": 58,
+          "line": 48,
+          "position": 1112
+        },
+        "name": "discovery_test.go",
+        "start": 46,
+        "startLoc": {
+          "column": 32,
+          "line": 46,
+          "position": 975
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverGlobalThenLocal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\"}`)},",
+      "lines": 3,
+      "secondFile": {
+        "end": 66,
+        "endLoc": {
+          "column": 58,
+          "line": 66,
+          "position": 1740
+        },
+        "name": "discovery_test.go",
+        "start": 64,
+        "startLoc": {
+          "column": 36,
+          "line": 64,
+          "position": 1603
+        }
+      },
+      "tokens": 40
+    },
+    {
+      "firstFile": {
+        "end": 48,
+        "endLoc": {
+          "column": 42,
+          "line": 48,
+          "position": 1096
+        },
+        "name": "discovery_test.go",
+        "start": 46,
+        "startLoc": {
+          "column": 32,
+          "line": 46,
+          "position": 975
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverGlobalThenLocal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\"}`)},",
+      "lines": 3,
+      "secondFile": {
+        "end": 79,
+        "endLoc": {
+          "column": 42,
+          "line": 79,
+          "position": 2252
+        },
+        "name": "discovery_test.go",
+        "start": 77,
+        "startLoc": {
+          "column": 42,
+          "line": 77,
+          "position": 2131
+        }
+      },
+      "tokens": 34
+    },
+    {
+      "firstFile": {
+        "end": 48,
+        "endLoc": {
+          "column": 55,
+          "line": 48,
+          "position": 1109
+        },
+        "name": "discovery_test.go",
+        "start": 46,
+        "startLoc": {
+          "column": 32,
+          "line": 46,
+          "position": 975
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverGlobalThenLocal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\"}`)},",
+      "lines": 3,
+      "secondFile": {
+        "end": 16,
+        "endLoc": {
+          "column": 55,
+          "line": 16,
+          "position": 426
+        },
+        "name": "load_format_test.go",
+        "start": 14,
+        "startLoc": {
+          "column": 48,
+          "line": 14,
+          "position": 292
+        }
+      },
+      "tokens": 37
+    },
+    {
+      "firstFile": {
+        "end": 49,
+        "endLoc": {
+          "column": 55,
+          "line": 49,
+          "position": 1170
+        },
+        "name": "discovery_test.go",
+        "start": 46,
+        "startLoc": {
+          "column": 32,
+          "line": 46,
+          "position": 975
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverGlobalThenLocal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\"}`)},\n\t\tdirLocal:  {fileNameJSON: SourceBytes(`{\"region\":\"us\"}`)},",
+      "lines": 4,
+      "secondFile": {
+        "end": 31,
+        "endLoc": {
+          "column": 91,
+          "line": 31,
+          "position": 1069
+        },
+        "name": "load_format_test.go",
+        "start": 29,
+        "startLoc": {
+          "column": 41,
+          "line": 29,
+          "position": 899
+        }
+      },
+      "tokens": 54
+    },
+    {
+      "firstFile": {
+        "end": 49,
+        "endLoc": {
+          "column": 58,
+          "line": 49,
+          "position": 1173
+        },
+        "name": "discovery_test.go",
+        "start": 46,
+        "startLoc": {
+          "column": 32,
+          "line": 46,
+          "position": 975
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverGlobalThenLocal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\"}`)},\n\t\tdirLocal:  {fileNameJSON: SourceBytes(`{\"region\":\"us\"}`)},",
+      "lines": 4,
+      "secondFile": {
+        "end": 38,
+        "endLoc": {
+          "column": 14,
+          "line": 38,
+          "position": 1085
+        },
+        "name": "load_test.go",
+        "start": 35,
+        "startLoc": {
+          "column": 34,
+          "line": 35,
+          "position": 900
+        }
+      },
+      "tokens": 57
+    },
+    {
+      "firstFile": {
+        "end": 48,
+        "endLoc": {
+          "column": 56,
+          "line": 48,
+          "position": 1110
+        },
+        "name": "discovery_test.go",
+        "start": 46,
+        "startLoc": {
+          "column": 32,
+          "line": 46,
+          "position": 975
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverGlobalThenLocal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\"}`)},",
+      "lines": 3,
+      "secondFile": {
+        "end": 59,
+        "endLoc": {
+          "column": 56,
+          "line": 59,
+          "position": 1797
+        },
+        "name": "load_test.go",
+        "start": 57,
+        "startLoc": {
+          "column": 37,
+          "line": 57,
+          "position": 1662
+        }
+      },
+      "tokens": 38
+    },
+    {
+      "firstFile": {
+        "end": 48,
+        "endLoc": {
+          "column": 51,
+          "line": 48,
+          "position": 1105
+        },
+        "name": "discovery_test.go",
+        "start": 46,
+        "startLoc": {
+          "column": 32,
+          "line": 46,
+          "position": 975
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverGlobalThenLocal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\"}`)},",
+      "lines": 3,
+      "secondFile": {
+        "end": 72,
+        "endLoc": {
+          "column": 51,
+          "line": 72,
+          "position": 2316
+        },
+        "name": "load_test.go",
+        "start": 70,
+        "startLoc": {
+          "column": 42,
+          "line": 70,
+          "position": 2186
+        }
+      },
+      "tokens": 36
+    },
+    {
+      "firstFile": {
+        "end": 48,
+        "endLoc": {
+          "column": 60,
+          "line": 48,
+          "position": 1114
+        },
+        "name": "discovery_test.go",
+        "start": 46,
+        "startLoc": {
+          "column": 32,
+          "line": 46,
+          "position": 975
+        }
+      },
+      "format": "go",
+      "fragment": "func TestDiscoverGlobalThenLocal(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\"}`)},",
+      "lines": 3,
+      "secondFile": {
+        "end": 117,
+        "endLoc": {
+          "column": 60,
+          "line": 117,
+          "position": 3519
+        },
+        "name": "load_test.go",
+        "start": 115,
+        "startLoc": {
+          "column": 35,
+          "line": 115,
+          "position": 3380
+        }
+      },
+      "tokens": 42
+    },
+    {
+      "firstFile": {
+        "end": 50,
+        "endLoc": {
+          "column": 3,
+          "line": 50,
+          "position": 1179
+        },
+        "name": "discovery_test.go",
+        "start": 47,
+        "startLoc": {
+          "column": 1,
+          "line": 47,
+          "position": 993
+        }
+      },
+      "format": "go",
+      "fragment": "\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\"}`)},\n\t\tdirLocal:  {fileNameJSON: SourceBytes(`{\"region\":\"us\"}`)},\n\t})",
+      "lines": 4,
+      "secondFile": {
+        "end": 20,
+        "endLoc": {
+          "column": 3,
+          "line": 20,
+          "position": 591
+        },
+        "name": "read_failure_test.go",
+        "start": 17,
+        "startLoc": {
+          "column": 1,
+          "line": 17,
+          "position": 405
+        }
+      },
+      "tokens": 53
+    },
+    {
+      "firstFile": {
+        "end": 55,
+        "endLoc": {
+          "column": 17,
+          "line": 55,
+          "position": 1340
+        },
+        "name": "discovery_test.go",
+        "start": 51,
+        "startLoc": {
+          "column": 44,
+          "line": 51,
+          "position": 1224
+        }
+      },
+      "format": "go",
+      "fragment": "\tpaths := legPaths(root, dirGlobal, dirLocal)\n\n\tfound := discoverOK(t, Discovery{Search: paths, Name: configName(\"app\"), Format: FormatJSON})\n\n\tif len(found) != 2 {",
+      "lines": 5,
+      "secondFile": {
+        "end": 134,
+        "endLoc": {
+          "column": 17,
+          "line": 134,
+          "position": 4123
+        },
+        "name": "discovery_test.go",
+        "start": 130,
+        "startLoc": {
+          "column": 33,
+          "line": 130,
+          "position": 4007
+        }
+      },
+      "tokens": 33
+    },
+    {
+      "firstFile": {
+        "end": 72,
+        "endLoc": {
+          "column": 76,
+          "line": 72,
+          "position": 1999
+        },
+        "name": "discovery_test.go",
+        "start": 70,
+        "startLoc": {
+          "column": 92,
+          "line": 70,
+          "position": 1919
+        }
+      },
+      "format": "go",
+      "fragment": "\tfound := discoverOK(t, Discovery{Search: paths, Name: configName(\"app\"), Format: FormatYAML})\n\n\tif len(found) != 1 || found[0].Path != FilePath(filepath.Join(string(root), \"global\", string(fileNameYAML))) {",
+      "lines": 3,
+      "secondFile": {
+        "end": 134,
+        "endLoc": {
+          "column": 76,
+          "line": 134,
+          "position": 4182
+        },
+        "name": "discovery_test.go",
+        "start": 132,
+        "startLoc": {
+          "column": 92,
+          "line": 132,
+          "position": 4102
+        }
+      },
+      "tokens": 31
+    },
+    {
+      "firstFile": {
+        "end": 17,
+        "endLoc": {
+          "column": 2,
+          "line": 17,
+          "position": 465
+        },
+        "name": "load_format_test.go",
+        "start": 15,
+        "startLoc": {
+          "column": 1,
+          "line": 15,
+          "position": 310
+        }
+      },
+      "format": "go",
+      "fragment": "\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\tdirGlobal: {fileNameJSON: SourceBytes(`{\"region\":\"eu\",\"nested\":{\"host\":\"h\",\"port\":1}}`)},\n\t})",
+      "lines": 3,
+      "secondFile": {
+        "end": 32,
+        "endLoc": {
+          "column": 10,
+          "line": 32,
+          "position": 1080
+        },
+        "name": "load_format_test.go",
+        "start": 30,
+        "startLoc": {
+          "column": 1,
+          "line": 30,
+          "position": 917
+        }
+      },
+      "tokens": 46
+    },
+    {
+      "firstFile": {
+        "end": 22,
+        "endLoc": {
+          "column": 10,
+          "line": 22,
+          "position": 612
+        },
+        "name": "load_format_test.go",
+        "start": 20,
+        "startLoc": {
+          "column": 11,
+          "line": 20,
+          "position": 502
+        }
+      },
+      "format": "go",
+      "fragment": "\tgot, prov := loadOK(t, Spec{Name: configName(\"app\"), Format: undetermined}, loadOpts(globalPathOf(root))...)\n\n\tcfgEquals(t, got, loadCfgWant(0, \"eu\", nestedCfgWant(\"h\", 1)))",
+      "lines": 3,
+      "secondFile": {
+        "end": 39,
+        "endLoc": {
+          "column": 72,
+          "line": 39,
+          "position": 1341
+        },
+        "name": "load_format_test.go",
+        "start": 36,
+        "startLoc": {
+          "column": 8,
+          "line": 36,
+          "position": 1167
+        }
+      },
+      "tokens": 31
+    },
+    {
+      "firstFile": {
+        "end": 43,
+        "endLoc": {
+          "column": 74,
+          "line": 43,
+          "position": 1233
+        },
+        "name": "load_test.go",
+        "start": 38,
+        "startLoc": {
+          "column": 55,
+          "line": 38,
+          "position": 1126
+        }
+      },
+      "format": "go",
+      "fragment": "\t\tdirLocal:  {fileNameJSON: SourceBytes(`{\"region\":\"us\"}`)},\n\t})\n\n\tchdirLocal(t, root)\n\n\tgot, prov := loadOK(t, Spec{Name: configName(\"app\"), Format: FormatJSON},",
+      "lines": 6,
+      "secondFile": {
+        "end": 103,
+        "endLoc": {
+          "column": 52,
+          "line": 103,
+          "position": 3111
+        },
+        "name": "load_test.go",
+        "start": 98,
+        "startLoc": {
+          "column": 57,
+          "line": 98,
+          "position": 3003
+        }
+      },
+      "tokens": 36
+    },
+    {
+      "firstFile": {
+        "end": 27,
+        "endLoc": {
+          "column": 2,
+          "line": 27,
+          "position": 259
+        },
+        "name": "policy/fixtures/branching_negative/fixture.go",
+        "start": 3,
+        "startLoc": {
+          "column": 12,
+          "line": 3,
+          "position": 30
+        }
+      },
+      "format": "go",
+      "fragment": "func switchy(x int) int {\n\tif x == 1 {\n\t\treturn 1\n\t}\n\tif x == 2 {\n\t\treturn 2\n\t}\n\tif x == 3 {\n\t\treturn 3\n\t}\n\tif x == 4 {\n\t\treturn 4\n\t}\n\tif x == 5 {\n\t\treturn 5\n\t}\n\tif x == 6 {\n\t\treturn 6\n\t}\n\tif x == 7 {\n\t\treturn 7\n\t}\n\tif x == 8 {\n\t\treturn 8\n\t}",
+      "lines": 25,
+      "secondFile": {
+        "end": 27,
+        "endLoc": {
+          "column": 2,
+          "line": 27,
+          "position": 259
+        },
+        "name": "policy/fixtures/branching_positive/fixture.go",
+        "start": 3,
+        "startLoc": {
+          "column": 12,
+          "line": 3,
+          "position": 30
+        }
+      },
+      "tokens": 78
+    },
+    {
+      "firstFile": {
+        "end": 53,
+        "endLoc": {
+          "column": 22,
+          "line": 53,
+          "position": 2244
+        },
+        "name": "refusal.go",
+        "start": 49,
+        "startLoc": {
+          "column": 57,
+          "line": 49,
+          "position": 2106
+        }
+      },
+      "format": "go",
+      "fragment": "func refuseAt(r Reason, file FilePath, line gorefuse.Line, subject gorefuse.Subject, why gorefuse.Why) error {\n\treturn gorefuse.Because[Reason]{\n\t\tReason: r,\n\t\tCause:  nil,\n\t\tWhat:   gorefuse.At(gorefuse.File(file), line, subject, why),",
+      "lines": 5,
+      "secondFile": {
+        "end": 90,
+        "endLoc": {
+          "column": 22,
+          "line": 90,
+          "position": 3432
+        },
+        "name": "refusal.go",
+        "start": 86,
+        "startLoc": {
+          "column": 23,
+          "line": 86,
+          "position": 3294
+        }
+      },
+      "tokens": 35
+    },
+    {
+      "firstFile": {
+        "end": 16,
+        "endLoc": {
+          "column": 33,
+          "line": 16,
+          "position": 466
+        },
+        "name": "refusal_identity_test.go",
+        "start": 14,
+        "startLoc": {
+          "column": 41,
+          "line": 14,
+          "position": 354
+        }
+      },
+      "format": "go",
+      "fragment": "func TestRefusalCarriesErrThroughErrorsAs(t *testing.T) {\n\troot := writeTree(t, map[searchDir]map[FileName]SourceBytes{\n\t\t\"\": {fileNameJSON: SourceBytes(`{\"region\":\"eu\",\"region\":\"us\"}`)},",
+      "lines": 3,
+      "secondFile": {
+        "end": 40,
+        "endLoc": {
+          "column": 33,
+          "line": 40,
+          "position": 1310
+        },
+        "name": "refusal_identity_test.go",
+        "start": 38,
+        "startLoc": {
+          "column": 37,
+          "line": 38,
+          "position": 1198
+        }
+      },
+      "tokens": 32
+    },
+    {
+      "firstFile": {
+        "end": 29,
+        "endLoc": {
+          "column": 2,
+          "line": 29,
+          "position": 852
+        },
+        "name": "refusal_identity_test.go",
+        "start": 23,
+        "startLoc": {
+          "column": 42,
+          "line": 23,
+          "position": 709
+        }
+      },
+      "format": "go",
+      "fragment": "\t\tt.Fatalf(\"duplicate key must be refused\")\n\t}\n\n\tvar because gorefuse.Because[Reason]\n\tif !errors.As(err, &because) {\n\t\tt.Fatalf(\"refusal %v must be a gorefuse.Because[Reason]\", err)\n\t}",
+      "lines": 7,
+      "secondFile": {
+        "end": 53,
+        "endLoc": {
+          "column": 2,
+          "line": 53,
+          "position": 1710
+        },
+        "name": "refusal_identity_test.go",
+        "start": 47,
+        "startLoc": {
+          "column": 42,
+          "line": 47,
+          "position": 1567
+        }
+      },
+      "tokens": 31
+    },
+    {
+      "firstFile": {
+        "end": 31,
+        "endLoc": {
+          "column": 12,
+          "line": 31,
+          "position": 866
+        },
+        "name": "refusal_identity_test.go",
+        "start": 23,
+        "startLoc": {
+          "column": 42,
+          "line": 23,
+          "position": 709
+        }
+      },
+      "format": "go",
+      "fragment": "\t\tt.Fatalf(\"duplicate key must be refused\")\n\t}\n\n\tvar because gorefuse.Because[Reason]\n\tif !errors.As(err, &because) {\n\t\tt.Fatalf(\"refusal %v must be a gorefuse.Because[Reason]\", err)\n\t}\n\n\tif because.Reason != ErrDuplicateKey || !errors.Is(because.Reason, ErrDuplicateKey) {",
+      "lines": 9,
+      "secondFile": {
+        "end": 82,
+        "endLoc": {
+          "column": 12,
+          "line": 82,
+          "position": 2686
+        },
+        "name": "refusal_identity_test.go",
+        "start": 74,
+        "startLoc": {
+          "column": 44,
+          "line": 74,
+          "position": 2529
+        }
+      },
+      "tokens": 34
+    },
+    {
+      "firstFile": {
+        "end": 31,
+        "endLoc": {
+          "column": 21,
+          "line": 31,
+          "position": 875
+        },
+        "name": "refusal_identity_test.go",
+        "start": 23,
+        "startLoc": {
+          "column": 42,
+          "line": 23,
+          "position": 709
+        }
+      },
+      "format": "go",
+      "fragment": "\t\tt.Fatalf(\"duplicate key must be refused\")\n\t}\n\n\tvar because gorefuse.Because[Reason]\n\tif !errors.As(err, &because) {\n\t\tt.Fatalf(\"refusal %v must be a gorefuse.Because[Reason]\", err)\n\t}\n\n\tif because.Reason != ErrDuplicateKey || !errors.Is(because.Reason, ErrDuplicateKey) {",
+      "lines": 9,
+      "secondFile": {
+        "end": 136,
+        "endLoc": {
+          "column": 21,
+          "line": 136,
+          "position": 4373
+        },
+        "name": "refusal_identity_test.go",
+        "start": 128,
+        "startLoc": {
+          "column": 47,
+          "line": 128,
+          "position": 4207
+        }
+      },
+      "tokens": 37
+    },
+    {
+      "firstFile": {
+        "end": 46,
+        "endLoc": {
+          "column": 11,
+          "line": 46,
+          "position": 1438
+        },
+        "name": "refusal_io_test.go",
+        "start": 41,
+        "startLoc": {
+          "column": 61,
+          "line": 41,
+          "position": 1339
+        }
+      },
+      "format": "go",
+      "fragment": "func assertReasonIO(t *testing.T, err error, context caseName) {\n\tt.Helper()\n\n\tbecause, ok := errors.AsType[gorefuse.Because[Reason]](err)\n\tif !ok {\n\t\tt.Fatalf(\"%s: refusal %v must be a gorefuse.Because[Reason]\", context, err)",
+      "lines": 6,
+      "secondFile": {
+        "end": 29,
+        "endLoc": {
+          "column": 11,
+          "line": 29,
+          "position": 607
+        },
+        "name": "refusal_yaml_vocab_test.go",
+        "start": 24,
+        "startLoc": {
+          "column": 63,
+          "line": 24,
+          "position": 508
+        }
+      },
+      "tokens": 34
+    }
+  ],
+  "statistics": {
+    "detectionDate": "2026-11-08T13:31:55.032Z",
+    "formats": {
+      "go": {
+        "clones": 42,
+        "duplicatedLines": 183,
+        "duplicatedTokens": 1672,
+        "lines": 5010,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 3.6526946107784433,
+        "percentageTokens": 6.877828054298643,
+        "sources": 57,
+        "tokens": 24310
+      }
+    },
+    "total": {
+      "clones": 42,
+      "duplicatedLines": 183,
+      "duplicatedTokens": 1672,
+      "lines": 5010,
+      "newClones": 0,
+      "newDuplicatedLines": 0,
+      "percentage": 3.6526946107784433,
+      "percentageTokens": 6.877828054298643,
+      "sources": 57,
+      "tokens": 24310
+    }
+  }
+}

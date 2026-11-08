@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 
 	"github.com/adambarber/gorefuse"
@@ -45,9 +46,8 @@ func jsonErr(data SourceBytes, file FilePath, err error) error {
 	case errors.As(err, &typeErr):
 		line := lineAtByte(data, typeErr.Offset)
 
-		return refuseAt(ErrTypeMismatch, file, gorefuse.Line(line),
-			valueShapeSubject(goTypeName(typeErr.Value), goTypeName(typeErr.Type.String())),
-			valueShapeWhy(goTypeName(typeErr.Type.String())))
+		return typeMismatchRefusal(file, line, ObjectKey(typeErr.Field),
+			jsonWantKind(typeErr.Type), jsonFoundTerm(goTypeName(typeErr.Value)))
 	case unknown:
 		line := jsonKeyLine(data, key)
 
@@ -68,40 +68,39 @@ type goTypeName string
 // userTerm is the user's word for one value shape.
 type userTerm string
 
-// valueShapeSubject renders the user's value shape against what the app
-// expects: "expected a number, found text", never the Go type. The
-// Reason renders "type mismatch"; the subject must not repeat it.
-func valueShapeSubject(found, want goTypeName) gorefuse.Subject {
-	return gorefuse.Subject("expected " + string(goTypeToUserTerm(want)) + ", found " + string(goTypeToUserTerm(found)))
+// jsonWantKind maps one reported Go type to the shared value kind the
+// type-mismatch refusal names: the kind comes from reflect, so defined
+// types (type port int) classify as their base kind.
+func jsonWantKind(t reflect.Type) valueKind {
+	return kindOf(t)
 }
 
-// valueShapeWhy is the one-action fix for a type mismatch.
-func valueShapeWhy(want goTypeName) gorefuse.Why {
-	return gorefuse.Why("change the value to " + string(goTypeToUserTerm(want)) + ".")
+// jsonFoundTerm maps one reported found-value word ("string", "number",
+// "array", "bool", "object") to the user's term; the word can carry the
+// scalar itself ("number 1.5"), so only the first word is classified.
+func jsonFoundTerm(v goTypeName) userTerm {
+	word, _, _ := strings.Cut(string(v), " ")
+
+	return kindUserTerm(jsonWordKind(kindWord(word)))
 }
 
-// goTypeToUserTerm maps one Go type spelling to the user's word for it.
-// Every returned term is self-articulated ("a number", "text").
-func goTypeToUserTerm(t goTypeName) userTerm {
-	switch t {
-	case "string", "text":
-		return "text"
-	case "int", "int8", "int16", "int32", "int64",
-		"uint", "uint8", "uint16", "uint32", "uint64",
-		"float32", "float64", "number":
-		return "a number"
-	case "bool", "boolean":
-		return "true or false"
-	case "[]interface {}", "array":
-		return "a list"
-	case "map[string]interface {}", "object":
-		return "a table"
+// kindWord is one decoder's word for a value kind under classification.
+type kindWord string
+
+// jsonWordKind maps one reported found-value word to the shared value
+// kind; an unrecognized word falls to the table kind.
+func jsonWordKind(word kindWord) valueKind {
+	switch word {
+	case "string":
+		return kindString
+	case "number":
+		return kindFloat
+	case "bool":
+		return kindBool
+	case "array":
+		return kindList
 	default:
-		if strings.Contains(string(t), ".") {
-			return "a value of the app's own shape"
-		}
-
-		return "a " + userTerm(t)
+		return kindTable
 	}
 }
 

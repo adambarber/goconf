@@ -52,7 +52,10 @@ in decode and in the presence walk alike.
 The rendered text reads as one sentence: the `file:line` frame (when a
 file was refused), the reason, what was refused, and the fix. The text
 speaks to the config file's author: the file's objects, the value's
-shape, one labeling of the fault, and one fix. A refusal raised before
+shape, one labeling of the fault, and one fix. A type-mismatch refusal
+names the key and the user's value-shape ("the value of "port" is text,
+not a whole number"), synthesized from the target field's declared kind —
+never a Go type name. A refusal raised before
 any file exists — nothing found, ambiguous candidates, an invented
 format, an escaping config name, a bad default — carries no frame and
 never fabricates one.

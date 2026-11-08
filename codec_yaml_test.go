@@ -26,7 +26,7 @@ func TestDecodeYAMLStrict(t *testing.T) {
 			name:    "type error names the line",
 			data:    SourceBytes("region: eu\nretries: many\n"),
 			want:    zeroCodecWant(),
-			wantErr: refusalNeed("expected a number, found text"),
+			wantErr: refusalNeed(`the value of "retries" is text, not a whole number`),
 		},
 	}
 	for _, tc := range cases {

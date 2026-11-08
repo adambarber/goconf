@@ -28,9 +28,8 @@ func tomlDecodeRefusal(file FilePath, err error) error {
 	msg := tomlMessage(err.Error())
 
 	if msg.has("incompatible types:") || msg.has("type mismatch for ") {
-		return refuseAt(ErrTypeMismatch, file, gorefuse.Line(msg.line()),
-			gorefuse.Subject("expected a number, found text"),
-			gorefuse.Why("change the value of "+msg.key()+" to a number."))
+		return typeMismatchRefusal(file, msg.line(), ObjectKey(msg.key().unquote()),
+			tomlWantKind(msg), tomlFoundTerm(msg))
 	}
 
 	return tomlRefusal(file, err)
@@ -62,6 +61,67 @@ func (m tomlMessage) line() int {
 
 	return 0
 }
+
+// tomlWantKind maps one message's "destination has type T" clause to the
+// shared value kind; the "expected table but found" shape already names
+// a table, and any unrecognized destination falls to the table kind.
+func tomlWantKind(m tomlMessage) valueKind {
+	_, rest, ok := strings.Cut(string(m), "destination has type ")
+	if !ok {
+		return kindTable
+	}
+
+	word, _, _ := strings.Cut(rest, " ")
+	word = strings.TrimSuffix(word, ".")
+
+	return tomlWordKind(kindWord(word))
+}
+
+// tomlWordKind maps one "destination has type" word to the shared value
+// kind; an unrecognized word falls to the table kind.
+func tomlWordKind(word kindWord) valueKind {
+	switch word {
+	case "integer":
+		return kindInt
+	case "float":
+		return kindFloat
+	case tomlWordString:
+		return kindString
+	case "boolean":
+		return kindBool
+	default:
+		return kindTable
+	}
+}
+
+// tomlFoundTerm maps one message's "TOML value has type T" clause to the
+// user's term; empty when the message names none.
+func tomlFoundTerm(m tomlMessage) userTerm {
+	_, rest, ok := strings.Cut(string(m), "TOML value has type ")
+	if !ok {
+		return ""
+	}
+
+	word, _, _ := strings.Cut(rest, ";")
+	word = strings.TrimSpace(word)
+
+	switch word {
+	case tomlWordString:
+		return kindUserTerm(kindString)
+	case "integer", "int64":
+		return kindUserTerm(kindInt)
+	case "float", "float64":
+		return kindUserTerm(kindFloat)
+	case "boolean":
+		return kindUserTerm(kindBool)
+	default:
+		return ""
+	}
+}
+
+// tomlWordString is BurntSushi's spelling of the string type in both
+// type-clause shapes.
+const tomlWordString = "string"
 
 // tomlRefusal rewrites one BurntSushi parse refusal as the
 // ErrDecoderRefused carrier: the stripped detail survives as the cause.

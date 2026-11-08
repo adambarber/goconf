@@ -20,14 +20,14 @@ func goldenVocabCases() []proseCase {
 			name:     "json type mismatch",
 			format:   FormatJSON,
 			body:     SourceBytes(`{"retries": "not-a-number"}`),
-			contains: []userSpan{typeMismatchSpan, expectedNumberFound, "change the value to a number"},
+			contains: []userSpan{typeMismatchSpan, typeMismatchKeySpan, expectedNumberFound, mismatchFixRetries},
 			excludes: bannedVocab{"for a field of type"},
 		},
 		{
 			name:     "yaml type mismatch",
 			format:   FormatYAML,
 			body:     SourceBytes("retries: not-a-number\n"),
-			contains: []userSpan{typeMismatchSpan, expectedNumberFound},
+			contains: []userSpan{typeMismatchSpan, typeMismatchKeySpan, expectedNumberFound, mismatchFixRetries},
 			excludes: bannedVocab{"!!str", "unmarshal errors", "cannot unmarshal"},
 		},
 		{
@@ -36,8 +36,9 @@ func goldenVocabCases() []proseCase {
 			body:   SourceBytes("retries = \"abc\"\n"),
 			contains: []userSpan{
 				typeMismatchSpan,
-				`"retries"`,
+				typeMismatchKeySpan,
 				expectedNumberFound,
+				mismatchFixRetries,
 			},
 			excludes: bannedVocab{"destination has type", "incompatible types", banDecoderReported},
 		},

@@ -2,6 +2,7 @@ package goconf
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -33,3 +34,9 @@ type spanText string
 
 // keyQuoted is one key rendered in quotes inside a refusal.
 type keyQuoted string
+
+// unquotedKey is one key with its rendering quotes stripped.
+type unquotedKey string
+
+// unquote strips the rendering quotes from one quoted key.
+func (k keyQuoted) unquote() unquotedKey { return unquotedKey(strings.Trim(string(k), `"`)) }

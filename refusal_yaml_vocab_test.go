@@ -53,7 +53,7 @@ func TestYAMLUnknownFieldAndTypeMismatchCarryTheSharedVocabulary(t *testing.T) {
 			name:     "yaml type mismatch",
 			data:     SourceBytes("retries: not-a-number\n"),
 			want:     ErrTypeMismatch,
-			fragment: "expected a number, found text",
+			fragment: `the value of "retries" is text, not a whole number`,
 		},
 	}
 

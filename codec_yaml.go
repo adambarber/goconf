@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/adambarber/gorefuse"
@@ -18,7 +19,7 @@ func decodeYAMLStrict(data SourceBytes, file FilePath, dst Target) error {
 	dec.KnownFields(true)
 
 	if err := dec.Decode(dst.Value.Addr().Interface()); err != nil {
-		return yamlDecodeRefusal(file, err)
+		return yamlDecodeRefusal(data, file, dst.Value.Type(), err)
 	}
 
 	var extra yaml.Node
@@ -37,7 +38,7 @@ const yamlUnknownFieldTail = " not found in type "
 // yamlDecodeRefusal classifies one yaml.v3 decode error: all-unknown-field
 // TypeError → ErrUnknownField, other TypeError → ErrTypeMismatch,
 // scanner/parser faults → ErrDecoderRefused; detail survives as the cause.
-func yamlDecodeRefusal(file FilePath, err error) error {
+func yamlDecodeRefusal(data SourceBytes, file FilePath, target reflect.Type, err error) error {
 	typeErr, ok := errors.AsType[*yaml.TypeError](err)
 	if ok {
 		r := yamlTypeReason(typeErr)
@@ -51,13 +52,23 @@ func yamlDecodeRefusal(file FilePath, err error) error {
 					gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
 			}
 
-			return refuseAt(ErrTypeMismatch, file, gorefuse.Line(yamlTypeLine(typeErr)),
-				gorefuse.Subject("expected a number, found text"),
-				gorefuse.Why("change the value to a number."))
+			return yamlTypeMismatchRefusal(data, file, target, typeErr)
 		}
 	}
 
 	return decodeRefusal(file, errValueFree(err))
+}
+
+// yamlTypeMismatchRefusal builds the type-mismatch refusal from one
+// TypeError: the key at the offending line comes from re-parsing the
+// document nodes, the expected kind from the target field's reflect kind.
+func yamlTypeMismatchRefusal(data SourceBytes, file FilePath, target reflect.Type, typeErr *yaml.TypeError) error {
+	line := yamlTypeLine(typeErr)
+
+	key := yamlKeyAtLine(data, line)
+
+	return typeMismatchRefusal(file, line, key,
+		yamlWantKind(target, key), yamlFoundTerm(yamlIssues(typeErr.Errors)))
 }
 
 // yamlTypeLine is the first line any of the TypeError's issues names; 0
