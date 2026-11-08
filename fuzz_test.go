@@ -9,6 +9,26 @@ import (
 // fragment of it into rendered error text.
 const fuzzSentinel = "sk-live-9f8e7d6c"
 
+// inValuePosition reports whether the marker occurs in the input only
+// as a value, never inside a key: on the marker's line, a `:` or `=`
+// key delimiter must precede it. The oracle asserts only then.
+func inValuePosition(data []byte) bool {
+	for line := range strings.SplitSeq(string(data), "\n") {
+		at := strings.Index(line, fuzzSentinel)
+		if at < 0 {
+			continue
+		}
+
+		delim := strings.IndexAny(line, ":=")
+
+		if delim < 0 || delim > at {
+			return false
+		}
+	}
+
+	return true
+}
+
 // FuzzLoad drives arbitrary bytes through the real Load path. Every input
 // runs through all three formats — one fuzz target, each mutation exercises
 // each format's decode and refusal paths.
@@ -52,10 +72,11 @@ func FuzzLoad(f *testing.F) {
 			_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: format},
 				WithSearchPaths(DirPath(dir)))
 
-			// no panic holds by construction; value-freedom: a refusal
-			// may not echo the marker. no-partial-state is covered by
-			// the TestLoad* suite, not re-asserted here.
-			if err != nil && strings.Contains(string(data), fuzzSentinel) &&
+			// no panic holds by construction. value-freedom asserts only
+			// for value-position markers; a key names itself by contract.
+			// no-partial-state is covered by the TestLoad* suite.
+			if err != nil && inValuePosition(data) &&
+				strings.Contains(string(data), fuzzSentinel) &&
 				strings.Contains(err.Error(), fuzzSentinel) {
 				t.Fatalf("refusal echoed the sentinel: %v", err)
 			}
