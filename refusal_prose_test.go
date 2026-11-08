@@ -118,9 +118,9 @@ func goldenShapeCases() []proseCase {
 			body:   SourceBytes("{\n  \"region\": \"eu\",\n  \"region\": \"us\"\n}\n"),
 			contains: []userSpan{
 				`duplicate key: "region"`,
-				`remove the second "region"; the last one would win silently`,
+				`delete one of the two "region" lines`,
 			},
-			excludes: bannedVocab{"last-win:", "re-declared in the same object"},
+			excludes: bannedVocab{"last-win:", "win silently", "re-declared in the same object"},
 		},
 	}
 }
