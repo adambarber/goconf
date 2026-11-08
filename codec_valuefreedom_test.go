@@ -7,9 +7,7 @@ import (
 )
 
 // secretFragment is a secret-shaped scalar planted in error positions.
-//
-//nolint:gosec // fixture shape a decoder would echo, not a credential
-const secretFragment = "SE-CRET-VALUE"
+const secretFragment = "zzq-secret-marker-8842"
 
 // keyIsSafe is a key-name refusal that legitimately quotes keys: the
 // strip pass must not mangle these.
@@ -76,7 +74,7 @@ func TestNoValueFragmentSurvivesAnyRefusal(t *testing.T) {
 	for _, tc := range valueFreeCases() {
 		t.Run(string(tc.name), func(t *testing.T) {
 			refusal := decodeExpectingRefusal(t, tc.decode, tc.data)
-			assertNoValueEcho(t, refusal, echoFragments{secretFragment, "SE-CRET", "CRET-VAL"})
+			assertNoValueEcho(t, refusal, echoFragments{secretFragment, "zzq", "marker-8842"})
 		})
 	}
 }
@@ -95,4 +93,23 @@ func TestKeyNamingRefusalsStillQuoteKeys(t *testing.T) {
 	if !strings.Contains(err.Error(), keyIsSafe) {
 		t.Fatalf("key-naming refusal must keep the quoted key, got %q", err)
 	}
+}
+
+// TestNoValueFragmentSurvivesTheTOMLPresenceWalk pins the presence-walk
+// half of the invariant: presentTOMLKeys runs before decode, so its parse
+// errors must be sanitized like the decode path's.
+func TestNoValueFragmentSurvivesTheTOMLPresenceWalk(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		"": {fileNameTOML: SourceBytes("retries = " + secretFragment + "\n")},
+	})
+	t.Chdir(string(root))
+
+	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatTOML},
+		WithSearchPaths(DirPath(string(root))))
+	if err == nil {
+		t.Fatalf("parse-error TOML must be refused")
+	}
+
+	refusal := refusalText(err.Error())
+	assertNoValueEcho(t, refusal, echoFragments{secretFragment, "zzq", "marker-8842"})
 }

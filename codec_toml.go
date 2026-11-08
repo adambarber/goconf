@@ -79,7 +79,7 @@ func presentTOMLKeys(data SourceBytes, file FilePath, t reflect.Type) (KeySet, e
 
 	md, err := toml.NewDecoder(bytes.NewReader(data)).Decode(&raw)
 	if err != nil {
-		return keys, tomlRefusal(file, err)
+		return keys, tomlRefusal(file, errTOMLValueFree(err))
 	}
 
 	for _, k := range md.Keys() {

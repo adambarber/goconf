@@ -7,10 +7,10 @@ import (
 )
 
 // errTOMLValueFree rewrites a BurntSushi error so no scalar value
-// fragment survives; only ParseError renders values. Identity moves to
-// the Reason at the refusal boundary; this cause stays detail-only.
+// fragment survives; only ParseError renders values. Match the value
+// type: parse() recovers ParseError from a panic by value.
 func errTOMLValueFree(err error) error {
-	var perr *toml.ParseError
+	var perr toml.ParseError
 
 	if !errors.As(err, &perr) {
 		return err
