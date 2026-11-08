@@ -55,9 +55,7 @@ func discover(d Discovery) ([]FoundFile, error) {
 	}
 
 	if len(found) == 0 {
-		return nil, refuseWhy(ErrNothingFound,
-			gorefuse.Subject("a file named \""+string(d.Name)+"\" with an extension some format spells"),
-			gorefuse.Why("no candidate was found in any of the searched paths: "+string(renderPaths(d.Search))+"; create the file or widen the search."))
+		return nil, nothingFoundRefusal(d)
 	}
 
 	return found, nil
