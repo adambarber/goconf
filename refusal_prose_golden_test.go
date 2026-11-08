@@ -33,7 +33,7 @@ const (
 )
 
 // proseCase is one refusal shape rendered through Load and judged.
-type proseCase struct { //nolint:govet // the golden case list reads better field-first
+type proseCase struct {
 	contains []userSpan
 	excludes bannedVocab
 	body     SourceBytes

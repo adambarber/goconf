@@ -74,10 +74,10 @@ func walkYAMLNode(keys *KeySet, prefix FieldPath, node *yaml.Node) {
 
 // shapeUserTerm is the user's word for one document node's shape.
 func shapeUserTerm(node *yaml.Node) userTerm {
-	switch node.Kind { //nolint:exhaustive // any other node kind renders as a table
-	case yaml.SequenceNode:
+	switch {
+	case node.Kind == yaml.SequenceNode:
 		return kindUserTerm(kindList)
-	case yaml.ScalarNode:
+	case node.Kind == yaml.ScalarNode:
 		return kindUserTerm(kindString)
 	default:
 		return kindUserTerm(kindTable)

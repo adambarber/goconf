@@ -84,7 +84,7 @@ func main() {
 	}
 
 	defer func() {
-		_ = os.RemoveAll(dir) //nolint:errcheck // probe cleanup
+		_ = os.RemoveAll(dir)
 	}()
 
 	root := dirPath(dir)
@@ -108,7 +108,7 @@ func run(dir dirPath, tc probeCase) {
 
 	show(tc.name, err)
 
-	_ = os.Remove(path) //nolint:errcheck // probe cleanup
+	_ = os.Remove(path)
 }
 
 // show renders one refusal for inspection.

@@ -4,8 +4,6 @@ import "github.com/adambarber/gorefuse"
 
 // Reason is why goconf refused a load: one domain-typed identity a caller
 // extracts with errors.As into gorefuse.Because[Reason].
-//
-//nolint:errname // a Reason is a named refusal identity, not a sentinel error
 type Reason string
 
 // Error makes every Reason an error, so a caller can errors.Is one

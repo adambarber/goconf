@@ -138,6 +138,9 @@ linters:
     errcheck:
       check-blank: true
       check-type-assertions: true
+      exclude-functions:
+        - os.Remove   # test/probe cleanup of files the test itself created; a failed removal cannot change a verdict
+        - os.RemoveAll   # same, for the scratch trees
     govet:
       enable-all: true
     staticcheck:
@@ -210,6 +213,7 @@ linters:
         - stdlib.Error
         - ast.Expr
         - generic   # Load[T any] returns the caller's concrete T; the generic-result rule is the library's whole contract
+        - reflect\.Type   # the domain value of the key-walk helpers; named-kind, not an app interface
     interfacebloat:
       max: 5
     dogsled:
@@ -235,6 +239,12 @@ linters:
       - path: (load|options)\.go$
         linters:
           - forbidigo   # the sanctioned `any` lives in type-parameter constraint positions: Load[T any], WithDefaults[T any]
+      - path: refusal\.go$
+        linters:
+          - errname   # Reason constants are reason identities (Err-prefixed per convention); the TYPE Reason is a domain word, not a sentinel
+      - path: refusal_prose_golden_test\.go$
+        linters:
+          - govet   # fieldfirst: the golden case list reads field-first; the order is the test's vocabulary
       - path: policy/fixtures/.*_positive/.*\.go
         linters:
           - forbidigo   # the no_untyped_value positive fixture must spell `any` to prove the rule bites
@@ -243,6 +253,7 @@ linters:
           - godot
           - ineffassign
           - mnd
+          - nolintlint   # the no_lint_bypass positive fixture must carry a //nolint to prove the rule bites
           - unused
           - wsl_v5
           - cyclop

@@ -91,6 +91,17 @@ rule no_clones {
     why      = "a clone is one decision written twice, and they drift the first time one of them changes"
 }
 
+rule no_lint_bypass {
+    match    = comment(contains: "nolint")
+    lang     = go
+    severity = error
+    why      = "a lint rule switched off in a comment is a standard that is not enforced"
+    fix      = "delete the directive and fix the code"
+    owner    = "platform"
+    positive = { file = "policy/fixtures/no_lint_bypass_positive/fixture.go", expects = finding(rule: "no_lint_bypass", marker: "nolint"), count = 1 }
+    negative = { file = "policy/fixtures/no_lint_bypass_negative/fixture.go", expects = no_finding }
+}
+
 # Doors: every gate a passing commit must survive is declared here, so the
 # policy is the single ledger of what the commit path runs. The engine's
 # verify pass covers the rules above; the doors below are the rest.

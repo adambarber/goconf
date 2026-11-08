@@ -6,12 +6,12 @@ import (
 	"testing"
 )
 
-// secretShape and secretShort are the two value shapes yaml's terror
+// liveShape and secretShort are the two value shapes yaml's terror
 // echoes: a long scalar truncated to its first seven characters, and a
 // short scalar echoed whole. Both are fake fixture shapes, not secrets.
 const (
-	//nolint:gosec // fixture shape a third-party decoder would echo, not a credential
-	secretShape = "sk-live-9f8e7d6c"
+	// fixture shape a third-party decoder would echo, not a credential.
+	liveShape   = "sk-live-9f8e7d6c"
 	secretShort = "abcdefg"
 )
 
@@ -31,12 +31,12 @@ type (
 func TestRefusalNeverEchoesValues(t *testing.T) {
 	// yaml truncates a long scalar to its first seven characters; the
 	// truncation itself is also a fragment of the secret.
-	fragments := echoFragments{secretShape, secretShort, "sk-live"}
+	fragments := echoFragments{liveShape, secretShort, "sk-live"}
 
 	cases := []echoCase{
 		{
 			name:   "yaml long value fragment",
-			data:   SourceBytes("region: eu\nretries: " + secretShape + "\n"),
+			data:   SourceBytes("region: eu\nretries: " + liveShape + "\n"),
 			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
@@ -46,7 +46,7 @@ func TestRefusalNeverEchoesValues(t *testing.T) {
 		},
 		{
 			name:   "yaml nested value fragment",
-			data:   SourceBytes("nested:\n  port: " + secretShape + "\n"),
+			data:   SourceBytes("nested:\n  port: " + liveShape + "\n"),
 			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
@@ -66,12 +66,12 @@ func TestRefusalNeverEchoesValues(t *testing.T) {
 		},
 		{
 			name:   "json wrong-typed value",
-			data:   SourceBytes(`{"region": "eu", "retries": "` + secretShape + `"}` + "\n"),
+			data:   SourceBytes(`{"region": "eu", "retries": "` + liveShape + `"}` + "\n"),
 			decode: fileDecode(decodeJSONStrict, fileNameJSON),
 		},
 		{
 			name:   "toml wrong-typed value",
-			data:   SourceBytes("region = \"eu\"\nretries = \"" + secretShape + "\"\n"),
+			data:   SourceBytes("region = \"eu\"\nretries = \"" + liveShape + "\"\n"),
 			decode: fileDecode(decodeTOMLStrict, fileNameTOML),
 		},
 	}

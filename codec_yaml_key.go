@@ -2,6 +2,7 @@ package goconf
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -87,7 +88,7 @@ func yamlWantKind(target reflect.Type, key ObjectKey) valueKind {
 }
 
 // derefType strips pointer indirection from one target type.
-func derefType(t *reflect.Type) reflect.Type { //nolint:ireturn // reflect.Type is the domain value here
+func derefType(t *reflect.Type) reflect.Type {
 	for *t != nil && (*t).Kind() == reflect.Pointer {
 		elem := (*t).Elem()
 
@@ -122,13 +123,10 @@ func kindOf(t reflect.Type) valueKind {
 
 // isIntKind reports whether one reflect type's kind is integral.
 func isIntKind(t reflect.Type) bool {
-	switch t.Kind() { //nolint:exhaustive // the integral kinds only
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return true
-	default:
-		return false
-	}
+	return slices.Contains([]reflect.Kind{
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+	}, t.Kind())
 }
 
 // yamlFoundTerm maps one TypeError's echoed tag ("!!str", "!!seq") to

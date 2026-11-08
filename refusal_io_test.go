@@ -78,7 +78,9 @@ func TestIOFaultsThroughLoadCarryReasonIO(t *testing.T) {
 		t.Fatalf("chmod: %v", err)
 	}
 
-	defer os.Remove(unlistable) //nolint:errcheck // test cleanup of a 000-mode dir
+	defer func() {
+		_ = os.Remove(unlistable)
+	}()
 
 	_, err := discover(Discovery{Search: []DirPath{DirPath(unlistable)}, Name: configName("app"), Format: FormatJSON})
 	if err == nil {
