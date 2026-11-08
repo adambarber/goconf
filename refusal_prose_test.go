@@ -93,6 +93,13 @@ func goldenSyntaxCases() []proseCase {
 func goldenShapeCases() []proseCase {
 	return []proseCase{
 		{
+			name:     "json root array",
+			format:   FormatJSON,
+			body:     SourceBytes("[1,2,3]"),
+			contains: []userSpan{typeMismatchSpan, "the value is a list, not a table", "change the value to a table"},
+			excludes: bannedVocab{"main.", "Config", "Go struct", "of type"},
+		},
+		{
 			name:   "yaml not a mapping",
 			format: FormatYAML,
 			body:   SourceBytes("- a\n- b\n"),
