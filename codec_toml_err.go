@@ -28,22 +28,42 @@ const tomlLastKeyHead = `(last key "`
 const tomlLastKeyTail = `")`
 
 // stripTOMLQuotedSpans removes every double-quoted span of one message
-// except the key in the library's '(last key "K")' parenthetical — that
-// quoting is the library's own — and drops a dangling empty one.
+// except the key in the library's '(last key "K")' parenthetical; an
+// ambiguous key shape drops the parenthetical entirely.
 func stripTOMLQuotedSpans(msg tomlMessage) tomlMessage {
 	head, rest, ok := strings.Cut(string(msg), tomlLastKeyHead)
 	if !ok {
 		return tomlMessage(stripQuotedSpans(refusalText(msg), '"'))
 	}
 
-	key, tail, _ := strings.Cut(rest, tomlLastKeyTail)
-	if strings.Contains(key, `"`) {
-		return tomlMessage(stripQuotedSpans(refusalText(msg), '"'))
+	key, tail, found := cutKey(tomlMessage(rest))
+	if !found || strings.Contains(string(key), `"`) {
+		return tomlMessage(head + string(stripQuotedSpans(refusalText(rest), '"')))
 	}
 
 	stripped := stripQuotedSpans(refusalText(tail), '"')
 
-	return tomlMessage(head + tomlLastKeyHead + key + tomlLastKeyTail + string(stripped))
+	return tomlMessage(head + tomlLastKeyHead + string(key) + tomlLastKeyTail + string(stripped))
+}
+
+// cutKey cuts one quoted key at the library's closing parenthetical,
+// escape-aware: a backslash-escaped quote inside the key is content, not
+// the closing quote.
+func cutKey(rest tomlMessage) (keyQuoted, tomlMessage, bool) {
+	for i := 0; i < len(rest); i++ {
+		if rest[i] == '\\' && i+1 < len(rest) {
+			i++
+			continue
+		}
+
+		if strings.HasPrefix(string(rest[i:]), tomlLastKeyTail) {
+			tail := rest[i+len(tomlLastKeyTail):]
+
+			return keyQuoted(rest[:i]), tail, true
+		}
+	}
+
+	return "", "", false
 }
 
 // tomlMessage is one BurntSushi parse refusal under rewrite.
