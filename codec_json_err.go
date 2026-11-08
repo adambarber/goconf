@@ -46,6 +46,12 @@ func jsonErr(data SourceBytes, file FilePath, err error) error {
 	case errors.As(err, &typeErr):
 		line := lineAtByte(data, typeErr.Offset)
 
+		// A mismatch at the document root means the file does not hold
+		// name: value pairs at all — the same fault YAML names ErrNotAMapping.
+		if typeErr.Field == "" {
+			return jsonRootShapeRefusal(file, line, goTypeName(typeErr.Value))
+		}
+
 		return typeMismatchRefusal(file, line, ObjectKey(typeErr.Field),
 			jsonWantKind(typeErr.Type), jsonFoundTerm(goTypeName(typeErr.Value)))
 	case unknown:

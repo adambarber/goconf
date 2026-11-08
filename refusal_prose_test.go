@@ -96,8 +96,8 @@ func goldenShapeCases() []proseCase {
 			name:     "json root array",
 			format:   FormatJSON,
 			body:     SourceBytes("[1,2,3]"),
-			contains: []userSpan{typeMismatchSpan, "the value is a list, not a table", "change the value to a table"},
-			excludes: bannedVocab{"main.", "Config", "Go struct", "of type"},
+			contains: []userSpan{"not a mapping", "the file holds a list, but settings must be name: value pairs", `start each setting on its own line as "name: value"`},
+			excludes: bannedVocab{"main.", "Config", "Go struct", "of type", "type mismatch"},
 		},
 		{
 			name:   "yaml not a mapping",
