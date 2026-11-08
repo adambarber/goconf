@@ -15,6 +15,15 @@ type nestedCfg struct {
 // caseName is the name of one test case.
 type caseName string
 
+// listTagCfg is one target declaring a list field; the shape TOML's slice
+// destination must classify as a list.
+type listTagCfg struct {
+	Tags []tagWord `toml:"tags"`
+}
+
+// tagWord is one element of a list config field.
+type tagWord string
+
 // refusalNeed is a fragment an expected refusal must contain.
 type refusalNeed string
 

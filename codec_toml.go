@@ -78,8 +78,13 @@ func tomlWantKind(m tomlMessage) valueKind {
 }
 
 // tomlWordKind maps one "destination has type" word to the shared value
-// kind; an unrecognized word falls to the table kind.
+// kind; an unrecognized word falls to the table kind. BurntSushi spells the
+// list destination "slice", sometimes "[]T" with the bracket included.
 func tomlWordKind(word kindWord) valueKind {
+	if word == "slice" || strings.HasPrefix(string(word), "[]") {
+		return kindList
+	}
+
 	switch word {
 	case "integer":
 		return kindInt
