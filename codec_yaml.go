@@ -2,6 +2,7 @@ package goconf
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -42,13 +43,35 @@ func yamlDecodeRefusal(file FilePath, err error) error {
 		r := yamlTypeReason(typeErr)
 
 		if r != ErrDecoderRefused {
-			return refuseReason(r,
-				gorefuse.At(gorefuse.File(file), 0, refusalSubject(r), refusalWhyText(r)),
-				errValueFree(err))
+			if r == ErrUnknownField {
+				key, _ := strings.CutPrefix(string(yamlUnknownFieldOf(typeErr)), "field ")
+
+				return refuseAt(ErrUnknownField, file, gorefuse.Line(yamlTypeLine(typeErr)),
+					gorefuse.Subject(`"`+key+`"`),
+					gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
+			}
+
+			return refuseAt(ErrTypeMismatch, file, gorefuse.Line(yamlTypeLine(typeErr)),
+				gorefuse.Subject("expected a number, found text"),
+				gorefuse.Why("change the value to a number."))
 		}
 	}
 
 	return decodeRefusal(file, errValueFree(err))
+}
+
+// yamlTypeLine is the first line any of the TypeError's issues names; 0
+// when none carries a line.
+func yamlTypeLine(typeErr *yaml.TypeError) int {
+	for _, e := range typeErr.Errors {
+		var line int
+
+		if _, err := fmt.Sscanf(e, "line %d:", &line); err == nil && line > 0 {
+			return line
+		}
+	}
+
+	return 0
 }
 
 // yamlTypeReason classifies one TypeError by its terror lines: every
@@ -68,31 +91,41 @@ func yamlTypeReason(typeErr *yaml.TypeError) Reason {
 	return ErrUnknownField
 }
 
-// refusalSubject names the fault for the classified YAML refusals.
-func refusalSubject(r Reason) gorefuse.Subject {
-	if r == ErrUnknownField {
-		return gorefuse.Subject("YAML unknown field")
+// yamlFieldSpan is one field name an unknown-field terror names.
+type yamlFieldSpan string
+
+// yamlUnknownFieldOf is the key name one unknown-field terror names:
+// the documented shape is "line N: field K not found in type T".
+func yamlUnknownFieldOf(typeErr *yaml.TypeError) yamlFieldSpan {
+	for _, e := range typeErr.Errors {
+		if strings.Contains(e, yamlUnknownFieldTail) {
+			_, rest, ok := strings.Cut(e, "line ")
+			if !ok {
+				continue
+			}
+
+			_, body, ok := strings.Cut(rest, ": ")
+			if !ok {
+				continue
+			}
+
+			key, _, _ := strings.Cut(body, yamlUnknownFieldTail)
+
+			return yamlFieldSpan(strings.TrimPrefix(key, "field "))
+		}
 	}
 
-	return gorefuse.Subject("YAML type mismatch")
+	return ""
 }
 
-// refusalWhyText is the remediation for the classified YAML refusals.
-func refusalWhyText(r Reason) gorefuse.Why {
-	if r == ErrUnknownField {
-		return gorefuse.Why("the decode target does not declare them; declare the fields in the target or remove them from the file.")
-	}
-
-	return gorefuse.Why("the value does not fit the field's declared type; fix the value.")
-}
-
-// decodeRefusal rewrites one decoder error as the ErrDecoderRefused
-// carrier: the stripped detail survives as the cause tail.
+// decodeRefusal rewrites one scanner or parser fault as the
+// ErrDecoderRefused carrier: the stripped detail survives as the cause
+// tail.
 func decodeRefusal(file FilePath, err error) error {
 	return refuseDecoder(
 		gorefuse.At(gorefuse.File(file), 0,
-			gorefuse.Subject("YAML decode"),
-			gorefuse.Why("fix the error the YAML decoder reported.")), err)
+			gorefuse.Subject("YAML syntax"),
+			gorefuse.Why("fix the YAML syntax in your config file.")), err)
 }
 
 // multiDocRefusal refuses a stream holding more than one document, naming
@@ -100,5 +133,5 @@ func decodeRefusal(file FilePath, err error) error {
 func multiDocRefusal(file FilePath, line int) error {
 	return refuseAt(ErrMultiDoc, file, gorefuse.Line(line),
 		gorefuse.Subject("second document separator"),
-		gorefuse.Why("first-wins would silently resolve the stream; hold one document per file."))
+		gorefuse.Why("hold one document per file; only the first would be read."))
 }

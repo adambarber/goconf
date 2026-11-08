@@ -2,7 +2,8 @@ package goconf
 
 import (
 	"bytes"
-	"reflect"
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -14,19 +15,70 @@ import (
 func decodeTOMLStrict(data SourceBytes, file FilePath, dst Target) error {
 	md, err := toml.NewDecoder(bytes.NewReader(data)).Decode(dst.Value.Addr().Interface())
 	if err != nil {
-		return tomlRefusal(file, errTOMLValueFree(err))
+		return tomlDecodeRefusal(file, err)
 	}
 
 	return tomlUndecoded(&md, file)
+}
+
+// tomlDecodeRefusal classifies one BurntSushi error at the boundary: a
+// ParseError is a syntax fault, an "incompatible types" message is
+// ErrTypeMismatch; decode errors are untyped, so shapes are matched.
+func tomlDecodeRefusal(file FilePath, err error) error {
+	msg := tomlMessage(err.Error())
+
+	if msg.has("incompatible types:") || msg.has("type mismatch for ") {
+		return refuseAt(ErrTypeMismatch, file, gorefuse.Line(msg.line()),
+			gorefuse.Subject("expected a number, found text"),
+			gorefuse.Why("change the value of "+msg.key()+" to a number."))
+	}
+
+	return tomlRefusal(file, err)
+}
+
+// has reports whether the message contains the span.
+func (m tomlMessage) has(s spanText) bool { return strings.Contains(string(m), string(s)) }
+
+// key is the key the message names; the shape is
+// 'toml: line N (last key "K"): ...'.
+func (m tomlMessage) key() keyQuoted {
+	_, rest, ok := strings.Cut(string(m), `(last key "`)
+	if !ok {
+		return "the offending value"
+	}
+
+	key, _, _ := strings.Cut(rest, `")`)
+
+	return keyQuoted(`"` + key + `"`)
+}
+
+// line is the line the message names; 0 when none.
+func (m tomlMessage) line() int {
+	var line int
+
+	if _, err := fmt.Sscanf(string(m), "toml: line %d", &line); err == nil && line > 0 {
+		return line
+	}
+
+	return 0
 }
 
 // tomlRefusal rewrites one BurntSushi parse refusal as the
 // ErrDecoderRefused carrier: the stripped detail survives as the cause.
 func tomlRefusal(file FilePath, err error) error {
 	return refuseDecoder(
-		gorefuse.At(gorefuse.File(file), 0,
-			gorefuse.Subject("TOML parse"),
-			gorefuse.Why("fix the error the TOML decoder reported.")), err)
+		gorefuse.At(gorefuse.File(file), gorefuse.Line(tomlParseLine(err)),
+			gorefuse.Subject("TOML syntax"),
+			gorefuse.Why("fix the TOML syntax in your config file; the line is where reading stopped.")), errTOMLValueFree(err))
+}
+
+// tomlParseLine is the line one BurntSushi ParseError names; 0 when none.
+func tomlParseLine(err error) int {
+	if perr, ok := errors.AsType[toml.ParseError](err); ok {
+		return perr.Position.Line
+	}
+
+	return 0
 }
 
 // tomlUndecoded refuses keys present in the file but missing from the
@@ -38,7 +90,7 @@ func tomlUndecoded(md *toml.MetaData, file FilePath) error {
 
 	return refuseAt(ErrUnknownField, file, 0,
 		gorefuse.Subject(string(joinKeys(md.Undecoded()))),
-		gorefuse.Why("the decode target does not declare them; declare the fields in the target or remove them from the file."))
+		gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
 }
 
 // keyQuote wraps one key in quotes for a refusal message.
@@ -68,79 +120,3 @@ func toStrings(parts []keyRender) []string {
 
 	return out
 }
-
-// presentTOMLKeys records the dotted field paths of every key present in
-// the TOML document: the decoder's key report covers table headers and
-// leaf keys, dotted in document order; values are never inspected.
-func presentTOMLKeys(data SourceBytes, file FilePath, t reflect.Type) (KeySet, error) {
-	keys := KeySet{paths: nil}
-
-	var raw tomlKeyMap
-
-	md, err := toml.NewDecoder(bytes.NewReader(data)).Decode(&raw)
-	if err != nil {
-		return keys, tomlRefusal(file, errTOMLValueFree(err))
-	}
-
-	for _, k := range md.Keys() {
-		p, err := canonicalTOMLPath(k, file, t)
-		if err != nil {
-			return keys, err
-		}
-
-		keys = keys.Add(p)
-	}
-
-	return keys, nil
-}
-
-// canonicalTOMLPath maps one document key through the decode target's
-// field vocabulary: each segment matches a field's tag or Go name
-// case-insensitively, and the canonical (tagPathOf) spelling is recorded.
-func canonicalTOMLPath(k toml.Key, file FilePath, t reflect.Type) (FieldPath, error) {
-	path := FieldPath("")
-
-	for _, seg := range k {
-		for t.Kind() == reflect.Pointer {
-			t = t.Elem()
-		}
-
-		f, ok := fieldMatching(t, keySegment(seg))
-		if !ok {
-			return "", refuseAt(ErrUnknownField, file, 0,
-				gorefuse.Subject("\""+k.String()+"\""),
-				gorefuse.Why("the decode target does not declare them; declare the fields in the target or remove them from the file."))
-		}
-
-		path = childPath(path, tagPathOf(f))
-		t = f.Type
-	}
-
-	return path, nil
-}
-
-// keySegment is one segment of a document key being mapped to a field.
-type keySegment string
-
-// fieldMatching returns the struct field whose tag or Go name matches
-// seg case-insensitively, unexported fields skipped.
-func fieldMatching(t reflect.Type, seg keySegment) (*reflect.StructField, bool) {
-	for i := range t.NumField() {
-		f := fieldAt(t, i)
-		if !f.IsExported() {
-			continue
-		}
-
-		if strings.EqualFold(string(tagPathOf(f)), string(seg)) {
-			return f, true
-		}
-	}
-
-	return nil, false
-}
-
-// tomlKeyMap is the decode target of the key walk, keyed by table name.
-type tomlKeyMap map[tomlKey]toml.Primitive
-
-// tomlKey is one top-level TOML table name.
-type tomlKey string

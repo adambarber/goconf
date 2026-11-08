@@ -14,7 +14,7 @@ func TestDecodeYAMLStrict(t *testing.T) {
 			name:    nameUnknown,
 			data:    SourceBytes("region: eu\nextra: 1\n"),
 			want:    zeroCodecWant(),
-			wantErr: refusalNeed(`field extra not found`),
+			wantErr: refusalNeed(`unknown field: "extra"`),
 		},
 		{
 			name:    "explicit null is accepted and left zero",
@@ -26,7 +26,7 @@ func TestDecodeYAMLStrict(t *testing.T) {
 			name:    "type error names the line",
 			data:    SourceBytes("region: eu\nretries: many\n"),
 			want:    zeroCodecWant(),
-			wantErr: refusalNeed("line 2:"),
+			wantErr: refusalNeed("expected a number, found text"),
 		},
 	}
 	for _, tc := range cases {

@@ -27,3 +27,9 @@ func stripTOMLQuotedSpans(msg tomlMessage) tomlMessage {
 
 // tomlMessage is one BurntSushi parse refusal under rewrite.
 type tomlMessage string
+
+// spanText is one span of text inside a decoder message.
+type spanText string
+
+// keyQuoted is one key rendered in quotes inside a refusal.
+type keyQuoted string

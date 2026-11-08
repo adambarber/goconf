@@ -35,8 +35,8 @@ func presentYAMLKeys(data SourceBytes, file FilePath) (KeySet, error) {
 	root := docs[0].Content[0]
 	if root.Kind != yaml.MappingNode {
 		return keys, refuseAt(ErrNotAMapping, file, gorefuse.Line(root.Line),
-			gorefuse.Subject("document root"),
-			gorefuse.Why("layered defaults need a mapping to walk; shape the document as a mapping."))
+			gorefuse.Subject("the document"),
+			gorefuse.Why("hold key: value pairs at the top of your config file."))
 	}
 
 	walkYAMLNode(&keys, "", root)

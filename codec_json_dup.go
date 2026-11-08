@@ -92,8 +92,8 @@ func (dw *dupWalk) stepKey(tok json.Token, line int, file FilePath) error {
 	scope := &dw.scopes[len(dw.scopes)-1]
 	if first, dup := scope.seen[ObjectKey(key)]; dup {
 		return refuseAt(ErrDuplicateKey, file, gorefuse.Line(first),
-			gorefuse.Subject("\""+key+"\""),
-			gorefuse.Why("a key re-declared in the same object resolves silently last-win; declare it once."))
+			gorefuse.Subject(`"`+key+`"`),
+			gorefuse.Why(`remove the second "`+key+`"; the last one would win silently.`))
 	}
 
 	scope.seen[ObjectKey(key)] = line

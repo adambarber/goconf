@@ -98,14 +98,14 @@ func assertNoValueEcho(t *testing.T, refusal refusalText, fragments echoFragment
 }
 
 // assertNoValueEchoWithLine also pins that the refusal still names the
-// line the decoder reported, so sanitizing never erases the location.
+// location — the frame's file:line — so sanitizing never erases it.
 func assertNoValueEchoWithLine(t *testing.T, refusal refusalText, fragments echoFragments) {
 	t.Helper()
 
 	assertNoValueEcho(t, refusal, fragments)
 
-	if !strings.Contains(string(refusal), "line") {
-		t.Fatalf("refusal %q must still name the line", refusal)
+	if !strings.Contains(string(refusal), ":") {
+		t.Fatalf("refusal %q must still carry the file:line frame", refusal)
 	}
 }
 

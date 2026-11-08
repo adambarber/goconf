@@ -9,6 +9,12 @@ import (
 // secretFragment is a secret-shaped scalar planted in error positions.
 const secretFragment = "zzq-secret-marker-8842"
 
+// The two fragments a truncated echo renders (goconst deduplicates).
+const (
+	fragmentZZQ    = "zzq"
+	fragmentMarker = "marker-8842"
+)
+
 // keyIsSafe is a key-name refusal that legitimately quotes keys: the
 // strip pass must not mangle these.
 const keyIsSafe = `unknown field: "safekey"`
@@ -74,7 +80,7 @@ func TestNoValueFragmentSurvivesAnyRefusal(t *testing.T) {
 	for _, tc := range valueFreeCases() {
 		t.Run(string(tc.name), func(t *testing.T) {
 			refusal := decodeExpectingRefusal(t, tc.decode, tc.data)
-			assertNoValueEcho(t, refusal, echoFragments{secretFragment, "zzq", "marker-8842"})
+			assertNoValueEcho(t, refusal, echoFragments{secretFragment, fragmentZZQ, fragmentMarker})
 		})
 	}
 }
@@ -111,5 +117,5 @@ func TestNoValueFragmentSurvivesTheTOMLPresenceWalk(t *testing.T) {
 	}
 
 	refusal := refusalText(err.Error())
-	assertNoValueEcho(t, refusal, echoFragments{secretFragment, "zzq", "marker-8842"})
+	assertNoValueEcho(t, refusal, echoFragments{secretFragment, fragmentZZQ, fragmentMarker})
 }
