@@ -45,9 +45,9 @@ func unknownCandidateRefusal(p FilePath, ext Extension) error {
 		gorefuse.Why("delete or rename "+string(p)+"."))
 }
 
-// nothingFoundRefusal builds the empty-discovery refusal: it names the
-// file name(s) the app looked for and the directories it looked in, and
-// gives one action — create the config at one of those locations.
+// nothingFoundRefusal builds the empty-discovery refusal: the Reason
+// already says no config file was found, so the Subject names only what
+// it uniquely adds — the looked-for names, the paths, and one action.
 func nothingFoundRefusal(d Discovery) error {
 	cands := []Extension{Extension(FormatJSON), Extension(FormatYAML), Extension(FormatTOML)}
 	if !d.Format.IsUndetermined() {
@@ -55,7 +55,6 @@ func nothingFoundRefusal(d Discovery) error {
 	}
 
 	return refuseWhy(ErrNothingFound,
-		gorefuse.Subject("no config file was found"),
-		gorefuse.Why("the app looked for "+string(renderFiles(d.Name, cands))+" in: "+string(renderPaths(d.Search))+
-			". create your config at one of those locations."))
+		gorefuse.Subject("the app looked for "+string(renderFiles(d.Name, cands))+" in: "+string(renderPaths(d.Search))),
+		gorefuse.Why("create your config at one of those locations."))
 }
