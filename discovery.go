@@ -33,7 +33,7 @@ type Discovery struct {
 
 // discover lists the config files found in the search paths, in order:
 // each directory holds at most one format's candidate unless the format
-// narrows the search; zero candidates across all paths is refused.
+// narrows the search; zero candidates is refused.
 func discover(d Discovery) ([]FoundFile, error) {
 	if err := d.Format.check(); err != nil {
 		return nil, err

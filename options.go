@@ -28,6 +28,7 @@ type settings struct {
 	search    []DirPath
 	globalDir DirPath
 	defaults  []layeredDefault
+	optional  bool
 }
 
 // layeredDefault is one defaults layer whose filled fields are exactly
@@ -62,6 +63,20 @@ type defaultsOption struct {
 
 func (o defaultsOption) apply(s *settings) {
 	s.defaults = append(s.defaults, layeredDefault{value: o.value})
+}
+
+// optionalConfigOption forgives true absence of config for one load.
+type optionalConfigOption struct{}
+
+func (o optionalConfigOption) apply(s *settings) {
+	s.optional = true
+}
+
+// WithOptionalConfig forgives true absence of config: every search
+// directory readable and zero candidates found. Load then behaves as if
+// zero keys were present; a fault is not absence.
+func WithOptionalConfig() *optionalConfigOption {
+	return &optionalConfigOption{}
 }
 
 // WithSearchPaths replaces the default discovery paths (user config

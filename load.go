@@ -1,6 +1,7 @@
 package goconf
 
 import (
+	"errors"
 	"reflect"
 
 	"github.com/adambarber/gorefuse"
@@ -15,7 +16,7 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 		return zero, nil, err
 	}
 
-	s := settings{search: nil, globalDir: "", defaults: nil}
+	s := settings{search: nil, globalDir: "", defaults: nil, optional: false}
 	for _, o := range opts {
 		o.apply(&s)
 	}
@@ -26,7 +27,16 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 
 	files, err := discover(Discovery{Search: s.search, Name: spec.Name, Format: spec.Format})
 	if err != nil {
-		return zero, nil, err
+		if !s.optional || !errors.Is(err, ErrNothingFound) {
+			return zero, nil, err
+		}
+
+		// true absence, opted in: every leg listed cleanly and zero
+		// candidates exist, so the load proceeds with zero sources.
+
+		files = []FoundFile{}
+
+		warnOptionalAbsence()
 	}
 
 	dst := Target{Value: reflect.ValueOf(new(T)).Elem()}
