@@ -59,7 +59,7 @@ func yamlDocuments(data SourceBytes, file FilePath) ([]yaml.Node, error) {
 				return docs, nil
 			}
 
-			return docs, decodeRefusal(file, errValueFree(err))
+			return docs, decodeRefusal(data, file, errValueFree(err))
 		}
 
 		docs = append(docs, doc)

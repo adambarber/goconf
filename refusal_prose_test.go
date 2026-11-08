@@ -47,13 +47,26 @@ func goldenVocabCases() []proseCase {
 
 // goldenStructuralCases pins the syntax and shape refusal shapes.
 func goldenStructuralCases() []proseCase {
+	return append(goldenSyntaxCases(), goldenShapeCases()...)
+}
+
+// goldenSyntaxCases pins the syntax-refusal shapes: Subject carries the
+// format and fault, Why carries a real check-the-file action.
+func goldenSyntaxCases() []proseCase {
 	return []proseCase{
 		{
 			name:     "json syntax",
 			format:   FormatJSON,
 			body:     SourceBytes("{\n  \"region\": \"eu\"\n"),
 			contains: []userSpan{"JSON syntax", syntaxFixJSON},
-			excludes: bannedVocab{"JSON decode", banDecoderReported},
+			excludes: bannedVocab{"JSON decode", banDecoderReported, banFixTheErrorTheDecoderReported},
+		},
+		{
+			name:     "json empty file",
+			format:   FormatJSON,
+			body:     SourceBytes(""),
+			contains: []userSpan{"JSON syntax", "the file is empty; add settings or delete it"},
+			excludes: bannedVocab{"JSON decode", banDecoderReported, banFixTheErrorTheDecoderReported},
 		},
 		{
 			name:   "toml syntax",
@@ -61,17 +74,24 @@ func goldenStructuralCases() []proseCase {
 			body:   SourceBytes("retries = zzq-secret-marker-8842\n"),
 			contains: []userSpan{
 				"TOML syntax",
-				syntaxFixTOML,
+				"check the last line for a missing bracket or quote",
 			},
-			excludes: bannedVocab{"TOML parse:", banDecoderReported, "zzq", "SE-CRET"},
+			excludes: bannedVocab{"TOML parse:", banDecoderReported, "zzq", "SE-CRET", banFixTheErrorTheDecoderReported, "fix the TOML syntax"},
 		},
 		{
 			name:     "yaml scanner fault",
 			format:   FormatYAML,
 			body:     SourceBytes("region: eu\nretries: @x`broken\n"),
 			contains: []userSpan{"YAML syntax", syntaxFixYAML},
-			excludes: bannedVocab{"YAML decode", banDecoderReported},
+			excludes: bannedVocab{"YAML decode", banDecoderReported, banFixTheErrorTheDecoderReported},
 		},
+	}
+}
+
+// goldenShapeCases pins the structural refusal shapes: not-a-mapping,
+// multi-doc, and duplicate keys.
+func goldenShapeCases() []proseCase {
+	return []proseCase{
 		{
 			name:   "yaml not a mapping",
 			format: FormatYAML,

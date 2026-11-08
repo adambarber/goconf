@@ -16,9 +16,9 @@ const (
 	expectedNumberFound = userSpan("is text, not a whole number")
 	typeMismatchKeySpan = userSpan(`the value of "retries"`)
 	mismatchFixRetries  = userSpan(`change the value of "retries" to a whole number`)
-	syntaxFixJSON       = userSpan("fix the JSON syntax in your config file")
-	syntaxFixTOML       = userSpan("fix the TOML syntax in your config file")
-	syntaxFixYAML       = userSpan("fix the YAML syntax in your config file")
+	syntaxFixJSON       = userSpan("check the last line for a missing bracket or quote")
+	syntaxFixTOML       = userSpan("check the last line for a missing bracket or quote")
+	syntaxFixYAML       = userSpan("check the line for a missing bracket, quote, or indentation")
 )
 
 // Banned internal vocabulary spans.
@@ -27,6 +27,9 @@ const (
 	banDecoderReported   = "the decoder reported"
 	banDecoderRefusedTag = "decoder refused: JSON decode"
 	banNotFoundInType    = "not found in type"
+	banDecoderRefused    = "decoder refused"
+	// banFixTheErrorTheDecoderReported is the circular fix A4 bans.
+	banFixTheErrorTheDecoderReported = "fix the error the decoder reported"
 )
 
 // proseCase is one refusal shape rendered through Load and judged.

@@ -129,7 +129,7 @@ func tomlRefusal(file FilePath, err error) error {
 	return refuseDecoder(
 		gorefuse.At(gorefuse.File(file), gorefuse.Line(tomlParseLine(err)),
 			gorefuse.Subject("TOML syntax"),
-			gorefuse.Why("fix the TOML syntax in your config file; the line is where reading stopped.")), errTOMLValueFree(err))
+			gorefuse.Why("check the last line for a missing bracket or quote.")), errTOMLValueFree(err))
 }
 
 // tomlParseLine is the line one BurntSushi ParseError names; 0 when none.

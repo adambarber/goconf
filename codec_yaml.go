@@ -56,7 +56,7 @@ func yamlDecodeRefusal(data SourceBytes, file FilePath, target reflect.Type, err
 		}
 	}
 
-	return decodeRefusal(file, errValueFree(err))
+	return decodeRefusal(data, file, errValueFree(err))
 }
 
 // yamlTypeMismatchRefusal builds the type-mismatch refusal from one
@@ -131,12 +131,24 @@ func yamlUnknownFieldOf(typeErr *yaml.TypeError) yamlFieldSpan {
 
 // decodeRefusal rewrites one scanner or parser fault as the
 // ErrDecoderRefused carrier: the stripped detail survives as the cause
-// tail.
-func decodeRefusal(file FilePath, err error) error {
+// tail. An empty stream names its own fix: there is no syntax to check.
+func decodeRefusal(data SourceBytes, file FilePath, err error) error {
+	if len(data) == 0 {
+		return refuseDecoder(
+			gorefuse.At(gorefuse.File(file), 0,
+				gorefuse.Subject("YAML syntax"),
+				gorefuse.Why("the file is empty; add settings or delete it.")), err)
+	}
+
 	return refuseDecoder(
 		gorefuse.At(gorefuse.File(file), 0,
 			gorefuse.Subject("YAML syntax"),
-			gorefuse.Why("fix the YAML syntax in your config file.")), err)
+			syntaxCheckYAML()), err)
+}
+
+// syntaxCheckYAML is the one-action fix for a YAML syntax fault.
+func syntaxCheckYAML() gorefuse.Why {
+	return gorefuse.Why("check the line for a missing bracket, quote, or indentation.")
 }
 
 // multiDocRefusal refuses a stream holding more than one document, naming

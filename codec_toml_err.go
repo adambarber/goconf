@@ -20,10 +20,30 @@ func errTOMLValueFree(err error) error {
 	return refusalError(refusalText(stripTOMLQuotedSpans(tomlMessage(perr.Error()))))
 }
 
-// stripTOMLQuotedSpans removes every double-quoted span of one message.
-// The value-quoting classes render values through %q, never keys.
+// tomlLastKeyHead opens the library's own key-naming parenthetical; the
+// quoted span inside it is a key, never a config value.
+const tomlLastKeyHead = `(last key "`
+
+// tomlLastKeyTail closes it.
+const tomlLastKeyTail = `")`
+
+// stripTOMLQuotedSpans removes every double-quoted span of one message
+// except the key in the library's '(last key "K")' parenthetical — that
+// quoting is the library's own — and drops a dangling empty one.
 func stripTOMLQuotedSpans(msg tomlMessage) tomlMessage {
-	return tomlMessage(stripQuotedSpans(refusalText(msg), '"'))
+	head, rest, ok := strings.Cut(string(msg), tomlLastKeyHead)
+	if !ok {
+		return tomlMessage(stripQuotedSpans(refusalText(msg), '"'))
+	}
+
+	key, tail, _ := strings.Cut(rest, tomlLastKeyTail)
+	if strings.Contains(key, `"`) {
+		return tomlMessage(stripQuotedSpans(refusalText(msg), '"'))
+	}
+
+	stripped := stripQuotedSpans(refusalText(tail), '"')
+
+	return tomlMessage(head + tomlLastKeyHead + key + tomlLastKeyTail + string(stripped))
 }
 
 // tomlMessage is one BurntSushi parse refusal under rewrite.
