@@ -23,7 +23,7 @@ func decodeTOMLStrict(data SourceBytes, file FilePath, dst Target) error {
 // tomlRefusal rewrites one BurntSushi parse refusal as the
 // ErrDecoderRefused carrier: the stripped detail survives as the cause.
 func tomlRefusal(file FilePath, err error) error {
-	return refuseCause(
+	return refuseDecoder(
 		gorefuse.At(gorefuse.File(file), 0,
 			gorefuse.Subject("TOML parse"),
 			gorefuse.Why("fix the error the TOML decoder reported.")), err)
@@ -107,9 +107,9 @@ func canonicalTOMLPath(k toml.Key, file FilePath, t reflect.Type) (FieldPath, er
 
 		f, ok := fieldMatching(t, keySegment(seg))
 		if !ok {
-			return "", refuseAt(ErrKeyUnmappable, file, 0,
+			return "", refuseAt(ErrUnknownField, file, 0,
 				gorefuse.Subject("\""+k.String()+"\""),
-				gorefuse.Why("the key's segments cannot be mapped to the decode target's fields; rename the key or declare the field."))
+				gorefuse.Why("the decode target does not declare them; declare the fields in the target or remove them from the file."))
 		}
 
 		path = childPath(path, tagPathOf(f))

@@ -71,7 +71,7 @@ func discoverDir(dir DirPath, name configName, required Format) ([]FoundFile, er
 	}
 
 	if err != nil {
-		return nil, refuseCause(
+		return nil, refuseIO(
 			gorefuse.At(gorefuse.File(dir), 0,
 				gorefuse.Subject("the searched directory"),
 				gorefuse.Why("discovery could not list this directory.")), err)
@@ -167,7 +167,7 @@ func narrow(required Format, dir DirPath, name configName) ([]FoundFile, error) 
 
 	// any other stat failure is a real fault in the searched directory,
 	// not absence: a load that could not look did not look
-	return nil, refuseCause(
+	return nil, refuseIO(
 		gorefuse.At(gorefuse.File(p), 0,
 			gorefuse.Subject("the candidate file"),
 			gorefuse.Why("the searched directory could not be stat-ed; the fault is real, not absence.")), statErr)

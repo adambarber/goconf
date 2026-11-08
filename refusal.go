@@ -32,7 +32,7 @@ const (
 	ErrMultiDoc         Reason = "multi-document stream"
 	ErrNotAMapping      Reason = "not a mapping"
 	ErrDecoderRefused   Reason = "decoder refused"
-	ErrKeyUnmappable    Reason = "unmappable key"
+	ErrIO               Reason = "io fault"
 	ErrUnknownField     Reason = "unknown field"
 	ErrTypeMismatch     Reason = "type mismatch"
 	ErrNothingFound     Reason = "no config file found"
@@ -54,12 +54,28 @@ func refuseAt(r Reason, file FilePath, line gorefuse.Line, subject gorefuse.Subj
 	}
 }
 
-// refuseCause builds the decoder-refused refusal carrying the underlying
-// decoder's error as its cause tail: the detail survives, the identity is
-// the Reason.
-func refuseCause(what gorefuse.Refusal, cause error) error {
+// refuseIO builds an IO-fault refusal carrying the underlying error as
+// its cause tail: the detail survives, the identity is ErrIO.
+func refuseIO(what gorefuse.Refusal, cause error) error {
 	return gorefuse.Because[Reason]{
-		Reason: ErrDecoderRefused,
+		Reason: ErrIO,
+		Cause:  cause,
+		What:   what,
+	}
+}
+
+// refuseDecoder builds the decoder-refused refusal carrying the
+// underlying decoder's error as its cause tail: the detail survives, the
+// identity is ErrDecoderRefused.
+func refuseDecoder(what gorefuse.Refusal, cause error) error {
+	return refuseReason(ErrDecoderRefused, what, cause)
+}
+
+// refuseReason builds a refusal with an explicit Reason carrying the
+// underlying error as its cause tail.
+func refuseReason(r Reason, what gorefuse.Refusal, cause error) error {
+	return gorefuse.Because[Reason]{
+		Reason: r,
 		Cause:  cause,
 		What:   what,
 	}

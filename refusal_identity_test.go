@@ -97,7 +97,7 @@ func TestReasonsAreDistinct(t *testing.T) {
 		ErrUnknownFormat, ErrAmbiguous, ErrUnknownCandidate,
 		ErrEscapingName, ErrOutsideSearch, ErrDuplicateKey,
 		ErrMultiDoc, ErrNotAMapping, ErrDecoderRefused,
-		ErrKeyUnmappable, ErrUnknownField, ErrTypeMismatch,
+		ErrIO, ErrUnknownField, ErrTypeMismatch,
 		ErrNothingFound, ErrUnmarshalable, ErrBadDefaultShape,
 		ErrTargetCast,
 	} {
@@ -110,5 +110,30 @@ func TestReasonsAreDistinct(t *testing.T) {
 		}
 
 		seen[r] = true
+	}
+}
+
+// TestTOMLUnknownFieldCarriesErrUnknownField pins that a TOML key the
+// target does not declare refuses with ErrUnknownField, in the presence
+// walk (the stage that refuses before decode) and in decode alike.
+func TestTOMLUnknownFieldCarriesErrUnknownField(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		"": {fileNameTOML: SourceBytes("region = \"eu\"\nnonesuch = 1\n")},
+	})
+	t.Chdir(string(root))
+
+	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatTOML},
+		WithSearchPaths(DirPath(string(root))))
+	if err == nil {
+		t.Fatalf("unknown TOML field must be refused")
+	}
+
+	var because gorefuse.Because[Reason]
+	if !errors.As(err, &because) {
+		t.Fatalf("refusal %v must be a gorefuse.Because[Reason]", err)
+	}
+
+	if because.Reason != ErrUnknownField {
+		t.Fatalf("reason = %v, want ErrUnknownField (refusal: %s)", because.Reason, err)
 	}
 }

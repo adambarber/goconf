@@ -38,7 +38,7 @@ func jsonErr(data SourceBytes, file FilePath, err error) error {
 	case errors.As(err, &syntax):
 		line := lineAtByte(data, syntax.Offset)
 
-		return refuseCause(
+		return refuseDecoder(
 			gorefuse.At(gorefuse.File(file), gorefuse.Line(line),
 				gorefuse.Subject("JSON syntax"),
 				gorefuse.Why("fix the syntax the decoder stopped on; the frame names its line.")), err)
@@ -55,7 +55,7 @@ func jsonErr(data SourceBytes, file FilePath, err error) error {
 			gorefuse.Subject("\""+string(key)+"\""),
 			gorefuse.Why("the decode target does not declare it; declare the field in the target or remove it from the file."))
 	default:
-		return refuseCause(
+		return refuseDecoder(
 			gorefuse.At(gorefuse.File(file), 0,
 				gorefuse.Subject("JSON decode"),
 				gorefuse.Why("fix the error the JSON decoder reported.")), err)

@@ -45,7 +45,7 @@ func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 
 		raw, err := os.ReadFile(string(f.Path))
 		if err != nil {
-			return nil, nil, refuseCause(
+			return nil, nil, refuseIO(
 				gorefuse.At(gorefuse.File(f.Path), 0,
 					gorefuse.Subject("the candidate file in search leg "+string(f.Leg)),
 					gorefuse.Why("the file could not be read; the fault is real, not absence.")), err)
@@ -65,7 +65,7 @@ func confine(p FilePath) error {
 
 	resolved, err := filepath.EvalSymlinks(file)
 	if err != nil {
-		return refuseCause(
+		return refuseIO(
 			gorefuse.At(gorefuse.File(p), 0,
 				gorefuse.Subject("the candidate file"),
 				gorefuse.Why("the symlink target could not be resolved.")), err)
@@ -75,7 +75,7 @@ func confine(p FilePath) error {
 
 	resolvedDir, err := filepath.EvalSymlinks(dir)
 	if err != nil {
-		return refuseCause(
+		return refuseIO(
 			gorefuse.At(gorefuse.File(DirPath(dir)), 0,
 				gorefuse.Subject("the searched directory"),
 				gorefuse.Why("the directory could not be resolved.")), err)
