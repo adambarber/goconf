@@ -27,7 +27,6 @@ const (
 	banDecoderReported   = "the decoder reported"
 	banDecoderRefusedTag = "decoder refused: JSON decode"
 	banNotFoundInType    = "not found in type"
-	banDecoderRefused    = "decoder refused"
 	// banFixTheErrorTheDecoderReported is the circular fix A4 bans.
 	banFixTheErrorTheDecoderReported = "fix the error the decoder reported"
 )
