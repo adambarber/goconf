@@ -26,6 +26,37 @@ Later sources override earlier ones field by field; nested objects deep
 merge. `WithSearchPaths(...)` replaces the list; `WithGlobalDir(...)`
 replaces only the global layer.
 
+## Optional config
+
+`WithOptionalConfig()` forgives true absence: when every search
+
+directory is readable and zero candidates exist, `Load` behaves as if
+zero keys were present — defaults fill, zero values remain, provenance
+is empty, and one warning is printed through the standard `log`
+package:
+
+    [warn] No config file found. Using default values.
+
+That line is the only signal: it fires exactly once per Load call, and
+only when the caller opted in AND no file was found. A config file that
+was found loads normally with no warning.
+
+The boundary is fault versus absence:
+
+- True absence — every search directory readable, zero candidates — is
+  the only case the option forgives. With `WithSearchPaths`, absence in
+  the overridden paths is still absence.
+- IO faults still refuse with `ErrIO` even with the option set: an
+  unlistable directory, an unreadable file, a permission error. A fault
+  is not absence; a load that could not look did not look.
+- Present-but-invalid config still refuses even with the option set:
+  unknown fields, type mismatches, duplicate keys, syntax errors — all
+  unchanged.
+- Without the option, absence keeps the `ErrNothingFound` refusal.
+
+With the option and no defaults, a zero-value struct loads fine: the
+caller opted in.
+
 ## Symlink confinement
 
 A candidate file whose symlink-resolved target leaves the directory that

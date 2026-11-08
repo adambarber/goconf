@@ -50,6 +50,11 @@ field of `Config`, and the error names the offending key.
   null is never overridden by a default.
 - Use it if you want **provenance** — every load returns one `Provenance`
   per contributing source: the path and the sha256 of the bytes decoded.
+- Use it if you want **optional config** — `WithOptionalConfig` forgives
+  true absence (every search directory readable, zero candidates) so a
+  fresh install can run before any config exists; a fault is never
+  mistaken for absence, and one warning line says when nothing was
+  loaded.
 - Use it if you want **fail-loud discovery** — two format candidates in
   one directory, an unknown extension, a path-escaping name, or a symlink
   leaving the searched directory is refused by name, never guessed.
