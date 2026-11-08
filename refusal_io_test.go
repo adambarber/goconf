@@ -20,19 +20,19 @@ func ioFaultCases() []ioCase {
 	return []ioCase{
 		{
 			name: "directory listing",
-			err:  refuseIO(gorefuse.At(gorefuse.File("d"), 0, gorefuse.Subject("the searched directory"), gorefuse.Why("discovery could not list this directory.")), os.ErrPermission),
+			err:  refuseIO(gorefuse.At(gorefuse.File("d"), 0, gorefuse.Subject("could not read the directory"), gorefuse.Why("check the directory's permissions (it must be readable by your user).")), os.ErrPermission),
 		},
 		{
 			name: "candidate stat",
-			err:  refuseIO(gorefuse.At(gorefuse.File("f"), 0, gorefuse.Subject("the candidate file"), gorefuse.Why("the searched directory could not be stat-ed; the fault is real, not absence.")), os.ErrPermission),
+			err:  refuseIO(gorefuse.At(gorefuse.File("f"), 0, gorefuse.Subject("could not read the file"), gorefuse.Why("check the file's permissions (it must be readable by your user).")), os.ErrPermission),
 		},
 		{
 			name: "file read",
-			err:  refuseIO(gorefuse.At(gorefuse.File("f"), 0, gorefuse.Subject("the candidate file in search leg d"), gorefuse.Why("the file could not be read; the fault is real, not absence.")), os.ErrPermission),
+			err:  ioReadRefusal("f", os.ErrPermission),
 		},
 		{
 			name: "symlink resolution",
-			err:  refuseIO(gorefuse.At(gorefuse.File("f"), 0, gorefuse.Subject("the candidate file"), gorefuse.Why("the symlink target could not be resolved.")), os.ErrPermission),
+			err:  refuseIO(gorefuse.At(gorefuse.File("f"), 0, gorefuse.Subject("could not read the file"), gorefuse.Why("check that the file and its link target exist and are readable.")), os.ErrPermission),
 		},
 	}
 }

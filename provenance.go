@@ -32,7 +32,7 @@ func provenanceOf(f FoundFile, data SourceBytes) Provenance {
 }
 
 // readSources reads every located file, in discovery order, naming the
-// full path and search leg on a read failure. Each file is confined at
+// full path on a read failure. Each file is confined at
 // read time so a symlink cannot smuggle bytes in from outside.
 func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 	sources := make([]SourceBytes, 0, len(files))
@@ -45,10 +45,7 @@ func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 
 		raw, err := os.ReadFile(string(f.Path))
 		if err != nil {
-			return nil, nil, refuseIO(
-				gorefuse.At(gorefuse.File(f.Path), 0,
-					gorefuse.Subject("the candidate file in search leg "+string(f.Leg)),
-					gorefuse.Why("the file could not be read; the fault is real, not absence.")), err)
+			return nil, nil, ioReadRefusal(f.Path, err)
 		}
 
 		sources = append(sources, raw)
@@ -67,8 +64,8 @@ func confine(p FilePath) error {
 	if err != nil {
 		return refuseIO(
 			gorefuse.At(gorefuse.File(p), 0,
-				gorefuse.Subject("the candidate file"),
-				gorefuse.Why("the symlink target could not be resolved.")), err)
+				gorefuse.Subject("could not read the file"),
+				gorefuse.Why("check that the file and its link target exist and are readable.")), err)
 	}
 
 	dir := filepath.Dir(file)
@@ -77,8 +74,8 @@ func confine(p FilePath) error {
 	if err != nil {
 		return refuseIO(
 			gorefuse.At(gorefuse.File(DirPath(dir)), 0,
-				gorefuse.Subject("the searched directory"),
-				gorefuse.Why("the directory could not be resolved.")), err)
+				gorefuse.Subject("could not read the directory"),
+				gorefuse.Why("check the directory's permissions (it must be readable by your user).")), err)
 	}
 
 	if !withinDir(resolvedPath(resolved), resolvedPath(resolvedDir)) {
@@ -92,6 +89,16 @@ func confine(p FilePath) error {
 
 // resolvedPath is a symlink-resolved absolute file path.
 type resolvedPath string
+
+// ioReadRefusal builds the read-fault refusal: the path appears once (in
+// the frame), the cause tail carries the OS detail, and the fix is one
+// user action — never a search leg or a fault-vs-absence lecture.
+func ioReadRefusal(p FilePath, err error) error {
+	return refuseIO(
+		gorefuse.At(gorefuse.File(p), 0,
+			gorefuse.Subject("could not read the file"),
+			gorefuse.Why("check the file's permissions (it must be readable by your user).")), err)
+}
 
 // withinDir reports whether the resolved path stays inside the searched
 // directory: the same directory, or one nested beneath it.

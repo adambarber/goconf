@@ -71,8 +71,8 @@ func discoverDir(dir DirPath, name configName, required Format) ([]FoundFile, er
 	if err != nil {
 		return nil, refuseIO(
 			gorefuse.At(gorefuse.File(dir), 0,
-				gorefuse.Subject("the searched directory"),
-				gorefuse.Why("discovery could not list this directory.")), err)
+				gorefuse.Subject("could not read the directory"),
+				gorefuse.Why("check the directory's permissions (it must be readable by your user).")), err)
 	}
 
 	cands := candidateExts(entries, name)
@@ -167,8 +167,8 @@ func narrow(required Format, dir DirPath, name configName) ([]FoundFile, error) 
 	// not absence: a load that could not look did not look
 	return nil, refuseIO(
 		gorefuse.At(gorefuse.File(p), 0,
-			gorefuse.Subject("the candidate file"),
-			gorefuse.Why("the searched directory could not be stat-ed; the fault is real, not absence.")), statErr)
+			gorefuse.Subject("could not read the file"),
+			gorefuse.Why("check the file's permissions (it must be readable by your user).")), statErr)
 }
 
 // onePer builds one FoundFile per candidate extension, refusing any

@@ -7,8 +7,8 @@ import (
 )
 
 // TestLoadReadFailureNamesPathAndLeg: an unreadable candidate must be
-// refused naming its full path and the search leg it came from, never a
-// bare read error. Skipped as root, which bypasses permission bits.
+// refused naming its full path, never a bare read error. Skipped as root,
+// which bypasses permission bits.
 func TestLoadReadFailureNamesPathAndLeg(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("permission bits do not bind root")
