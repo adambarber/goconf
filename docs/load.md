@@ -113,6 +113,31 @@ An empty TOML file loads as no settings — JSON's and YAML's decoders
 refuse an empty file naming the fix, an asymmetry of the underlying
 decoders.
 
+## Fuzzing
+
+The refusal paths are fuzzed: `FuzzLoad` (fuzz_test.go) drives arbitrary
+bytes through the real `Load` path in all three formats, seeded with the
+golden fixture shapes and the hostile ones — duplicate keys per format,
+secret-shaped values, backquoted and multi-line strings, multi-document
+streams, deep nesting, invalid UTF-8, null bytes, empty files, and huge
+scalars. Its oracle is differential: the input and a twin where the
+planted marker is replaced by a neutral token must render the same
+refusal under token substitution. Structural references survive the
+substitution — a key names itself, by the contract above — while a
+rendered value echo swaps token-for-token and fails the run. A decoder
+may name a character class by one character (JSON's "invalid character
+'s'"), which is not a value echo: one byte reconstructs nothing; such
+spans are dropped before comparison. Any failing input lands in
+testdata/fuzz/FuzzLoad/ and replays in plain `go test` as a permanent
+pinned regression.
+
+Two of the yaml terror-strip helpers (codec_yaml_terror.go) are
+unreachable through the public API by construction: every
+`*yaml.TypeError` is classified into the shared vocabulary before the
+strip pass runs, and the empty-issue TypeError that would classify as
+`ErrDecoderRefused` is one yaml.v3 never emits. They stay as the strip
+pass's own unit surface.
+
 ## Provenance
 
 Every successful load returns one `Provenance` per contributing source,

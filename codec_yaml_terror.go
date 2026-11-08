@@ -2,8 +2,8 @@ package goconf
 
 import "strings"
 
-// stripYAMLTypeLine rewrites one yaml terror line so the echoed scalar
-// never reaches the refusal.
+// Unreachable through the public API; see docs/load.md. It rewrites
+// one yaml terror line so the echoed scalar never reaches the refusal.
 func stripYAMLTypeLine(msg refusalText) refusalText {
 	head, tag, ok := strings.Cut(string(msg), terrorHead)
 	if !ok {

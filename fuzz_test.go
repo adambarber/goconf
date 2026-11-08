@@ -5,7 +5,8 @@ import (
 	"testing"
 )
 
-// fuzzSentinel is the planted marker and fuzzTwin its stand-in.
+// fuzzSentinel is the planted marker and fuzzTwin its stand-in; the
+// oracle is differential (docs/load.md, "Fuzzing").
 const (
 	fuzzSentinel = "sk-live-9f8e7d6c"
 	fuzzTwin     = "zz-neutral-00"
