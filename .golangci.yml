@@ -138,9 +138,6 @@ linters:
     errcheck:
       check-blank: true
       check-type-assertions: true
-      exclude-functions:
-        - os.Remove   # test/probe cleanup of files the test itself created; a failed removal cannot change a verdict
-        - os.RemoveAll   # same, for the scratch trees
     govet:
       enable-all: true
     staticcheck:
@@ -242,6 +239,9 @@ linters:
       - path: refusal\.go$
         linters:
           - errname   # Reason constants are reason identities (Err-prefixed per convention); the TYPE Reason is a domain word, not a sentinel
+      - path: (refusal_io_test\.go|uxprobe/.*)
+        linters:
+          - errcheck   # test/probe cleanup of files the run itself created (_ = os.Remove/RemoveAll); a failed removal cannot change a verdict
       - path: refusal_prose_golden_test\.go$
         linters:
           - govet   # fieldfirst: the golden case list reads field-first; the order is the test's vocabulary
