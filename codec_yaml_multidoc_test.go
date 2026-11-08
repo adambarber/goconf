@@ -2,6 +2,7 @@ package goconf
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -26,6 +27,29 @@ func TestMultiDocumentYAMLIsRefused(t *testing.T) {
 	}
 
 	mustRefuseNames(t, walkErr, "app.yaml:2:")
+}
+
+// TestMultiDocumentLabelsTheSeparatorOnce pins that the separator's line
+// is named once: the frame carries "app.yaml:2", so the Subject does not
+// restate the line.
+func TestMultiDocumentLabelsTheSeparatorOnce(t *testing.T) {
+	err := multiDocRefusal("app.yaml", 2)
+
+	got := err.Error()
+
+	if !strings.Contains(got, "app.yaml:2:") {
+		t.Fatalf("refusal %q must carry the frame with the line", got)
+	}
+
+	if strings.Contains(got, "starts at line") {
+		t.Fatalf("refusal %q restates the separator line the frame already carries", got)
+	}
+
+	for _, want := range []string{"more than one document", `delete the "---" line`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("refusal %q must contain %q", got, want)
+		}
+	}
 }
 
 // TestSingleDocumentYAMLStillDecodes guards the refusal against
