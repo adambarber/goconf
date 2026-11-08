@@ -92,6 +92,9 @@ management. It loads one config, strictly.
 - A broken default fails loud at option construction (`WithDefaults`
   panics, a Must-style contract like `regexp.MustCompile`), never
   silently at load.
+- The refusal paths are fuzzed: arbitrary bytes through the real `Load`
+  in all three formats assert that no config value ever reaches refusal
+  text (see docs/load.md, "Fuzzing").
 
 ### Error identity
 
@@ -142,6 +145,13 @@ capabilities, refusal shapes — is in
   a TOML key is either present with a value or absent.)
 - Repeated field names across different array elements are not
   duplication and decode fine.
+- An empty file is refused for JSON and YAML but loads as no settings
+  for TOML — the formats' own null semantics differ, and goconf does not
+  paper over that.
+
+## License
+
+[MIT](LICENSE)
 
 ## Status
 
