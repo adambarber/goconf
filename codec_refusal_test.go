@@ -37,42 +37,42 @@ func TestRefusalNeverEchoesValues(t *testing.T) {
 		{
 			name:   "yaml long value fragment",
 			data:   SourceBytes("region: eu\nretries: " + secretShape + "\n"),
-			decode: decodeYAMLStrict,
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
 			name:   "yaml short value whole",
 			data:   SourceBytes("region: eu\nretries: " + secretShort + "\n"),
-			decode: decodeYAMLStrict,
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
 			name:   "yaml nested value fragment",
 			data:   SourceBytes("nested:\n  port: " + secretShape + "\n"),
-			decode: decodeYAMLStrict,
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
 			name:   "yaml backquoted value inside backquote wrap",
 			data:   SourceBytes("region: eu\nretries: `SE`CRET`VALUE`\n"),
-			decode: decodeYAMLStrict,
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
 			name:   "yaml unbalanced backquote in value",
 			data:   SourceBytes("retries: SE`CRET\n"),
-			decode: decodeYAMLStrict,
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
 			name:   "yaml backquoted value on line 2 refuses with line named",
 			data:   SourceBytes("region: eu\nretries: `SE`CRET`VALUE`\n"),
-			decode: decodeYAMLStrict,
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
 			name:   "json wrong-typed value",
 			data:   SourceBytes(`{"region": "eu", "retries": "` + secretShape + `"}` + "\n"),
-			decode: decodeJSONStrict,
+			decode: fileDecode(decodeJSONStrict, fileNameJSON),
 		},
 		{
 			name:   "toml wrong-typed value",
 			data:   SourceBytes("region = \"eu\"\nretries = \"" + secretShape + "\"\n"),
-			decode: decodeTOMLStrict,
+			decode: fileDecode(decodeTOMLStrict, fileNameTOML),
 		},
 	}
 

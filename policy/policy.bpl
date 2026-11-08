@@ -6,6 +6,12 @@ ignore positiveFixtures {
     owner  = "platform"
 }
 
+ignore errorRendering {
+    paths  = ["refusal.go"]
+    reason = "the stdlib error interface's Error() string method set is the stdlib's spelling; the named-kind rule cannot apply to the two methods that satisfy it"
+    owner  = "platform"
+}
+
 rule branching_budget {
     lang    = go
     type    = budget

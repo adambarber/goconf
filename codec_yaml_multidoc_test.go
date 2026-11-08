@@ -13,19 +13,19 @@ func TestMultiDocumentYAMLIsRefused(t *testing.T) {
 
 	var got codecCfg
 
-	err := decodeYAMLStrict(multi, Target{Value: reflect.ValueOf(&got).Elem()})
+	err := decodeYAMLStrict(multi, FilePath(string(fileNameYAML)), Target{Value: reflect.ValueOf(&got).Elem()})
 	if err == nil {
 		t.Fatalf("multi-document stream must be refused")
 	}
 
-	mustRefuseNames(t, err, "line 2")
+	mustRefuseNames(t, err, "app.yaml:2:")
 
-	_, walkErr := presentYAMLKeys(multi)
+	_, walkErr := presentYAMLKeys(multi, FilePath(string(fileNameYAML)))
 	if walkErr == nil {
 		t.Fatalf("multi-document stream must be refused in the presence walk")
 	}
 
-	mustRefuseNames(t, walkErr, "line 2")
+	mustRefuseNames(t, walkErr, "app.yaml:2:")
 }
 
 // TestSingleDocumentYAMLStillDecodes guards the refusal against
@@ -34,7 +34,7 @@ func TestMultiDocumentYAMLIsRefused(t *testing.T) {
 func TestSingleDocumentYAMLStillDecodes(t *testing.T) {
 	single := SourceBytes("region: eu\nretries: 3\n")
 
-	keys, err := presentYAMLKeys(single)
+	keys, err := presentYAMLKeys(single, FilePath(string(fileNameYAML)))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestSingleDocumentYAMLStillDecodes(t *testing.T) {
 
 	var got codecCfg
 
-	if err := decodeYAMLStrict(single, Target{Value: reflect.ValueOf(&got).Elem()}); err != nil {
+	if err := decodeYAMLStrict(single, FilePath(string(fileNameYAML)), Target{Value: reflect.ValueOf(&got).Elem()}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

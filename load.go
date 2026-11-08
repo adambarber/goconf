@@ -1,12 +1,10 @@
 package goconf
 
 import (
-	"errors"
 	"reflect"
-)
 
-// errLoadAnyCast is the impossible-by-construction cast failure path.
-var errLoadAnyCast = errors.New("decode target does not hold the requested type")
+	"github.com/adambarber/gorefuse"
+)
 
 // Load discovers, merges, and decodes one config into T, strictly: the
 // caller declares the config NAME and optionally a FORMAT; the details
@@ -40,7 +38,9 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 
 	got, ok := reflect.TypeAssert[T](dst.Value)
 	if !ok {
-		return zero, nil, errLoadAnyCast
+		return zero, nil, refuseWhy(ErrTargetCast,
+			gorefuse.Subject("the decode target"),
+			gorefuse.Why("the decode target does not hold the requested type; this is a construction fault."))
 	}
 
 	return got, prov, nil
@@ -55,13 +55,13 @@ func decodeInto(dst Target, files []FoundFile, defaults []layeredDefault) ([]Pro
 		return nil, err
 	}
 
-	present, err := unionPresence(sources, fileFormats(files), dst.Value.Type())
+	present, err := unionPresence(sources, files, dst.Value.Type())
 	if err != nil {
 		return nil, err
 	}
 
 	for i, src := range sources {
-		if err := decodeFormat(src, dst, files[i].Format); err != nil {
+		if err := decodeFormat(src, files[i].Path, dst, files[i].Format); err != nil {
 			return nil, err
 		}
 	}
@@ -71,14 +71,4 @@ func decodeInto(dst Target, files []FoundFile, defaults []layeredDefault) ([]Pro
 	}
 
 	return prov, nil
-}
-
-// fileFormats renders one format per file, in discovery order.
-func fileFormats(files []FoundFile) []Format {
-	out := make([]Format, 0, len(files))
-	for _, f := range files {
-		out = append(out, f.Format)
-	}
-
-	return out
 }

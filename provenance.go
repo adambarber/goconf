@@ -3,11 +3,11 @@ package goconf
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/adambarber/gorefuse"
 )
 
 // Provenance records one source that contributed to a load: where its
@@ -45,7 +45,10 @@ func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 
 		raw, err := os.ReadFile(string(f.Path))
 		if err != nil {
-			return nil, nil, fmt.Errorf("read %s in search leg %s: %w", f.Path, f.Leg, err)
+			return nil, nil, refuseCause(
+				gorefuse.At(gorefuse.File(f.Path), 0,
+					gorefuse.Subject("the candidate file in search leg "+string(f.Leg)),
+					gorefuse.Why("the file could not be read; the fault is real, not absence.")), err)
 		}
 
 		sources = append(sources, raw)
@@ -55,10 +58,6 @@ func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 	return sources, prov, nil
 }
 
-// errOutsideSearch is the refusal for a candidate whose resolved target
-// leaves the searched directory.
-var errOutsideSearch = errors.New("config file resolves outside the searched directory")
-
 // confine refuses a candidate file whose symlink-resolved target leaves
 // the directory that was searched, naming the file and the target.
 func confine(p FilePath) error {
@@ -66,18 +65,26 @@ func confine(p FilePath) error {
 
 	resolved, err := filepath.EvalSymlinks(file)
 	if err != nil {
-		return fmt.Errorf("discover: %s: %w", file, err)
+		return refuseCause(
+			gorefuse.At(gorefuse.File(p), 0,
+				gorefuse.Subject("the candidate file"),
+				gorefuse.Why("the symlink target could not be resolved.")), err)
 	}
 
 	dir := filepath.Dir(file)
 
 	resolvedDir, err := filepath.EvalSymlinks(dir)
 	if err != nil {
-		return fmt.Errorf("discover: %s: %w", dir, err)
+		return refuseCause(
+			gorefuse.At(gorefuse.File(DirPath(dir)), 0,
+				gorefuse.Subject("the searched directory"),
+				gorefuse.Why("the directory could not be resolved.")), err)
 	}
 
 	if !withinDir(resolvedPath(resolved), resolvedPath(resolvedDir)) {
-		return fmt.Errorf("discover: %w: %s points at %s", errOutsideSearch, file, resolved)
+		return refuseWhy(ErrOutsideSearch,
+			gorefuse.Subject("\""+file+"\" which points at \""+resolved+"\""),
+			gorefuse.Why("the symlink-resolved target leaves the searched directory; keep the target inside the searched tree."))
 	}
 
 	return nil

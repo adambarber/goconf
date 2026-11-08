@@ -34,6 +34,14 @@ func zeroCodecWant() codecCfg {
 	return codecWant(0, nestedCfgWant("", 0))
 }
 
+// fileDecode adapts one strict decode to the file-carrying decoders:
+// the refusal frame names the file the bytes are declared to come from.
+func fileDecode(decode func(SourceBytes, FilePath, Target) error, file FileName) func(SourceBytes, Target) error {
+	return func(data SourceBytes, dst Target) error {
+		return decode(data, FilePath(string(file)), dst)
+	}
+}
+
 // decodeCase runs one strict decode and pins the contract: a refusal
 // case errors with the required fragment, a clean case decodes to the
 // exact expected value.
@@ -98,6 +106,15 @@ func keysPresent(t *testing.T, keys KeySet, want, absent []FieldPath) {
 		if keys.Has(p) {
 			t.Errorf("%q is absent and must not be present", p)
 		}
+	}
+}
+
+// fileKeys adapts a file-carrying key walk to the one-argument shape
+// presentKeysOK expects, naming the file the bytes are declared to come
+// from.
+func fileKeys(walk func(SourceBytes, FilePath) (KeySet, error), file FileName) func(SourceBytes) (KeySet, error) {
+	return func(data SourceBytes) (KeySet, error) {
+		return walk(data, FilePath(string(file)))
 	}
 }
 

@@ -28,7 +28,7 @@ func TestDecodeTOMLStrict(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
-			decodeCase(t, &tc, decodeTOMLStrict)
+			decodeCase(t, &tc, fileDecode(decodeTOMLStrict, fileNameTOML))
 		})
 	}
 }
@@ -39,7 +39,7 @@ func TestPresentTOMLKeys(t *testing.T) {
 	var want codecCfg
 
 	keys := presentKeysOK(t, func(data SourceBytes) (KeySet, error) {
-		return presentTOMLKeys(data, reflect.TypeOf(want))
+		return presentTOMLKeys(data, FilePath(string(fileNameTOML)), reflect.TypeOf(want))
 	}, data)
 
 	keysPresent(t, keys, []FieldPath{fpRegion, fpNested, fpNestedHost}, []FieldPath{fpNestedPort})

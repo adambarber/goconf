@@ -1,13 +1,10 @@
 package goconf
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
-)
 
-// errUnmarshalable is the refusal for a default JSON cannot represent.
-var errUnmarshalable = errors.New("default cannot marshal")
+	"github.com/adambarber/gorefuse"
+)
 
 // Name is the caller-declared name of a config: files are searched as
 // NAME.EXT in each directory.
@@ -95,14 +92,12 @@ func WithDefaults[T any](value T) *defaultsOption {
 	return &defaultsOption{value: v}
 }
 
-// errBadDefaultShape is the refusal for a default value that is not a
-// struct: only a struct can fill named target fields.
-var errBadDefaultShape = errors.New("WithDefaults: default value must be a struct whose fields fill the target's fields, got")
-
 // checkDefaultShape refuses a default value that is not struct-shaped.
 func checkDefaultShape(v reflect.Value) error {
 	if v.Kind() != reflect.Struct {
-		return fmt.Errorf("%w %s", errBadDefaultShape, v.Kind())
+		return refuseWhy(ErrBadDefaultShape,
+			gorefuse.Subject("a default value of kind "+v.Kind().String()),
+			gorefuse.Why("WithDefaults needs a struct whose fields fill the target's fields; only a struct can fill named fields."))
 	}
 
 	return nil
@@ -117,7 +112,9 @@ func marshalable(v reflect.Value) error {
 // walkMarshalable refuses channel and func fields anywhere in the value.
 func walkMarshalable(v reflect.Value, path FieldPath) error {
 	if v.Kind() == reflect.Chan || v.Kind() == reflect.Func {
-		return fmt.Errorf("WithDefaults: %w", errUnmarshalable)
+		return refuseWhy(ErrUnmarshalable,
+			gorefuse.Subject("a default with a "+v.Kind().String()+" field"),
+			gorefuse.Why("a default the format cannot represent would be silently dropped at decode time."))
 	}
 
 	if v.Kind() == reflect.Struct {

@@ -1,8 +1,7 @@
 package goconf
 
 import (
-	"errors"
-	"fmt"
+	"github.com/adambarber/gorefuse"
 )
 
 // Format is one config file format, spelled only by its full extension.
@@ -21,10 +20,6 @@ const (
 // undetermined is the zero Format: discovery does not narrow by extension.
 const undetermined Format = ""
 
-// errUnknownFormat is the refusal for a Format that is not one of the
-// three declared constants.
-var errUnknownFormat = errors.New("format must be spelled by one full extension")
-
 // acceptedFormats renders the accepted format spellings for a refusal.
 const acceptedFormats = `".json", ".yaml", ".toml"`
 
@@ -35,7 +30,9 @@ func (f Format) check() error {
 	case FormatJSON, FormatYAML, FormatTOML, undetermined:
 		return nil
 	default:
-		return fmt.Errorf("%w: got %q, accepted: %s", errUnknownFormat, string(f), acceptedFormats)
+		return refuseWhy(ErrUnknownFormat,
+			gorefuse.Subject("format \""+string(f)+"\""),
+			gorefuse.Why("a format must be spelled by one full extension; accepted: "+acceptedFormats+"."))
 	}
 }
 

@@ -2,14 +2,9 @@ package goconf
 
 import (
 	"errors"
-	"fmt"
 
 	"gopkg.in/yaml.v3"
 )
-
-// errDecoderRefused is the sentinel for a rewritten refusal: identity
-// survives, value text does not.
-var errDecoderRefused = errors.New("decoder refused")
 
 // errValueFree rewrites a decoder error so no scalar value survives;
 // yaml's typed errors carry one message per failure.
@@ -17,7 +12,7 @@ func errValueFree(err error) error {
 	var typeErr *yaml.TypeError
 
 	if !errors.As(err, &typeErr) {
-		return fmt.Errorf("%w: %s", errDecoderRefused, stripBackquotedValues(refusalText(err.Error())))
+		return refusalError(stripBackquotedValues(refusalText(err.Error())))
 	}
 
 	stripped := make([]string, 0, len(typeErr.Errors))

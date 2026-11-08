@@ -13,7 +13,7 @@ const secretFragment = "SE-CRET-VALUE"
 
 // keyIsSafe is a key-name refusal that legitimately quotes keys: the
 // strip pass must not mangle these.
-const keyIsSafe = `unknown field "safekey"`
+const keyIsSafe = `unknown field: "safekey"`
 
 // valueFreeCase is one cross-format invariant row: data planted with the
 // secret fragment, decoded, and its refusal checked for fragments.
@@ -29,42 +29,42 @@ func valueFreeCases() []valueFreeCase {
 		{
 			name:   "toml expected-value echo",
 			data:   SourceBytes("retries = " + secretFragment + "\n"),
-			decode: decodeTOMLStrict,
+			decode: fileDecode(decodeTOMLStrict, fileNameTOML),
 		},
 		{
 			name:   "toml invalid escape echo",
 			data:   SourceBytes(`retries = "bad\` + secretFragment + `"` + "\n"),
-			decode: decodeTOMLStrict,
+			decode: fileDecode(decodeTOMLStrict, fileNameTOML),
 		},
 		{
 			name:   "toml type mismatch",
 			data:   SourceBytes("retries = \"" + secretFragment + "\"\n"),
-			decode: decodeTOMLStrict,
+			decode: fileDecode(decodeTOMLStrict, fileNameTOML),
 		},
 		{
 			name:   "json type mismatch",
 			data:   SourceBytes(`{"retries": "` + secretFragment + `"}`),
-			decode: decodeJSONStrict,
+			decode: fileDecode(decodeJSONStrict, fileNameJSON),
 		},
 		{
 			name:   "json syntax error near value",
 			data:   SourceBytes("{\n  \"retries\": " + secretFragment + "\n}"),
-			decode: decodeJSONStrict,
+			decode: fileDecode(decodeJSONStrict, fileNameJSON),
 		},
 		{
 			name:   "yaml type error",
 			data:   SourceBytes("retries: " + secretFragment + "\n"),
-			decode: decodeYAMLStrict,
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
 			name:   "yaml backquoted value",
 			data:   SourceBytes("retries: `x`" + secretFragment + "y`\n"),
-			decode: decodeYAMLStrict,
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 		{
 			name:   "yaml scanner error on value line",
 			data:   SourceBytes("region: eu\nretries: @x`" + secretFragment + "\n"),
-			decode: decodeYAMLStrict,
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
 	}
 }
@@ -87,7 +87,7 @@ func TestNoValueFragmentSurvivesAnyRefusal(t *testing.T) {
 func TestKeyNamingRefusalsStillQuoteKeys(t *testing.T) {
 	var got codecCfg
 
-	err := decodeJSONStrict(SourceBytes(`{"region":"eu","safekey":1}`), Target{Value: reflect.ValueOf(&got).Elem()})
+	err := fileDecode(decodeJSONStrict, fileNameJSON)(SourceBytes(`{"region":"eu","safekey":1}`), Target{Value: reflect.ValueOf(&got).Elem()})
 	if err == nil {
 		t.Fatalf("unknown field must be refused")
 	}

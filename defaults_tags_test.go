@@ -122,7 +122,7 @@ func assertDefaultDoesNotOverride(t *testing.T, combo tagComboTarget, format For
 	// decode into the fresh target, then fill absents from a default
 	// whose leaf differs from the explicit value
 
-	if err := decodeFormat(data, Target{Value: dst}, format); err != nil {
+	if err := decodeFormat(data, FilePath(string(fileNameJSON)), Target{Value: dst}, format); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
 
@@ -144,7 +144,7 @@ func assertDefaultDoesNotOverride(t *testing.T, combo tagComboTarget, format For
 func presenceOK(t *testing.T, format Format, data SourceBytes, shape reflect.Type) KeySet {
 	t.Helper()
 
-	keys, err := presenceOf(data, format, shape)
+	keys, err := presenceOf(data, format, FilePath(string(fileNameJSON)), shape)
 	if err != nil {
 		t.Fatalf("presence: %v", err)
 	}

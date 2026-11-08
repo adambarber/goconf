@@ -17,36 +17,36 @@ func TestDecodeJSONStrict(t *testing.T) {
 			name:    nameUnknown,
 			data:    SourceBytes(`{"region":"eu","extra":1}`),
 			want:    zeroCodecWant(),
-			wantErr: refusalNeed(`unknown field "extra"`),
+			wantErr: refusalNeed(`unknown field: "extra"`),
 		},
 		{
 			name:    "unknown field names the key's line, no doubled prefix",
 			data:    SourceBytes("{\n  \"region\": \"eu\",\n  \"extra\": 1\n}"),
 			want:    zeroCodecWant(),
-			wantErr: refusalNeed(`line 3: unknown field "extra"`),
+			wantErr: refusalNeed(`unknown field: "extra"`),
 		},
 		{
 			name:    "trailing data is refused",
 			data:    SourceBytes(`{"region":"eu"} {"region":"us"}`),
 			want:    zeroCodecWant(),
-			wantErr: refusalNeed("trailing data"),
+			wantErr: refusalNeed("data after the document root"),
 		},
 		{
 			name:    "syntax error names the line",
 			data:    SourceBytes("{\n  \"region\": eu\n}"),
 			want:    zeroCodecWant(),
-			wantErr: refusalNeed("line 2:"),
+			wantErr: refusalNeed("app.json:2:"),
 		},
 		{
 			name:    "type error names the field and line",
 			data:    SourceBytes("{\n  \"retries\": \"many\"\n}"),
 			want:    zeroCodecWant(),
-			wantErr: refusalNeed("line 2:"),
+			wantErr: refusalNeed("app.json:2:"),
 		},
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
-			decodeCase(t, &tc, decodeJSONStrict)
+			decodeCase(t, &tc, fileDecode(decodeJSONStrict, fileNameJSON))
 		})
 	}
 }
@@ -77,31 +77,31 @@ func dupCases() []dupCase {
 			name:    "duplicate top-level scalar key is refused",
 			data:    SourceBytes(`{"admin":false,"port":1,"admin":true}`),
 			want:    zero,
-			wantErr: refusalNeed(`duplicate key "admin"`),
+			wantErr: refusalNeed(`duplicate key: "admin"`),
 		},
 		{
 			name:    "duplicate top-level object key is refused",
 			data:    SourceBytes(`{"server":{"host":"a"},"server":{"host":"b"}}`),
 			want:    zero,
-			wantErr: refusalNeed(`duplicate key "server"`),
+			wantErr: refusalNeed(`duplicate key: "server"`),
 		},
 		{
 			name:    "duplicate object key re-declaring part of a struct is refused",
 			data:    SourceBytes(`{"server":{"host":"a"},"server":{"port":2}}`),
 			want:    zero,
-			wantErr: refusalNeed(`duplicate key "server"`),
+			wantErr: refusalNeed(`duplicate key: "server"`),
 		},
 		{
 			name:    "duplicate nested key is refused with the key named",
 			data:    SourceBytes(`{"server":{"host":"a","host":"b"}}`),
 			want:    zero,
-			wantErr: refusalNeed(`duplicate key "host"`),
+			wantErr: refusalNeed(`duplicate key: "host"`),
 		},
 		{
 			name:    "duplicate key after an array close is refused",
 			data:    SourceBytes(`{"servers":[{"host":"a"}],"servers":[{"host":"b"}]}`),
 			want:    zero,
-			wantErr: refusalNeed(`duplicate key "servers"`),
+			wantErr: refusalNeed(`duplicate key: "servers"`),
 		},
 		{
 			name:    caseName("no duplicate keys still decodes"),
@@ -123,7 +123,7 @@ func TestDecodeJSONStrictRefusesDuplicateKeys(t *testing.T) {
 		t.Run(string(tc.name), func(t *testing.T) {
 			var got dupCfg
 
-			err := decodeJSONStrict(tc.data, Target{Value: reflect.ValueOf(&got).Elem()})
+			err := fileDecode(decodeJSONStrict, fileNameJSON)(tc.data, Target{Value: reflect.ValueOf(&got).Elem()})
 
 			assertDupCase(t, &tc, got, err)
 		})
@@ -147,7 +147,7 @@ func assertDupCase(t *testing.T, tc *dupCase, got dupCfg, err error) {
 func TestPresentJSONKeys(t *testing.T) {
 	data := SourceBytes(`{"region":"eu","nested":{"host":"h"},"list":[1,2]}`)
 
-	keys := presentKeysOK(t, presentJSONKeys, data)
+	keys := presentKeysOK(t, fileKeys(presentJSONKeys, fileNameJSON), data)
 
 	keysPresent(t, keys, []FieldPath{fpRegion, fpNested, fpNestedHost, fpList}, []FieldPath{fpNestedPort})
 }

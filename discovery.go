@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/adambarber/gorefuse"
 )
 
 // configName is the caller-declared name of a config: files are searched
@@ -29,20 +31,12 @@ type Discovery struct {
 	Search []DirPath
 }
 
-// errAmbiguous is the refusal for one directory holding candidates with
-// different-format extensions; discovery never guesses.
-var errAmbiguous = errors.New("ambiguous config candidates with different formats")
-
-// errNothingFound is the refusal for a discovery that found no candidate
-// anywhere: a load that found nothing loaded nothing.
-var errNothingFound = errors.New("no config file found in any searched path")
-
 // discover lists the config files found in the search paths, in order:
 // each directory holds at most one format's candidate unless the format
 // narrows the search; zero candidates across all paths is refused.
 func discover(d Discovery) ([]FoundFile, error) {
 	if err := d.Format.check(); err != nil {
-		return nil, fmt.Errorf("discover: %w", err)
+		return nil, err
 	}
 
 	if err := checkCandidateName(d.Name); err != nil {
@@ -61,7 +55,9 @@ func discover(d Discovery) ([]FoundFile, error) {
 	}
 
 	if len(found) == 0 {
-		return nil, fmt.Errorf("discover: %w in %s", errNothingFound, renderPaths(d.Search))
+		return nil, refuseWhy(ErrNothingFound,
+			gorefuse.Subject("a file named \""+string(d.Name)+"\" with an extension some format spells"),
+			gorefuse.Why("no candidate was found in any of the searched paths: "+string(renderPaths(d.Search))+"; create the file or widen the search."))
 	}
 
 	return found, nil
@@ -75,12 +71,17 @@ func discoverDir(dir DirPath, name configName, required Format) ([]FoundFile, er
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("discover: %w", err)
+		return nil, refuseCause(
+			gorefuse.At(gorefuse.File(dir), 0,
+				gorefuse.Subject("the searched directory"),
+				gorefuse.Why("discovery could not list this directory.")), err)
 	}
 
 	cands := candidateExts(entries, name)
 	if required.IsUndetermined() && len(cands) > 1 {
-		return nil, fmt.Errorf("discover: %w in %s: %s", errAmbiguous, dir, renderFiles(name, cands))
+		return nil, refuseWhy(ErrAmbiguous,
+			gorefuse.Subject("\""+string(renderFiles(name, cands))+"\" in "+string(dir)),
+			gorefuse.Why("one directory holds candidates with different-format extensions; declare the format so discovery never guesses."))
 	}
 
 	if !required.IsUndetermined() {
@@ -134,15 +135,13 @@ func candidatePath(dir DirPath, name configName, ext Extension) (FilePath, error
 	return FilePath(filepath.Join(string(dir), string(name)+string(ext))), nil
 }
 
-// errEscapingName is the refusal for a config name that would place the
-// candidate file outside the searched directories.
-var errEscapingName = errors.New("config name must be a bare file name with no path separators or '..'; got")
-
 // checkCandidateName refuses a config name that could escape the search.
 func checkCandidateName(name configName) error {
 	n := string(name)
 	if n == "" || filepath.IsAbs(n) || strings.ContainsAny(n, `\`) || strings.Contains(n, "..") || strings.Contains(n, "/") {
-		return fmt.Errorf("discover: %w %q", errEscapingName, n)
+		return refuseWhy(ErrEscapingName,
+			gorefuse.Subject(fmt.Sprintf("config name %q", n)),
+			gorefuse.Why("the name must be a bare file name with no path separators or '..'; it would place the candidate file outside the searched directories."))
 	}
 
 	return nil
@@ -168,13 +167,11 @@ func narrow(required Format, dir DirPath, name configName) ([]FoundFile, error) 
 
 	// any other stat failure is a real fault in the searched directory,
 	// not absence: a load that could not look did not look
-	return nil, fmt.Errorf("discover: %s: %w", p, statErr)
+	return nil, refuseCause(
+		gorefuse.At(gorefuse.File(p), 0,
+			gorefuse.Subject("the candidate file"),
+			gorefuse.Why("the searched directory could not be stat-ed; the fault is real, not absence.")), statErr)
 }
-
-// errUnknownCandidate is the refusal for a candidate file whose
-// extension no format spells: discovery never silently skips a file the
-// name boundary selected.
-var errUnknownCandidate = errors.New("candidate file has an extension no format spells; the file must be renamed or removed")
 
 // onePer builds one FoundFile per candidate extension, refusing any
 // extension no format spells by naming the file.
@@ -188,7 +185,9 @@ func onePer(cands []Extension, dir DirPath, name configName) ([]FoundFile, error
 
 		format, ok := formatOf(ext)
 		if !ok {
-			return nil, fmt.Errorf("discover: %w: %s", errUnknownCandidate, p)
+			return nil, refuseWhy(ErrUnknownCandidate,
+				gorefuse.Subject("\""+string(p)+"\""),
+				gorefuse.Why("the candidate file's extension spells no format; rename the file or remove it."))
 		}
 
 		out = append(out, FoundFile{Path: p, Format: format, Leg: dir})

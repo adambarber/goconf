@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
+
+	"github.com/adambarber/gorefuse"
 )
 
 // lineAtByte returns the 1-based line number of the byte at offset in data.
@@ -23,13 +24,10 @@ func lineAtByte(data SourceBytes, offset int64) int {
 	return bytes.Count(data[:offset], []byte("\n")) + 1
 }
 
-// errTypeMismatch is the refusal for a value that does not fit its field.
-var errTypeMismatch = errors.New("cannot unmarshal into Go field of declared type")
-
-// jsonErr converts a decode error into one that names the line the decoder
-// stopped on, using the raw bytes it was reading. An unknown-field refusal
-// names the key's line, found by re-walking the token stream.
-func jsonErr(data SourceBytes, err error) error {
+// jsonErr converts a decode error into a refusal naming the line the
+// decoder stopped on, using the raw bytes it was reading. An unknown-field
+// refusal names the key's line, found by re-walking the token stream.
+func jsonErr(data SourceBytes, file FilePath, err error) error {
 	var syntax *json.SyntaxError
 
 	var typeErr *json.UnmarshalTypeError
@@ -38,19 +36,31 @@ func jsonErr(data SourceBytes, err error) error {
 
 	switch {
 	case errors.As(err, &syntax):
-		return fmt.Errorf("json: line %d: %w", lineAtByte(data, syntax.Offset), syntax)
+		line := lineAtByte(data, syntax.Offset)
+
+		return refuseCause(
+			gorefuse.At(gorefuse.File(file), gorefuse.Line(line),
+				gorefuse.Subject("JSON syntax"),
+				gorefuse.Why("fix the syntax the decoder stopped on; the frame names its line.")), err)
 	case errors.As(err, &typeErr):
-		return fmt.Errorf("json: line %d: %w: got %s for %s", lineAtByte(data, typeErr.Offset), errTypeMismatch, typeErr.Value, typeErr.Type)
+		line := lineAtByte(data, typeErr.Offset)
+
+		return refuseAt(ErrTypeMismatch, file, gorefuse.Line(line),
+			gorefuse.Subject("value of type \""+typeErr.Value+"\" for a field of type "+typeErr.Type.String()),
+			gorefuse.Why("the value does not fit the field's declared type; the frame names the offending line."))
 	case unknown:
-		return fmt.Errorf("json: line %d: %w %q", jsonKeyLine(data, key), errUnknownFieldJSON, string(key))
+		line := jsonKeyLine(data, key)
+
+		return refuseAt(ErrUnknownField, file, gorefuse.Line(line),
+			gorefuse.Subject("\""+string(key)+"\""),
+			gorefuse.Why("the decode target does not declare it; declare the field in the target or remove it from the file."))
 	default:
-		return fmt.Errorf("json: %w", err)
+		return refuseCause(
+			gorefuse.At(gorefuse.File(file), 0,
+				gorefuse.Subject("JSON decode"),
+				gorefuse.Why("fix the error the JSON decoder reported.")), err)
 	}
 }
-
-// errUnknownFieldJSON is the refusal for a key the target does not
-// declare, with the key's line named by the caller's wrap.
-var errUnknownFieldJSON = errors.New("unknown field")
 
 // jsonUnknownPrefix is encoding/json's unknown-field refusal prefix, up
 // to the quoted key.

@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/adambarber/gorefuse"
 )
 
 // TestLoadUndeterminedFormatUsesPerFileFormat pins that the undetermined
@@ -59,7 +61,9 @@ func TestLoadUnknownCandidateExtensionStillRefused(t *testing.T) {
 	t.Chdir(root)
 
 	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: undetermined})
-	if !errors.Is(err, errUnknownCandidate) {
-		t.Fatalf("got %v, want errUnknownCandidate", err)
+
+	var because gorefuse.Because[Reason]
+	if !errors.As(err, &because) || because.Reason != ErrUnknownCandidate {
+		t.Fatalf("got %v, want ErrUnknownCandidate", err)
 	}
 }

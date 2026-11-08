@@ -3,9 +3,9 @@ package goconf
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
+
+	"github.com/adambarber/gorefuse"
 )
 
 // frame is one open container on the token-stack walk: its dotted path and
@@ -22,12 +22,6 @@ type walk struct {
 	expectVal bool
 }
 
-// errUnbalanced is the refusal for a close delimiter past the root.
-var errUnbalanced = errors.New("unbalanced delimiter")
-
-// errTrailing is the refusal for bytes after the document root.
-var errTrailing = errors.New("trailing data after the document")
-
 // under joins a key to its parent's dotted path, records it, and returns
 // the composed path, so an opening delimiter can open a frame at the child
 // path.
@@ -43,9 +37,10 @@ func under(keys *KeySet, parent, key FieldPath) FieldPath {
 }
 
 // decodeJSONStrict decodes JSON bytes into the target, refusing unknown
-// fields, trailing data, and type mismatches with the line named.
-func decodeJSONStrict(data SourceBytes, dst Target) error {
-	if err := refuseDuplicateJSONKeys(data); err != nil {
+// fields, trailing data, and type mismatches with the line named. Every
+// refusal's frame points at the refused file.
+func decodeJSONStrict(data SourceBytes, file FilePath, dst Target) error {
+	if err := refuseDuplicateJSONKeys(data, file); err != nil {
 		return err
 	}
 
@@ -53,11 +48,13 @@ func decodeJSONStrict(data SourceBytes, dst Target) error {
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(dst.Value.Addr().Interface()); err != nil {
-		return jsonErr(data, err)
+		return jsonErr(data, file, err)
 	}
 
 	if _, err := dec.Token(); err == nil {
-		return fmt.Errorf("json: %w", errTrailing)
+		return refuseAt(ErrDecoderRefused, file, 0,
+			gorefuse.Subject("data after the document root"),
+			gorefuse.Why("one JSON document per file; remove the trailing bytes."))
 	}
 
 	return nil
@@ -66,7 +63,7 @@ func decodeJSONStrict(data SourceBytes, dst Target) error {
 // presentJSONKeys records the dotted field paths of every key present in
 // the JSON document, walking the token stream so presence is recorded no
 // matter how deeply it is nested, including inside arrays of objects.
-func presentJSONKeys(data SourceBytes) (KeySet, error) {
+func presentJSONKeys(data SourceBytes, file FilePath) (KeySet, error) {
 	keys := KeySet{paths: nil}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
@@ -79,10 +76,10 @@ func presentJSONKeys(data SourceBytes) (KeySet, error) {
 		case err == io.EOF:
 			return keys, nil
 		case err != nil:
-			return keys, jsonErr(data, err)
+			return keys, jsonErr(data, file, err)
 		default:
 			line := lineAtByte(data, dec.InputOffset())
-			if inner := advanceToken(&keys, &w, tok, line); inner != nil {
+			if inner := advanceToken(&keys, &w, tok, line, file); inner != nil {
 				return keys, inner
 			}
 		}
@@ -92,10 +89,10 @@ func presentJSONKeys(data SourceBytes) (KeySet, error) {
 // advanceToken folds one token into the key walk. expectVal is true while
 // the next token is the value of an already-recorded key; any token then
 // consumes it. Outside it, a string token in an object is a key.
-func advanceToken(keys *KeySet, w *walk, tok json.Token, line int) error {
+func advanceToken(keys *KeySet, w *walk, tok json.Token, line int, file FilePath) error {
 	top := w.stack[len(w.stack)-1]
 	if delim, isDelim := tok.(json.Delim); isDelim {
-		return advanceDelim(w, delim, line)
+		return advanceDelim(w, delim, line, file)
 	}
 
 	if w.expectVal {
@@ -114,7 +111,7 @@ func advanceToken(keys *KeySet, w *walk, tok json.Token, line int) error {
 // advanceDelim handles one structural token: open pushes a frame at the
 // pending key's path, close pops one. A close that would empty the walk
 // past the document root is refused.
-func advanceDelim(w *walk, delim json.Delim, line int) error {
+func advanceDelim(w *walk, delim json.Delim, line int, file FilePath) error {
 	open := frame{path: w.pending, isSeq: false}
 
 	switch delim {
@@ -123,7 +120,9 @@ func advanceDelim(w *walk, delim json.Delim, line int) error {
 		open.isSeq = true
 	default:
 		if len(w.stack) <= 1 {
-			return fmt.Errorf("json: line %d: %w", line, errUnbalanced)
+			return refuseAt(ErrDecoderRefused, file, gorefuse.Line(line),
+				gorefuse.Subject("close delimiter past the document root"),
+				gorefuse.Why("the delimiter structure is unbalanced; close what was opened."))
 		}
 
 		return closeFrame(w)

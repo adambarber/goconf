@@ -31,7 +31,7 @@ func TestDecodeYAMLStrict(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
-			decodeCase(t, &tc, decodeYAMLStrict)
+			decodeCase(t, &tc, fileDecode(decodeYAMLStrict, fileNameYAML))
 		})
 	}
 }
@@ -39,7 +39,7 @@ func TestDecodeYAMLStrict(t *testing.T) {
 func TestPresentYAMLKeys(t *testing.T) {
 	data := SourceBytes("region: eu\nnested:\n  host: h\nlist:\n  - a\n  - b\n")
 
-	keys := presentKeysOK(t, presentYAMLKeys, data)
+	keys := presentKeysOK(t, fileKeys(presentYAMLKeys, fileNameYAML), data)
 
 	keysPresent(t, keys, []FieldPath{fpRegion, fpNested, fpNestedHost, fpList}, []FieldPath{fpNestedPort})
 }
