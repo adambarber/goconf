@@ -19,11 +19,13 @@ func TestLoadRefusesUnknownCandidateExtensionByName(t *testing.T) {
 		t.Fatalf("unknown-candidate extension must be refused")
 	}
 
-	if strings.Contains(err.Error(), "no config file found") {
-		t.Errorf("refusal %q must not be the empty-discovery refusal", err)
+	for _, need := range []string{`".bak" is not a format the app can read`, "delete or rename", "myconf.json.bak"} {
+		if !strings.Contains(err.Error(), need) {
+			t.Errorf("refusal %q must name %q", err, need)
+		}
 	}
 
-	if !strings.Contains(err.Error(), "myconf.json.bak") {
-		t.Errorf("refusal %q must name the offending file", err)
+	if strings.Contains(err.Error(), "no config file found") {
+		t.Errorf("refusal %q must not be the empty-discovery refusal", err)
 	}
 }

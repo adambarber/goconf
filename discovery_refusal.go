@@ -29,6 +29,22 @@ func renderPaths(paths []DirPath) refusalText {
 	return refusalText(strings.Join(parts, ", "))
 }
 
+// lastExt is the last dot-segment of one candidate extension: the part
+// a user would rename (the .bak in app.json.bak).
+func lastExt(ext Extension) Extension {
+	dot := strings.LastIndex(string(ext), ".")
+
+	return Extension(string(ext)[dot:])
+}
+
+// unknownCandidateRefusal refuses one extension no format spells, naming
+// the extension and the file, with one action.
+func unknownCandidateRefusal(p FilePath, ext Extension) error {
+	return refuseWhy(ErrUnknownCandidate,
+		gorefuse.Subject(`"`+string(lastExt(ext))+`" is not a format the app can read`),
+		gorefuse.Why("delete or rename "+string(p)+"."))
+}
+
 // nothingFoundRefusal builds the empty-discovery refusal: it names the
 // file name(s) the app looked for and the directories it looked in, and
 // gives one action — create the config at one of those locations.

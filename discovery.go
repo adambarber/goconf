@@ -183,9 +183,7 @@ func onePer(cands []Extension, dir DirPath, name configName) ([]FoundFile, error
 
 		format, ok := formatOf(ext)
 		if !ok {
-			return nil, refuseWhy(ErrUnknownCandidate,
-				gorefuse.Subject("\""+string(p)+"\""),
-				gorefuse.Why("the candidate file's extension spells no format; rename the file or remove it."))
+			return nil, unknownCandidateRefusal(p, ext)
 		}
 
 		out = append(out, FoundFile{Path: p, Format: format, Leg: dir})
