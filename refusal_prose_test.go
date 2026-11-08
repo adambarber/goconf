@@ -97,10 +97,10 @@ func goldenShapeCases() []proseCase {
 			format: FormatYAML,
 			body:   SourceBytes("- a\n- b\n"),
 			contains: []userSpan{
-				"not a mapping",
-				"hold key: value pairs at the top of your config file",
+				"the file holds a list, but settings must be name: value pairs",
+				`start each setting on its own line as "name: value"`,
 			},
-			excludes: bannedVocab{"document root", "layered defaults"},
+			excludes: bannedVocab{"document root", "layered defaults", "mapping to walk"},
 		},
 		{
 			name:   "yaml multi doc",

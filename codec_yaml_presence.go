@@ -35,8 +35,8 @@ func presentYAMLKeys(data SourceBytes, file FilePath) (KeySet, error) {
 	root := docs[0].Content[0]
 	if root.Kind != yaml.MappingNode {
 		return keys, refuseAt(ErrNotAMapping, file, gorefuse.Line(root.Line),
-			gorefuse.Subject("the document"),
-			gorefuse.Why("hold key: value pairs at the top of your config file."))
+			gorefuse.Subject("the file holds "+string(shapeUserTerm(root))+", but settings must be name: value pairs"),
+			gorefuse.Why(`start each setting on its own line as "name: value".`))
 	}
 
 	walkYAMLNode(&keys, "", root)
@@ -70,6 +70,18 @@ func yamlDocuments(data SourceBytes, file FilePath) ([]yaml.Node, error) {
 // mapping node's content alternates key node, value node.
 func walkYAMLNode(keys *KeySet, prefix FieldPath, node *yaml.Node) {
 	walkYAMLNodeSeen(keys, prefix, node, map[*yaml.Node]bool{})
+}
+
+// shapeUserTerm is the user's word for one document node's shape.
+func shapeUserTerm(node *yaml.Node) userTerm {
+	switch node.Kind { //nolint:exhaustive // any other node kind renders as a table
+	case yaml.SequenceNode:
+		return kindUserTerm(kindList)
+	case yaml.ScalarNode:
+		return kindUserTerm(kindString)
+	default:
+		return kindUserTerm(kindTable)
+	}
 }
 
 // walkYAMLChildSeen descends into one value node: mappings recurse,
