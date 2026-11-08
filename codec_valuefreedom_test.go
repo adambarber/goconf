@@ -70,6 +70,11 @@ func valueFreeCases() []valueFreeCase {
 			data:   SourceBytes("region: eu\nretries: @x`" + secretFragment + "\n"),
 			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
 		},
+		{
+			name:   "yaml unknown anchor echo",
+			data:   SourceBytes("retries: *" + secretFragment + "\n"),
+			decode: fileDecode(decodeYAMLStrict, fileNameYAML),
+		},
 	}
 }
 

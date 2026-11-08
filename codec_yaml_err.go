@@ -12,7 +12,9 @@ func errValueFree(err error) error {
 	var typeErr *yaml.TypeError
 
 	if !errors.As(err, &typeErr) {
-		return refusalError(stripBackquotedValues(refusalText(err.Error())))
+		// scanner faults also quote values in single quotes, e.g.
+		// "unknown anchor 'v' referenced"; TypeErrors stay untouched.
+		return refusalError(stripQuotedSpans(stripBackquotedValues(refusalText(err.Error())), '\''))
 	}
 
 	stripped := make([]string, 0, len(typeErr.Errors))
