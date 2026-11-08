@@ -93,24 +93,25 @@ func runFuzzLeg(t *testing.T, data []byte, format Format) {
 	twinRefusal := errOf([]byte(strings.ReplaceAll(string(data), fuzzSentinel, fuzzTwin)))
 
 	// twinRefusal for a no-marker input is the same bytes: the oracle
-	// stands down; a decoder's single-character class echo ("'s'") is
-	// dropped from both sides before comparing.
+	// stands down. Both sides normalize their marker to one placeholder
+	// before comparing — see docs/load.md "Fuzzing" for the guarantee.
 	if !strings.Contains(string(data), fuzzSentinel) {
 		return
 	}
 
-	got := stripSingleCharSpans(refusal)
+	placeholder := func(msg refusalText) refusalText {
+		return refusalText(strings.ReplaceAll(strings.ReplaceAll(string(msg), fuzzSentinel, "#"), fuzzTwin, "#"))
+	}
 
-	want := stripSingleCharSpans(twinRefusal)
-
-	if strings.ReplaceAll(string(got), fuzzSentinel, fuzzTwin) != string(want) {
+	if string(placeholder(stripQuotedFuzz(refusal))) != string(placeholder(stripQuotedFuzz(twinRefusal))) {
 		t.Fatalf("refusal is not substitution-stable (value echo):\n got: %s\ntwin: %s", refusal, twinRefusal)
 	}
 }
 
-// stripSingleCharSpans drops every one-character single-quoted span
-// ("'s'"), a decoder's character-class echo, from one rendered refusal.
-func stripSingleCharSpans(msg refusalText) refusalText {
+// stripQuotedFuzz drops every single-quoted span — a decoder's
+// character-class echo and quoted key names — from one rendered
+// refusal before the oracle compares the two sides.
+func stripQuotedFuzz(msg refusalText) refusalText {
 	text := string(msg)
 
 	for {

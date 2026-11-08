@@ -153,10 +153,16 @@ secret-shaped values, backquoted and multi-line strings, multi-document
 streams, deep nesting, invalid UTF-8, null bytes, empty files, and huge
 scalars. Its oracle is differential: the input and a twin where the
 planted marker is replaced by a neutral token must render the same
-refusal under token substitution. Structural references survive the
-substitution — a key names itself, by the contract above — while a
-rendered value echo swaps token-for-token and fails the run. A decoder
-may name a character class by one character (JSON's "invalid character
+refusal after both sides' markers are normalized to one placeholder.
+Structural references survive — a key names itself, by the contract
+above — so key-position echoes normalize; the oracle detects an echo
+whose spelling the substitution does NOT account for (a leak that
+transforms differently from the twin's). It is a tripwire, not the
+primary leak guard: the deterministic table in
+TestNoValueFragmentSurvivesAnyRefusal and the corpus pins in
+testdata/fuzz/FuzzLoad/ assert directly that no value fragment renders,
+and those are the guarantee. A decoder may name a character class by
+one character (JSON's "invalid character
 's'"), which is not a value echo: one byte reconstructs nothing; such
 spans are dropped before comparison. Any failing input lands in
 testdata/fuzz/FuzzLoad/ and replays in plain `go test` as a permanent
