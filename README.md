@@ -118,11 +118,9 @@ capabilities, refusal shapes — is in
 
 ## Dependencies
 
-Two format decoders plus the refusal carrier:
-[BurntSushi/toml](https://github.com/BurntSushi/toml),
-[yaml.v3](https://gopkg.in/yaml.v3) — JSON uses the standard library —
-and [gorefuse](https://github.com/adambarber/gorefuse) as the typed
-refusal carrier. Nothing else.
+- [BurntSushi/toml](https://github.com/BurntSushi/toml)
+- [yaml.v3](https://gopkg.in/yaml.v3)
+- [gorefuse](https://github.com/adambarber/gorefuse)
 
 ## Caveats
 

@@ -2,13 +2,13 @@ package goconf
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/BurntSushi/toml"
 )
 
 // errTOMLValueFree rewrites a BurntSushi error so no scalar value
-// fragment survives; only ParseError renders values.
+// fragment survives; only ParseError renders values. Identity moves to
+// the Reason at the refusal boundary; this cause stays detail-only.
 func errTOMLValueFree(err error) error {
 	var perr *toml.ParseError
 
@@ -16,13 +16,8 @@ func errTOMLValueFree(err error) error {
 		return err
 	}
 
-	return fmt.Errorf("%w: %s", errTOMLRefused,
-		stripTOMLQuotedSpans(tomlMessage(perr.Error())))
+	return refusalError(refusalText(stripTOMLQuotedSpans(tomlMessage(perr.Error()))))
 }
-
-// errTOMLRefused is the sentinel for a rewritten TOML parse refusal:
-// identity survives, value text does not.
-var errTOMLRefused = errors.New("decoder refused")
 
 // stripTOMLQuotedSpans removes every double-quoted span of one message.
 // The value-quoting classes render values through %q, never keys.
