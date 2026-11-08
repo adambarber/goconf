@@ -35,6 +35,24 @@ legitimate candidate and loads. Confinement lives in the read path
 (`readSources`), the one chokepoint every candidate's bytes pass through,
 so the window between check and read is minimal.
 
+## Error identity
+
+A refusal is typed, not a wrapped sentence: every error `Load` returns
+is a `gorefuse.Because[goconf.Reason]` — extract it with `errors.As`,
+match it with `errors.Is` against the reason constants, or switch on
+`because.Reason`. The constants (`ErrDuplicateKey`, `ErrUnknownField`,
+`ErrAmbiguous`, `ErrNothingFound`, …) are one vocabulary across
+formats: JSON's, TOML's, and YAML's unknown-field refusals share
+`ErrUnknownField`; a YAML multi-document stream is `ErrMultiDoc` in
+decode and in the presence walk alike.
+
+The rendered text reads as one sentence: the `file:line` frame (when a
+file was refused), the reason, what was refused, the decoder's detail
+(when there is one), and the fix. A refusal raised before any file
+exists — nothing found, ambiguous candidates, an invented format, an
+escaping config name, a bad default — carries no frame and never
+fabricates one.
+
 ## Refusals
 
 Unknown fields are refused by every decode, in every format. Duplicate

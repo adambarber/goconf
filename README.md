@@ -7,6 +7,11 @@ and ambiguous discovery are refused, not silently resolved.
 go get github.com/adambarber/goconf
 ```
 
+Refusals are typed: every error is a `gorefuse.Because[goconf.Reason]`
+you can `errors.As` out and switch on — `ErrDuplicateKey`,
+`ErrUnknownField`, `ErrNothingFound`, and friends. See [Error
+identity](#error-identity) below.
+
 Given `app.json` in the working directory:
 
 ```json
@@ -82,8 +87,30 @@ management. It loads one config, strictly.
 - A broken default fails loud at option construction (`WithDefaults`
   panics, a Must-style contract like `regexp.MustCompile`), never
   silently at load.
-- Errors are wrapped `fmt.Errorf`/`%w` today; sentinel-error identity via
-  `errors.Is` is not yet part of the public API.
+
+### Error identity
+
+Every refusal is a `gorefuse.Because[goconf.Reason]`: extract it with
+`errors.As`, then switch on the reason or match it with `errors.Is`.
+
+```go
+var because gorefuse.Because[goconf.Reason]
+if errors.As(err, &because) {
+    switch because.Reason {
+    case goconf.ErrDuplicateKey:
+        // because.What.File names the file, because.What.Line the line
+    case goconf.ErrUnknownField:
+        // ...
+    }
+}
+```
+
+One reason per refusal semantics, across formats: `ErrUnknownField`
+covers JSON's, TOML's, and YAML's unknown-field refusals. The full
+constant list is in `refusal.go`. Refusals that happened before any
+file exists (nothing found, ambiguity, an invented format, a bad
+option) carry no file frame; refusals of a specific file carry the
+`file:line` frame pointing at that file.
 
 The full contract — discovery order, merge semantics, per-format
 capabilities, refusal shapes — is in
@@ -91,10 +118,11 @@ capabilities, refusal shapes — is in
 
 ## Dependencies
 
-Two, both format decoders:
-[BurntSushi/toml](https://github.com/BurntSushi/toml) and
-[yaml.v3](https://gopkg.in/yaml.v3). JSON uses the standard library.
-Nothing else.
+Two format decoders plus the refusal carrier:
+[BurntSushi/toml](https://github.com/BurntSushi/toml),
+[yaml.v3](https://gopkg.in/yaml.v3) — JSON uses the standard library —
+and [gorefuse](https://github.com/adambarber/gorefuse) as the typed
+refusal carrier. Nothing else.
 
 ## Caveats
 
