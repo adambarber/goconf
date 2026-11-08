@@ -109,6 +109,9 @@ YAML: explicit null exists, same semantics as JSON.
 
 TOML: explicit null does not exist. A TOML key is either present with a
 value or absent; there is no way to write a decision to clear a field.
+An empty TOML file loads as no settings — JSON's and YAML's decoders
+refuse an empty file naming the fix, an asymmetry of the underlying
+decoders.
 
 ## Provenance
 
