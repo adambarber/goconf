@@ -1,6 +1,7 @@
 package goconf
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -57,7 +58,7 @@ func TestDefaultSearchPathsUserConfigDirFailureFallsToLocal(t *testing.T) {
 
 	got, prov, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON})
 	if err != nil {
-		if !strings.Contains(err.Error(), "no config file found") {
+		if !errors.Is(err, ErrNothingFound) {
 			t.Fatalf("unexpected refusal: %v", err)
 		}
 

@@ -1,6 +1,7 @@
 package goconf
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -25,7 +26,7 @@ func TestLoadRefusesUnknownCandidateExtensionByName(t *testing.T) {
 		}
 	}
 
-	if strings.Contains(err.Error(), "no config file found") {
+	if errors.Is(err, ErrNothingFound) {
 		t.Errorf("refusal %q must not be the empty-discovery refusal", err)
 	}
 }
