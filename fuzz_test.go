@@ -5,29 +5,11 @@ import (
 	"testing"
 )
 
-// fuzzSentinel is the planted marker: no refusal path may echo any
-// fragment of it into rendered error text.
-const fuzzSentinel = "sk-live-9f8e7d6c"
-
-// inValuePosition reports whether the marker occurs in the input only
-// as a value, never inside a key: on the marker's line, a `:` or `=`
-// key delimiter must precede it. The oracle asserts only then.
-func inValuePosition(data []byte) bool {
-	for line := range strings.SplitSeq(string(data), "\n") {
-		at := strings.Index(line, fuzzSentinel)
-		if at < 0 {
-			continue
-		}
-
-		delim := strings.IndexAny(line, ":=")
-
-		if delim < 0 || delim > at {
-			return false
-		}
-	}
-
-	return true
-}
+// fuzzSentinel is the planted marker and fuzzTwin its stand-in.
+const (
+	fuzzSentinel = "sk-live-9f8e7d6c"
+	fuzzTwin     = "zz-neutral-00"
+)
 
 // FuzzLoad drives arbitrary bytes through the real Load path. Every input
 // runs through all three formats — one fuzz target, each mutation exercises
@@ -48,6 +30,10 @@ func FuzzLoad(f *testing.F) {
 		"region: `" + fuzzSentinel + "`\n",
 		"region = \"" + fuzzSentinel + "\"\n",
 		"region: |\n  " + fuzzSentinel + "\n  second line\n",
+		// the marker as a key: the refusal must name it, not echo it
+		fuzzSentinel + ": 1\n",
+		`{"` + fuzzSentinel + `":1}`,
+		fuzzSentinel + " = 1\n",
 		// multi-doc YAML, deep nesting, trailing data, escaped-quote keys
 		"---\nregion: eu\n---\nregion: us\n",
 		deep,
@@ -66,20 +52,84 @@ func FuzzLoad(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		for _, format := range []Format{FormatJSON, FormatYAML, FormatTOML} {
-			dir := t.TempDir()
-			_ = writeFileAt(t, DirPath(dir), FileName("app"+string(format)), SourceBytes(data))
-
-			_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: format},
-				WithSearchPaths(DirPath(dir)))
-
-			// no panic holds by construction. value-freedom asserts only
-			// for value-position markers; a key names itself by contract.
-			// no-partial-state is covered by the TestLoad* suite.
-			if err != nil && inValuePosition(data) &&
-				strings.Contains(string(data), fuzzSentinel) &&
-				strings.Contains(err.Error(), fuzzSentinel) {
-				t.Fatalf("refusal echoed the sentinel: %v", err)
-			}
+			runFuzzLeg(t, data, format)
 		}
 	})
+}
+
+// runFuzzLeg loads data through one format and twins it; the oracle is
+// differential (see the docs/load.md fuzzing note).
+func runFuzzLeg(t *testing.T, data []byte, format Format) {
+	t.Helper()
+
+	errOf := func(bytes []byte) refusalText {
+		t.Helper()
+
+		dir := t.TempDir()
+		_ = writeFileAt(t, DirPath(dir), FileName("app"+string(format)), SourceBytes(bytes))
+
+		_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: format},
+			WithSearchPaths(DirPath(dir)))
+		if err == nil {
+			return ""
+		}
+
+		// the frame names the temp dir; it differs per run by design.
+		_, tail, cut := strings.Cut(err.Error(), "/app"+string(format))
+		if !cut {
+			return refusalText(err.Error())
+		}
+
+		return refusalText(tail)
+	}
+
+	refusal := errOf(data)
+
+	if refusal == "" {
+		return
+	}
+
+	twinRefusal := errOf([]byte(strings.ReplaceAll(string(data), fuzzSentinel, fuzzTwin)))
+
+	// twinRefusal for a no-marker input is the same bytes: the oracle
+	// stands down; a decoder's single-character class echo ("'s'") is
+	// dropped from both sides before comparing.
+	if !strings.Contains(string(data), fuzzSentinel) {
+		return
+	}
+
+	got := stripSingleCharSpans(refusal)
+
+	want := stripSingleCharSpans(twinRefusal)
+
+	if strings.ReplaceAll(string(got), fuzzSentinel, fuzzTwin) != string(want) {
+		t.Fatalf("refusal is not substitution-stable (value echo):\n got: %s\ntwin: %s", refusal, twinRefusal)
+	}
+}
+
+// stripSingleCharSpans drops every one-character single-quoted span
+// ("'s'"), a decoder's character-class echo, from one rendered refusal.
+func stripSingleCharSpans(msg refusalText) refusalText {
+	text := string(msg)
+
+	for {
+		open := strings.IndexByte(text, '\'')
+		if open < 0 || open+2 >= len(text) {
+			return refusalText(text)
+		}
+
+		if text[open+2] != '\'' {
+			// keep this quote; continue after it
+			next := strings.IndexByte(text[open+1:], '\'')
+			if next < 0 {
+				return refusalText(text)
+			}
+
+			text = text[open+1+next+1:]
+
+			continue
+		}
+
+		text = text[:open] + text[open+3:]
+	}
 }
