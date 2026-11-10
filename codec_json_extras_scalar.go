@@ -109,7 +109,7 @@ func parseJSONInteger(s jsonText, dst reflect.Value, signed bool) bool {
 }
 
 func parseJSONFloat(s jsonText, dst reflect.Value) bool {
-	fv, err := strconv.ParseFloat(string(s), 64)
+	fv, err := strconv.ParseFloat(string(s), dst.Type().Bits())
 	if err != nil {
 		return false
 	}

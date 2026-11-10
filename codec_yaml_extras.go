@@ -101,8 +101,19 @@ func yamlDecodeScalarNode(node *yaml.Node, dst reflect.Value, file FilePath, pat
 func yamlPopulateStruct(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	initYAMLExtrasMap(dst)
 
+	seen := map[ObjectKey]int{}
+
 	for i := 0; i+1 < len(node.Content); i += 2 {
-		if err := yamlPopulateStructPair(dst, node.Content[i], node.Content[i+1], file, path); err != nil {
+		kNode := node.Content[i]
+		key := ObjectKey(kNode.Value)
+
+		if first, dup := seen[key]; dup {
+			return yamlDuplicateKeyRefusal(file, key, first)
+		}
+
+		seen[key] = kNode.Line
+
+		if err := yamlPopulateStructPair(dst, kNode, node.Content[i+1], file, path); err != nil {
 			return err
 		}
 	}
@@ -134,17 +145,25 @@ func yamlPopulateMap(node *yaml.Node, dst reflect.Value, file FilePath, path Fie
 		dst.Set(reflect.MakeMap(dst.Type()))
 	}
 
+	seen := map[ObjectKey]int{}
+
 	for i := 0; i+1 < len(node.Content); i += 2 {
 		kNode := node.Content[i]
 		vNode := node.Content[i+1]
-		key := kNode.Value
+		key := ObjectKey(kNode.Value)
+
+		if first, dup := seen[key]; dup {
+			return yamlDuplicateKeyRefusal(file, key, first)
+		}
+
+		seen[key] = kNode.Line
 
 		elem := reflect.New(dst.Type().Elem()).Elem()
 		if err := yamlPopulateNode(vNode, elem, file, childPath(path, FieldPath(key))); err != nil {
 			return err
 		}
 
-		dst.SetMapIndex(reflect.ValueOf(key).Convert(dst.Type().Key()), elem)
+		dst.SetMapIndex(reflect.ValueOf(string(key)).Convert(dst.Type().Key()), elem)
 	}
 
 	return nil
@@ -164,29 +183,4 @@ func yamlPopulateSlice(node *yaml.Node, dst reflect.Value, file FilePath, path F
 	dst.Set(slice)
 
 	return nil
-}
-
-func yamlSetExtra(node *yaml.Node, extras reflect.Value, key keySegment, file FilePath, path FieldPath) error {
-	if extras.Kind() != reflect.Map {
-		return refuseAt(ErrUnknownField, file, gorefuse.Line(node.Line),
-			gorefuse.Subject(`"`+string(key)+`"`),
-			gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
-	}
-
-	if extras.IsNil() && extras.CanSet() {
-		extras.Set(reflect.MakeMap(extras.Type()))
-	}
-
-	elem := reflect.New(extras.Type().Elem()).Elem()
-	if err := yamlPopulateNode(node, elem, file, path); err != nil {
-		return err
-	}
-
-	extras.SetMapIndex(reflect.ValueOf(string(key)).Convert(extras.Type().Key()), elem)
-
-	return nil
-}
-
-func yamlNodeDecodeRefusal(file FilePath, node *yaml.Node, dst reflect.Value, path FieldPath, _ error) error {
-	return typeMismatchRefusal(file, node.Line, ObjectKey(path), kindOf(dst.Type()), shapeUserTerm(node))
 }

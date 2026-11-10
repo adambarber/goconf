@@ -111,3 +111,42 @@ func TestExtrasTOMLTypedValueMismatchRefused(t *testing.T) {
 		t.Fatalf("err = %v, want ErrTypeMismatch", err)
 	}
 }
+
+func TestExtrasYAMLDuplicateKeyRefused(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		"": {fileNameYAML: SourceBytes("n: 1\nx: a\nx: b\n")},
+	})
+	t.Chdir(string(root))
+
+	_, _, err := Load[yamlIntExtraDoc](Spec{Name: configName("app"), Format: FormatYAML},
+		WithSearchPaths(DirPath(string(root))))
+	if err == nil {
+		t.Fatal("expected refusal")
+	}
+
+	if !errors.Is(err, ErrDuplicateKey) {
+		t.Fatalf("err = %v, want ErrDuplicateKey", err)
+	}
+}
+
+type float32ExtraDoc struct {
+	Extra map[extraKey]extraVal `goconf:"extras" json:"-"`
+	F     float32               `json:"f"`
+}
+
+func TestExtrasJSONFloat32OverflowRefused(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		"": {fileNameJSON: SourceBytes(`{"f":1e39,"x":"y"}`)},
+	})
+	t.Chdir(string(root))
+
+	_, _, err := Load[float32ExtraDoc](Spec{Name: configName("app"), Format: FormatJSON},
+		WithSearchPaths(DirPath(string(root))))
+	if err == nil {
+		t.Fatal("expected refusal")
+	}
+
+	if !errors.Is(err, ErrTypeMismatch) {
+		t.Fatalf("err = %v, want ErrTypeMismatch", err)
+	}
+}
