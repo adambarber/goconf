@@ -150,3 +150,37 @@ func TestExtrasJSONFloat32OverflowRefused(t *testing.T) {
 		t.Fatalf("err = %v, want ErrTypeMismatch", err)
 	}
 }
+
+func TestExtrasTOMLIntToStringExtraRefused(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		"": {fileNameTOML: SourceBytes("[resource]\nname = \"r\"\nkind = \"k\"\nextra_num = 65\n")},
+	})
+	t.Chdir(string(root))
+
+	_, _, err := Load[resourceDoc](Spec{Name: configName("app"), Format: FormatTOML},
+		WithSearchPaths(DirPath(string(root))))
+	if err == nil {
+		t.Fatal("expected refusal")
+	}
+
+	if !errors.Is(err, ErrTypeMismatch) {
+		t.Fatalf("err = %v, want ErrTypeMismatch", err)
+	}
+}
+
+func TestExtrasYAMLRootSequenceNotAMapping(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		"": {fileNameYAML: SourceBytes("- a\n- b\n")},
+	})
+	t.Chdir(string(root))
+
+	_, _, err := Load[yamlIntExtraDoc](Spec{Name: configName("app"), Format: FormatYAML},
+		WithSearchPaths(DirPath(string(root))))
+	if err == nil {
+		t.Fatal("expected refusal")
+	}
+
+	if !errors.Is(err, ErrNotAMapping) {
+		t.Fatalf("err = %v, want ErrNotAMapping", err)
+	}
+}

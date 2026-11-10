@@ -126,11 +126,6 @@ func setExtraValue(extras, key, val reflect.Value, file FilePath, path FieldPath
 		return nil
 	}
 
-	if val.Type().ConvertibleTo(elemType) {
-		extras.SetMapIndex(key, val.Convert(elemType))
-		return nil
-	}
-
 	if elemType.Kind() == reflect.Interface && elemType.NumMethod() == 0 {
 		extras.SetMapIndex(key, val)
 		return nil
@@ -141,7 +136,25 @@ func setExtraValue(extras, key, val reflect.Value, file FilePath, path FieldPath
 		return nil
 	}
 
+	if tomlValueConvertible(val, elemType) {
+		extras.SetMapIndex(key, val.Convert(elemType))
+		return nil
+	}
+
 	return typeMismatchRefusal(file, 0, ObjectKey(path), kindOf(elemType), tomlRawValueTerm(val))
+}
+
+func tomlValueConvertible(val reflect.Value, elemType reflect.Type) bool {
+	if !val.Type().ConvertibleTo(elemType) {
+		return false
+	}
+
+	if val.Kind() == elemType.Kind() {
+		return true
+	}
+
+	// Reject cross-kind conversions (e.g. int64 -> string rune conversion).
+	return false
 }
 
 func tomlRawValueTerm(v reflect.Value) userTerm {

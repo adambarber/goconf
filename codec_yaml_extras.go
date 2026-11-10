@@ -68,6 +68,10 @@ func yamlPopulateStructNode(node *yaml.Node, dst reflect.Value, file FilePath, p
 		return yamlPopulateStruct(node, dst, file, path)
 	}
 
+	if path == "" {
+		return yamlExtrasRootNotMapping(file, node)
+	}
+
 	return typeMismatchRefusal(file, node.Line, ObjectKey(path), kindTable, shapeUserTerm(node))
 }
 
@@ -76,8 +80,16 @@ func yamlPopulateMapNode(node *yaml.Node, dst reflect.Value, file FilePath, path
 	case yaml.MappingNode:
 		return yamlPopulateMap(node, dst, file, path)
 	case yaml.DocumentNode, yaml.SequenceNode, yaml.ScalarNode, yaml.AliasNode:
+		if path == "" {
+			return yamlExtrasRootNotMapping(file, node)
+		}
+
 		return typeMismatchRefusal(file, node.Line, ObjectKey(path), kindTable, shapeUserTerm(node))
 	default:
+		if path == "" {
+			return yamlExtrasRootNotMapping(file, node)
+		}
+
 		return typeMismatchRefusal(file, node.Line, ObjectKey(path), kindTable, shapeUserTerm(node))
 	}
 }

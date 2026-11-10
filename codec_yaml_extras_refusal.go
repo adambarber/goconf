@@ -37,3 +37,9 @@ func yamlDuplicateKeyRefusal(file FilePath, key ObjectKey, first int) error {
 		gorefuse.Subject(`"`+string(key)+`"`),
 		gorefuse.Why(`delete one of the two "`+string(key)+`" lines.`))
 }
+
+func yamlExtrasRootNotMapping(file FilePath, node *yaml.Node) error {
+	return refuseAt(ErrNotAMapping, file, gorefuse.Line(node.Line),
+		gorefuse.Subject("the file holds "+string(shapeUserTerm(node))+", but settings must be name: value pairs"),
+		gorefuse.Why(`start each setting on its own line as "name: value".`))
+}
