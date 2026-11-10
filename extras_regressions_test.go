@@ -86,3 +86,28 @@ func TestExtrasYAMLTypeMismatchRefused(t *testing.T) {
 		t.Fatalf("err = %v, want ErrTypeMismatch", err)
 	}
 }
+
+type tomlTypedExtraDoc struct {
+	Resource struct {
+		Extra map[extraKey]extraVal `goconf:"extras" toml:"-"`
+		Name  resName               `toml:"name"`
+		Kind  resKind               `toml:"kind"`
+	} `toml:"resource"`
+}
+
+func TestExtrasTOMLTypedValueMismatchRefused(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		"": {fileNameTOML: SourceBytes("[resource]\nname = \"r\"\nkind = \"k\"\n[resource.provider]\nregion = \"us\"\n")},
+	})
+	t.Chdir(string(root))
+
+	_, _, err := Load[tomlTypedExtraDoc](Spec{Name: configName("app"), Format: FormatTOML},
+		WithSearchPaths(DirPath(string(root))))
+	if err == nil {
+		t.Fatal("expected refusal")
+	}
+
+	if !errors.Is(err, ErrTypeMismatch) {
+		t.Fatalf("err = %v, want ErrTypeMismatch", err)
+	}
+}

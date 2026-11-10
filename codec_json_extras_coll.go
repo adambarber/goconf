@@ -3,6 +3,8 @@ package goconf
 import (
 	"encoding/json"
 	"reflect"
+
+	"github.com/adambarber/gorefuse"
 )
 
 // decodeJSONArray decodes a JSON array token stream into dst for extras-aware paths.
@@ -80,7 +82,7 @@ func decodeJSONArrayElem(dec *json.Decoder, tok json.Token, data SourceBytes, fi
 			return dst, err
 		}
 
-		return dst, jsonExtrasTypeMismatch(file, path, kindOf(dst.Type()), kindUserTerm(kindList))
+		return dst, jsonFixedArrayOverflow(file, path)
 	}
 
 	if err := decodeJSONValue(dec, tok, data, file, dst.Index(idx), path); err != nil {
@@ -134,4 +136,12 @@ func decodeJSONMapEntry(dec *json.Decoder, data SourceBytes, file FilePath, dst 
 	dst.SetMapIndex(reflect.ValueOf(key).Convert(dst.Type().Key()), elem)
 
 	return nil
+}
+
+func jsonFixedArrayOverflow(file FilePath, path FieldPath) error {
+	seg := lastPathSeg(path)
+
+	return refuseAt(ErrTypeMismatch, file, 0,
+		gorefuse.Subject(`the value of "`+string(seg)+`" has too many items`),
+		gorefuse.Why(`remove the extra items from "`+string(seg)+`".`))
 }
