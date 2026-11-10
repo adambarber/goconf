@@ -93,19 +93,26 @@ never fabricates one.
 
 ## Refusals
 
-Unknown fields are refused by every decode, in every format. Duplicate
-keys are refused by every decode, in every format: a key re-declared in
-the same object — a whole object re-opened, or one re-declaring part of a
-struct that would otherwise silently merge — is refused naming the key
-and, in JSON, the line of its first definition. Repeated field names
-across different array elements are not duplication and decode. If a
-directory holds candidates with different-format extensions and the
-format does not narrow the search, the load is refused naming the
-directory and both files. Ambiguity is never resolved by guessing;
-declaring the format is the deterministic way out. A candidate whose
-extension no format spells (e.g. `app.bak`) is refused by name. Refusal
-text names keys, paths, types, and line numbers. Config values never
-appear in refusal text, including fragments of values echoed by
+Unknown fields are refused by every decode, in every format, unless the
+containing struct declares an extras-capture field (`goconf:"extras"` or
+`goconf:"rest"`). When extras are declared, keys that do not match a
+fixed field of that struct are captured into the extras map instead of
+being refused; fixed fields are never captured as extras. Unknown fields
+in structs without extras are still refused, and duplicate keys, type
+mismatches, and root-shape errors are still refused.
+
+Duplicate keys are refused by every decode, in every format: a key
+re-declared in the same object — a whole object re-opened, or one
+re-declaring part of a struct that would otherwise silently merge — is
+refused naming the key and, in JSON, the line of its first definition.
+Repeated field names across different array elements are not duplication
+and decode. If a directory holds candidates with different-format
+extensions and the format does not narrow the search, the load is refused
+naming the directory and both files. Ambiguity is never resolved by
+guessing; declaring the format is the deterministic way out. A candidate
+whose extension no format spells (e.g. `app.bak`) is refused by name.
+Refusal text names keys, paths, types, and line numbers. Config values
+never appear in refusal text, including fragments of values echoed by
 third-party decoders — in every format, on every error path.
 Unknown-field refusals name the offending key; JSON and YAML
 unknown-field refusals also name the key's line.
@@ -122,6 +129,52 @@ The presence-path vocabulary is one across formats: a field's config key
 is the first non-empty of its `json`, `yaml`, and `toml` tags, falling
 back to the Go field name. Defaults fill exactly the fields no source —
 any format — recorded as present.
+
+## Extras and dynamic keys
+
+Two struct tags extend the schema beyond fixed, known fields:
+
+- `goconf:"dynamic"` on a map field declares a dynamic-key map. Any key
+  present at that map position is accepted as a map entry and decoded
+  into the map, rather than treated as a fixed schema field name. This is
+  the way to load named instances, environment-specific blocks, or other
+  user-chosen keys.
+
+  ```go
+  type Config struct {
+  	Region string            `json:"region" toml:"region" yaml:"region"`
+  	Env    map[string]string `goconf:"dynamic" json:"env" toml:"env" yaml:"env"`
+  }
+
+  // {"region":"eu","env":{"FOO":"1","BAR":"2"}}
+  // region == "eu", env["FOO"] == "1", env["BAR"] == "2"
+  ```
+
+- `goconf:"extras"` (or `goconf:"rest"`) on a map field captures unknown
+  keys from the containing struct's object. Keys that do not match a
+  fixed field are stored in the extras map instead of being refused;
+  fixed fields are decoded normally and are never captured as extras. The
+  extras field itself is not a config key (it is typically tagged
+  `json:"-" toml:"-" yaml:"-"`).
+
+  ```go
+  type Resource struct {
+  	Name  string            `json:"name" toml:"name" yaml:"name"`
+  	Kind  string            `json:"kind" toml:"kind" yaml:"kind"`
+  	Extra map[string]string `goconf:"extras" json:"-" toml:"-" yaml:"-"`
+  }
+
+  // {"name":"r","kind":"k","provider":"aws"}
+  // Name == "r", Kind == "k", Extra["provider"] == "aws"
+  ```
+
+Behavior (all formats): extras and dynamic keys are supported in JSON,
+YAML, and TOML. Captured extra values must be compatible with the extras
+map's element type; a value that cannot be assigned or converted to that
+type is refused as a type mismatch. Unknown fields inside a struct that
+does not declare extras remain refused. Duplicate keys, type mismatches,
+and non-mapping root documents remain refused according to the usual
+rules.
 
 ## Multi-document streams
 

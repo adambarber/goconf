@@ -1,7 +1,8 @@
 # goconf
 
-goconf loads configuration files strictly: unknown fields, duplicate keys,
-and ambiguous discovery are refused, not silently resolved.
+goconf loads configuration files strictly: duplicate keys and ambiguous
+discovery are refused, and unknown fields are refused unless your schema
+opts in to capture them — never silently resolved.
 
 ```sh
 go get github.com/adambarber/goconf
@@ -34,13 +35,34 @@ cfg, prov, err := goconf.Load[Config](
 ```
 
 With `{"region": "eu", "tls": true}`, the load is refused: `tls` is not a
-field of `Config`, and the error names the offending key.
+field of `Config`, and the error names the offending key. To accept
+unknown keys intentionally, declare an extras map:
+
+```go
+type Config struct {
+	Region string            `json:"region"`
+	Port   int               `json:"port"`
+	Extra  map[string]string `goconf:"extras" json:"-" toml:"-" yaml:"-"`
+}
+
+// {"region":"eu","tls":"on"} -> cfg.Extra["tls"] == "on"
+```
+
+For maps whose keys are user-chosen (not fixed schema fields), mark the
+map `goconf:"dynamic"`:
+
+```go
+type Config struct {
+	Env map[string]string `goconf:"dynamic" json:"env" toml:"env" yaml:"env"`
+}
+```
 
 ## At a glance
 
 - Use goconf if you want **strict decoding** into your struct —
   `Load[T]` refuses unknown fields, duplicate keys, and type mismatches,
-  naming the offending key and line.
+  naming the offending key and line — or, when your schema declares it,
+  capture unknown keys via an `extras` field instead of refusing them.
 - Use it if you want **layered discovery** — a global layer under
   `os.UserConfigDir()/name/` and a local file in the working directory,
   later layers overriding earlier ones field by field, nested objects
@@ -58,6 +80,10 @@ field of `Config`, and the error names the offending key.
 - Use it if you want **fail-loud discovery** — two format candidates in
   one directory, an unknown extension, a path-escaping name, or a symlink
   leaving the searched directory is refused by name, never guessed.
+- Use it if you want **schema-flexible capture** — `goconf:"extras"` (or
+  `goconf:"rest"`) captures unknown keys into a map field, and
+  `goconf:"dynamic"` accepts arbitrary keys in a map instead of fixed
+  schema fields (JSON, YAML, TOML).
 
 ## Why
 

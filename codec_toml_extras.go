@@ -91,12 +91,24 @@ func tomlCaptureStructAt(v, raw reflect.Value, k toml.Key, idx int, seg keySegme
 }
 
 func tomlCaptureMapAt(v, raw reflect.Value, k toml.Key, idx int, seg keySegment, file FilePath) (bool, error) {
-	mv := mapGetStringKey(v, seg)
+	mapKey := reflect.ValueOf(string(seg)).Convert(v.Type().Key())
+
+	mv := v.MapIndex(mapKey)
 	if !mv.IsValid() {
 		return false, nil
 	}
 
-	return tomlCaptureAt(mv, rawChildRV(raw, seg), k, idx+1, file)
+	elem := reflect.New(mv.Type()).Elem()
+	elem.Set(mv)
+
+	ok, err := tomlCaptureAt(elem, rawChildRV(raw, seg), k, idx+1, file)
+	if err != nil || !ok {
+		return ok, err
+	}
+
+	v.SetMapIndex(mapKey, elem)
+
+	return true, nil
 }
 
 func tomlSetExtra(extras, raw reflect.Value, k toml.Key, idx int, file FilePath) (bool, error) {

@@ -41,11 +41,3 @@ func rawChildRV(raw reflect.Value, key keySegment) reflect.Value {
 
 	return v
 }
-
-func mapGetStringKey(m reflect.Value, key keySegment) reflect.Value {
-	if m.Kind() != reflect.Map {
-		return reflect.Value{}
-	}
-
-	return m.MapIndex(reflect.ValueOf(string(key)))
-}
