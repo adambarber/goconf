@@ -18,7 +18,7 @@ func decodeTOMLStrict(data SourceBytes, file FilePath, dst Target) error {
 		return tomlDecodeRefusal(file, err)
 	}
 
-	return tomlUndecoded(&md, file)
+	return tomlUndecoded(dst, data, &md, file)
 }
 
 // tomlDecodeRefusal classifies one BurntSushi error at the boundary: a
@@ -147,15 +147,21 @@ func tomlParseLine(err error) int {
 }
 
 // tomlUndecoded refuses keys present in the file but missing from the
-// target: strictness matches JSON and YAML.
-func tomlUndecoded(md *toml.MetaData, file FilePath) error {
-	if len(md.Undecoded()) == 0 {
+// target: strictness matches JSON and YAML. Keys captured by a declared
+// extras field are routed into that field instead of refused.
+func tomlUndecoded(dst Target, data SourceBytes, md *toml.MetaData, file FilePath) error {
+	undec := md.Undecoded()
+	if len(undec) == 0 {
 		return nil
 	}
 
-	return refuseAt(ErrUnknownField, file, 0,
-		gorefuse.Subject(string(joinKeys(md.Undecoded()))),
-		gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
+	if !hasExtrasInType(dst.Value.Type()) {
+		return refuseAt(ErrUnknownField, file, 0,
+			gorefuse.Subject(string(joinKeys(undec))),
+			gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
+	}
+
+	return tomlRouteExtras(dst, data, undec, file)
 }
 
 // keyQuote wraps one key in quotes for a refusal message.

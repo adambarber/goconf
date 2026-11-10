@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"reflect"
 
 	"github.com/adambarber/gorefuse"
 )
@@ -40,6 +41,15 @@ func under(keys *KeySet, parent, key FieldPath) FieldPath {
 // fields, trailing data, and type mismatches with the line named. Every
 // refusal's frame points at the refused file.
 func decodeJSONStrict(data SourceBytes, file FilePath, dst Target) error {
+	typ := dst.Value.Type()
+	for typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+
+	if hasExtrasInType(typ) {
+		return decodeJSONStrictWithExtras(data, file, dst)
+	}
+
 	if err := refuseDuplicateJSONKeys(data, file); err != nil {
 		return err
 	}
@@ -51,7 +61,7 @@ func decodeJSONStrict(data SourceBytes, file FilePath, dst Target) error {
 		return jsonErr(data, file, err)
 	}
 
-	if _, err := dec.Token(); err == nil {
+	if _, tailErr := dec.Token(); tailErr == nil {
 		return refuseAt(ErrDecoderRefused, file, 0,
 			gorefuse.Subject("data after the document root"),
 			gorefuse.Why("one JSON document per file; remove the trailing bytes."))

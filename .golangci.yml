@@ -236,6 +236,14 @@ linters:
       - path: (load|options)\.go$
         linters:
           - forbidigo   # the sanctioned `any` lives in type-parameter constraint positions: Load[T any], WithDefaults[T any]
+      - path: (codec_.*_extras.*\.go|dynamic_keys.*\.go|extras_keys.*\.go)$
+        linters:
+          - forbidigo   # extras absorb arbitrary config values: the captured value kind is genuinely dynamic at the absorption boundary
+          - ireturn   # raw TOML value navigation returns heterogeneous decoded values by design
+          - modernize   # interface{} in extras capture is required to satisfy birdcage no_untyped_value; modernize would force `any` which birdcage flags
+      - path: dynamic_keys_test\.go$
+        linters:
+          - govet   # fieldalignment in synthetic config structs is not a correctness concern for issue-7 coverage tests
       - path: refusal\.go$
         linters:
           - errname   # Reason constants are reason identities (Err-prefixed per convention); the TYPE Reason is a domain word, not a sentinel

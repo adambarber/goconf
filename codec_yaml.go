@@ -15,6 +15,11 @@ import (
 // fields and type mismatches. Explicit null is accepted and decodes to the
 // field's zero value: it is a decision, not an absence.
 func decodeYAMLStrict(data SourceBytes, file FilePath, dst Target) error {
+	typ := derefTargetType(dst.Value)
+	if hasExtrasInType(typ) {
+		return decodeYAMLStrictWithExtras(data, file, dst)
+	}
+
 	dec := yaml.NewDecoder(strings.NewReader(string(data)))
 	dec.KnownFields(true)
 
@@ -23,7 +28,7 @@ func decodeYAMLStrict(data SourceBytes, file FilePath, dst Target) error {
 	}
 
 	var extra yaml.Node
-	if err := dec.Decode(&extra); !errors.Is(err, io.EOF) {
+	if tailErr := dec.Decode(&extra); !errors.Is(tailErr, io.EOF) {
 		return multiDocRefusal(file, extra.Line)
 	}
 

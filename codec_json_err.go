@@ -42,7 +42,7 @@ func jsonErr(data SourceBytes, file FilePath, err error) error {
 		return refuseDecoder(
 			gorefuse.At(gorefuse.File(file), gorefuse.Line(line),
 				gorefuse.Subject("JSON syntax"),
-				syntaxCheck("bracket or quote")), err)
+				syntaxCheck()), err)
 	case errors.As(err, &typeErr):
 		line := lineAtByte(data, typeErr.Offset)
 
@@ -71,17 +71,14 @@ func jsonErr(data SourceBytes, file FilePath, err error) error {
 		return refuseDecoder(
 			gorefuse.At(gorefuse.File(file), 0,
 				gorefuse.Subject("JSON syntax"),
-				syntaxCheck(syntaxWord("bracket or quote"))), err)
+				syntaxCheck()), err)
 	}
 }
 
-// syntaxWord is one character class a syntax fix names.
-type syntaxWord string
-
 // syntaxCheck is the one-action fix for a syntax fault: it names the
 // character class to look for, never the decoder.
-func syntaxCheck(missing syntaxWord) gorefuse.Why {
-	return gorefuse.Why("check the last line for a missing " + string(missing) + ".")
+func syntaxCheck() gorefuse.Why {
+	return gorefuse.Why("check the last line for a missing bracket or quote.")
 }
 
 // goTypeName is one Go type spelling a decoder reports.
