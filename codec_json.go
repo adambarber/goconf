@@ -2,7 +2,9 @@ package goconf
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"errors"
 	"io"
 	"reflect"
 
@@ -37,6 +39,22 @@ func under(keys *KeySet, parent, key FieldPath) FieldPath {
 	return p
 }
 
+func jsonDecodePrecheck(data SourceBytes, file FilePath) error {
+	if err := refuseDuplicateJSONKeys(data, file); err != nil {
+		return err
+	}
+
+	if len(bytes.TrimSpace(data)) == 0 {
+		return refuseDecoder(
+			gorefuse.At(gorefuse.File(file), 0,
+				gorefuse.Subject("JSON syntax"),
+				gorefuse.Why("the file is empty; add settings or delete it.")),
+			errEmptyJSON)
+	}
+
+	return nil
+}
+
 // decodeJSONStrict decodes JSON bytes into the target, refusing unknown
 // fields, trailing data, and type mismatches with the line named. Every
 // refusal's frame points at the refused file.
@@ -50,21 +68,16 @@ func decodeJSONStrict(data SourceBytes, file FilePath, dst Target) error {
 		return decodeJSONStrictWithExtras(data, file, dst)
 	}
 
-	if err := refuseDuplicateJSONKeys(data, file); err != nil {
+	if err := jsonDecodePrecheck(data, file); err != nil {
 		return err
 	}
 
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-
-	if err := dec.Decode(dst.Value.Addr().Interface()); err != nil {
+	err := json.Unmarshal(data, dst.Value.Addr().Interface(),
+		json.RejectUnknownMembers(true),
+		json.MatchCaseInsensitiveNames(true),
+		jsontext.AllowDuplicateNames(true))
+	if err != nil {
 		return jsonErr(data, file, err)
-	}
-
-	if _, tailErr := dec.Token(); tailErr == nil {
-		return refuseAt(ErrDecoderRefused, file, 0,
-			gorefuse.Subject("data after the document root"),
-			gorefuse.Why("one JSON document per file; remove the trailing bytes."))
 	}
 
 	return nil
@@ -75,15 +88,14 @@ func decodeJSONStrict(data SourceBytes, file FilePath, dst Target) error {
 // matter how deeply it is nested, including inside arrays of objects.
 func presentJSONKeys(data SourceBytes, file FilePath) (KeySet, error) {
 	keys := KeySet{paths: nil}
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.UseNumber()
+	dec := jsontext.NewDecoder(bytes.NewReader(data), jsontext.AllowDuplicateNames(true))
 
 	w := walk{stack: []frame{{path: "", isSeq: false}}, pending: "", expectVal: false}
 
 	for {
-		tok, err := dec.Token()
+		tok, err := dec.ReadToken()
 		switch {
-		case err == io.EOF:
+		case errors.Is(err, io.EOF):
 			return keys, nil
 		case err != nil:
 			return keys, jsonErr(data, file, err)
@@ -99,10 +111,12 @@ func presentJSONKeys(data SourceBytes, file FilePath) (KeySet, error) {
 // advanceToken folds one token into the key walk. expectVal is true while
 // the next token is the value of an already-recorded key; any token then
 // consumes it. Outside it, a string token in an object is a key.
-func advanceToken(keys *KeySet, w *walk, tok json.Token, line int, file FilePath) error {
+func advanceToken(keys *KeySet, w *walk, tok jsontext.Token, line int, file FilePath) error {
 	top := w.stack[len(w.stack)-1]
-	if delim, isDelim := tok.(json.Delim); isDelim {
-		return advanceDelim(w, delim, line, file)
+	kind := tok.Kind()
+
+	if kind == '{' || kind == '}' || kind == '[' || kind == ']' {
+		return advanceDelim(w, kind, line, file)
 	}
 
 	if w.expectVal {
@@ -110,8 +124,8 @@ func advanceToken(keys *KeySet, w *walk, tok json.Token, line int, file FilePath
 		return nil
 	}
 
-	if key, isKey := tok.(string); isKey && !top.isSeq {
-		w.pending = under(keys, top.path, FieldPath(key))
+	if kind == '"' && !top.isSeq {
+		w.pending = under(keys, top.path, FieldPath(tok.String()))
 		w.expectVal = true
 	}
 
@@ -121,14 +135,14 @@ func advanceToken(keys *KeySet, w *walk, tok json.Token, line int, file FilePath
 // advanceDelim handles one structural token: open pushes a frame at the
 // pending key's path, close pops one. A close that would empty the walk
 // past the document root is refused.
-func advanceDelim(w *walk, delim json.Delim, line int, file FilePath) error {
+func advanceDelim(w *walk, delim jsontext.Kind, line int, file FilePath) error {
 	open := frame{path: w.pending, isSeq: false}
 
 	switch delim {
 	case '{':
 	case '[':
 		open.isSeq = true
-	default:
+	case '}', ']':
 		if len(w.stack) <= 1 {
 			return refuseAt(ErrDecoderRefused, file, gorefuse.Line(line),
 				gorefuse.Subject("close delimiter past the document root"),
@@ -136,6 +150,8 @@ func advanceDelim(w *walk, delim json.Delim, line int, file FilePath) error {
 		}
 
 		return closeFrame(w)
+	case jsontext.KindInvalid, 'n', 'f', 't', '"', '0':
+		return refuseDecoder(gorefuse.At(gorefuse.File(file), gorefuse.Line(line), gorefuse.Subject("JSON syntax"), syntaxCheck()), ErrUnexpectedJSONToken)
 	}
 
 	w.stack = append(w.stack, open)

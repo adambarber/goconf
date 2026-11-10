@@ -1,7 +1,7 @@
 package goconf
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"reflect"
 	"strings"
 	"testing"
@@ -58,10 +58,9 @@ func TestLineAtByteBounds(t *testing.T) {
 }
 
 func TestConsumeJSONObjectEndOK(t *testing.T) {
-	dec := json.NewDecoder(strings.NewReader(`{"a":1}`))
-	dec.UseNumber()
+	dec := jsontext.NewDecoder(strings.NewReader(`{"a":1}`), jsontext.AllowDuplicateNames(true))
 
-	if _, err := dec.Token(); err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -69,7 +68,7 @@ func TestConsumeJSONObjectEndOK(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := dec.Token(); err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		t.Fatal(err)
 	}
 

@@ -1,18 +1,17 @@
 package goconf
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"reflect"
 	"strings"
 	"testing"
 )
 
 func TestDecodeJSONArrayAnyCoverage(t *testing.T) {
-	dec := json.NewDecoder(strings.NewReader(`[1,"x",true,{"a":2},[3]]`))
-	dec.UseNumber()
+	dec := jsontext.NewDecoder(strings.NewReader(`[1,"x",true,{"a":2},[3]]`), jsontext.AllowDuplicateNames(true))
 
-	tok, err := dec.Token()
-	if err != nil || tok != json.Delim('[') {
+	tok, err := dec.ReadToken()
+	if err != nil || tok.Kind() != '[' {
 		t.Fatalf("tok=%v err=%v", tok, err)
 	}
 
@@ -28,11 +27,10 @@ func TestDecodeJSONArrayAnyCoverage(t *testing.T) {
 }
 
 func TestDecodeJSONObjectAnyCoverage(t *testing.T) {
-	dec := json.NewDecoder(strings.NewReader(`{"a":1,"b":"x","c":true,"d":[1],"e":{"k":"v"}}`))
-	dec.UseNumber()
+	dec := jsontext.NewDecoder(strings.NewReader(`{"a":1,"b":"x","c":true,"d":[1],"e":{"k":"v"}}`), jsontext.AllowDuplicateNames(true))
 
-	tok, err := dec.Token()
-	if err != nil || tok != json.Delim('{') {
+	tok, err := dec.ReadToken()
+	if err != nil || tok.Kind() != '{' {
 		t.Fatalf("tok=%v err=%v", tok, err)
 	}
 
@@ -49,7 +47,7 @@ func TestDecodeJSONObjectAnyCoverage(t *testing.T) {
 
 func TestSetJSONAnyNumCoverage(t *testing.T) {
 	dst := reflect.New(emptyJSONValueType()).Elem()
-	if err := setJSONAnyNum(dst, json.Number("42"), FilePath("f.json"), ""); err != nil {
+	if err := setJSONAnyNum(dst, jsonText("42"), FilePath("f.json"), ""); err != nil {
 		t.Fatalf("int: %v", err)
 	}
 
@@ -58,7 +56,7 @@ func TestSetJSONAnyNumCoverage(t *testing.T) {
 	}
 
 	dst = reflect.New(emptyJSONValueType()).Elem()
-	if err := setJSONAnyNum(dst, json.Number("1.5"), FilePath("f.json"), ""); err != nil {
+	if err := setJSONAnyNum(dst, jsonText("1.5"), FilePath("f.json"), ""); err != nil {
 		t.Fatalf("float: %v", err)
 	}
 

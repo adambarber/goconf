@@ -1,7 +1,7 @@
 package goconf
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"reflect"
 	"strings"
 	"testing"
@@ -39,12 +39,12 @@ func TestTOMLRawValueTermCoverage(t *testing.T) {
 }
 
 func TestJSONRootTokenKindCoverage(t *testing.T) {
-	_, _ = jsonRootTokenKind(json.Delim('['))
-	_, _ = jsonRootTokenKind(json.Delim('{'))
-	_, _ = jsonRootTokenKind(true)
-	_, _ = jsonRootTokenKind(json.Number("1"))
-	_, _ = jsonRootTokenKind("x")
-	_, _ = jsonRootTokenKind(nil)
+	_, _ = jsonRootKindName('[')
+	_, _ = jsonRootKindName('{')
+	_, _ = jsonRootKindName('t')
+	_, _ = jsonRootKindName('0')
+	_, _ = jsonRootKindName('"')
+	_, _ = jsonRootKindName('n')
 }
 
 func TestSetJSONBoolMismatchCoverage(t *testing.T) {
@@ -62,10 +62,9 @@ func TestSetJSONScalarMismatchCoverage(t *testing.T) {
 }
 
 func TestDecodeJSONObjectUnknownFieldRefusalCoverage(t *testing.T) {
-	dec := json.NewDecoder(strings.NewReader(`{"a":1}`))
-	dec.UseNumber()
+	dec := jsontext.NewDecoder(strings.NewReader(`{"a":1}`), jsontext.AllowDuplicateNames(true))
 
-	if _, err := dec.Token(); err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -81,10 +80,9 @@ func TestDecodeJSONObjectUnknownFieldRefusalCoverage(t *testing.T) {
 }
 
 func TestConsumeJSONObjectEndCoverage(t *testing.T) {
-	dec := json.NewDecoder(strings.NewReader(`{}`))
-	dec.UseNumber()
+	dec := jsontext.NewDecoder(strings.NewReader(`{}`), jsontext.AllowDuplicateNames(true))
 
-	if _, err := dec.Token(); err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		t.Fatal(err)
 	}
 

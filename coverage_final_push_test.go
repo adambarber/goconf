@@ -1,7 +1,7 @@
 package goconf
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"reflect"
 	"strings"
 	"testing"
@@ -58,10 +58,9 @@ func TestJSONLineAtByteCoverage(t *testing.T) {
 }
 
 func TestJSONConsumeJSONObjectEndError(t *testing.T) {
-	dec := json.NewDecoder(strings.NewReader(`{"a":1`))
-	dec.UseNumber()
+	dec := jsontext.NewDecoder(strings.NewReader(`{"a":1`), jsontext.AllowDuplicateNames(true))
 
-	if _, err := dec.Token(); err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -69,14 +68,45 @@ func TestJSONConsumeJSONObjectEndError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tok, err := dec.Token()
-	if err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		t.Fatal(err)
 	}
 
-	_ = tok
-
 	if err := consumeJSONObjectEnd(dec, SourceBytes(`{"a":1`), FilePath("f.json")); err == nil {
 		t.Fatal("expected")
+	}
+}
+
+func TestJSONKeyLineNestedContainers(t *testing.T) {
+	data := SourceBytes("{\n  \"arr\": [\n    {\n      \"bad\": 1\n    }\n  ]\n}\n")
+
+	if got := jsonKeyLine(data, ObjectKey("arr")); got != 2 {
+		t.Fatalf("arr line=%d want=2", got)
+	}
+
+	if got := jsonKeyLine(data, ObjectKey("bad")); got != 4 {
+		t.Fatalf("bad line=%d want=4", got)
+	}
+
+	nested := SourceBytes("{\n  \"a\": [\n    [\n      {\n        \"deep\": true\n      }\n    ]\n  ]\n}\n")
+
+	if got := jsonKeyLine(nested, ObjectKey("deep")); got != 5 {
+		t.Fatalf("deep line=%d want=5", got)
+	}
+
+	if got := jsonKeyLine(nested, ObjectKey("missing")); got != 0 {
+		t.Fatalf("missing line=%d want=0", got)
+	}
+}
+
+func TestJSONKeyLineArraysOfObjects(t *testing.T) {
+	data := SourceBytes("[\n  {\n    \"x\": 1\n  },\n  {\n    \"y\": 2\n  }\n]\n")
+
+	if got := jsonKeyLine(data, ObjectKey("x")); got != 3 {
+		t.Fatalf("x line=%d want=3", got)
+	}
+
+	if got := jsonKeyLine(data, ObjectKey("y")); got != 6 {
+		t.Fatalf("y line=%d want=6", got)
 	}
 }

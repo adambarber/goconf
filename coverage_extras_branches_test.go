@@ -1,7 +1,7 @@
 package goconf
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"reflect"
 	"strings"
 	"testing"
@@ -85,16 +85,10 @@ func TestYAMLMapFieldSequenceMismatch(t *testing.T) {
 }
 
 func TestJSONExtrasNonMapExtrasFieldRefusal(t *testing.T) {
-	dec := json.NewDecoder(strings.NewReader(`1`))
-	dec.UseNumber()
-
-	tok, err := dec.Token()
-	if err != nil {
-		t.Fatal(err)
-	}
+	dec := jsontext.NewDecoder(strings.NewReader(`1`), jsontext.AllowDuplicateNames(true))
 
 	extras := reflect.New(reflect.TypeFor[int]()).Elem()
-	if err := decodeJSONExtra(dec, tok, SourceBytes(`{"x":1}`), FilePath("f.json"), extras, "", "x"); err == nil {
+	if err := decodeJSONExtra(dec, SourceBytes(`{"x":1}`), FilePath("f.json"), extras, "", keySegment("x")); err == nil {
 		t.Fatal("expected")
 	}
 }

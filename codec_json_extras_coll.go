@@ -1,15 +1,14 @@
+// extras-aware JSON array decoding helpers.
 package goconf
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"reflect"
-
-	"github.com/adambarber/gorefuse"
 )
 
 // decodeJSONArray decodes a JSON array token stream into dst for extras-aware paths.
 
-func decodeJSONArray(dec *json.Decoder, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath) error {
+func decodeJSONArray(dec *jsontext.Decoder, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath) error {
 	if dst.Kind() == reflect.Interface && dst.Type().NumMethod() == 0 {
 		return decodeJSONArrayAny(dec, data, file, dst, path)
 	}
@@ -21,24 +20,19 @@ func decodeJSONArray(dec *json.Decoder, data SourceBytes, file FilePath, dst ref
 	return decodeJSONArrayTyped(dec, data, file, dst, path)
 }
 
-func decodeJSONArrayAny(dec *json.Decoder, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath) error {
+func decodeJSONArrayAny(dec *jsontext.Decoder, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath) error {
 	sv := reflect.MakeSlice(reflect.SliceOf(emptyJSONValueType()), 0, 0)
 
-	for dec.More() {
-		tok, err := dec.Token()
-		if err != nil {
-			return jsonErr(data, file, err)
-		}
-
+	for dec.PeekKind() != ']' {
 		elem := reflect.New(emptyJSONValueType()).Elem()
-		if err := decodeJSONValue(dec, tok, data, file, elem, path); err != nil {
+		if err := decodeJSONNextValue(dec, data, file, elem, path); err != nil {
 			return err
 		}
 
 		sv = reflect.Append(sv, elem)
 	}
 
-	if _, err := dec.Token(); err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		return jsonErr(data, file, err)
 	}
 
@@ -47,16 +41,13 @@ func decodeJSONArrayAny(dec *json.Decoder, data SourceBytes, file FilePath, dst 
 	return nil
 }
 
-func decodeJSONArrayTyped(dec *json.Decoder, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath) error {
+func decodeJSONArrayTyped(dec *jsontext.Decoder, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath) error {
 	idx := 0
 
-	for dec.More() {
-		tok, err := dec.Token()
-		if err != nil {
-			return jsonErr(data, file, err)
-		}
+	for dec.PeekKind() != ']' {
+		var err error
 
-		dst, err = decodeJSONArrayElem(dec, tok, data, file, dst, path, idx)
+		dst, err = decodeJSONArrayElem(dec, data, file, dst, path, idx)
 		if err != nil {
 			return err
 		}
@@ -64,84 +55,32 @@ func decodeJSONArrayTyped(dec *json.Decoder, data SourceBytes, file FilePath, ds
 		idx++
 	}
 
-	if _, err := dec.Token(); err != nil {
+	if _, err := dec.ReadToken(); err != nil {
 		return jsonErr(data, file, err)
 	}
 
 	return nil
 }
 
-func decodeJSONArrayElem(dec *json.Decoder, tok json.Token, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath, idx int) (reflect.Value, error) {
+func decodeJSONArrayElem(dec *jsontext.Decoder, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath, idx int) (reflect.Value, error) {
 	if dst.Kind() == reflect.Slice {
 		if idx >= dst.Len() {
 			dst.Set(reflect.Append(dst, reflect.Zero(dst.Type().Elem())))
 		}
 	} else if idx >= dst.Len() {
 		elem := reflect.New(dst.Type().Elem()).Elem()
-		if err := decodeJSONValue(dec, tok, data, file, elem, path); err != nil {
+		if err := decodeJSONNextValue(dec, data, file, elem, path); err != nil {
 			return dst, err
 		}
 
 		return dst, jsonFixedArrayOverflow(file, path)
 	}
 
-	if err := decodeJSONValue(dec, tok, data, file, dst.Index(idx), path); err != nil {
+	if err := decodeJSONNextValue(dec, data, file, dst.Index(idx), path); err != nil {
 		return dst, err
 	}
 
 	return dst, nil
 }
 
-func emptyJSONValueType() reflect.Type {
-	return reflect.TypeOf((*any)(nil)).Elem()
-}
-
-func decodeJSONIntoMap(dec *json.Decoder, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath) error {
-	if dst.IsNil() && dst.CanSet() {
-		dst.Set(reflect.MakeMap(dst.Type()))
-	}
-
-	for dec.More() {
-		if err := decodeJSONMapEntry(dec, data, file, dst, path); err != nil {
-			return err
-		}
-	}
-
-	_, err := dec.Token()
-	if err != nil {
-		return jsonErr(data, file, err)
-	}
-
-	return nil
-}
-
-func decodeJSONMapEntry(dec *json.Decoder, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath) error {
-	key, err := decodeJSONObjectKey(dec, data, file)
-	if err != nil {
-		return err
-	}
-
-	vtok, err := dec.Token()
-	if err != nil {
-		return jsonErr(data, file, err)
-	}
-
-	elem := reflect.New(dst.Type().Elem()).Elem()
-
-	child := childPath(path, FieldPath(key))
-	if err := decodeJSONValue(dec, vtok, data, file, elem, child); err != nil {
-		return err
-	}
-
-	dst.SetMapIndex(reflect.ValueOf(key).Convert(dst.Type().Key()), elem)
-
-	return nil
-}
-
-func jsonFixedArrayOverflow(file FilePath, path FieldPath) error {
-	seg := lastPathSeg(path)
-
-	return refuseAt(ErrTypeMismatch, file, 0,
-		gorefuse.Subject(`the value of "`+string(seg)+`" has too many items`),
-		gorefuse.Why(`remove the extra items from "`+string(seg)+`".`))
-}
+/* jsonFixedArrayOverflow moved to codec_json_extras_scalar.go */

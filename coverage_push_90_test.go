@@ -1,7 +1,6 @@
 package goconf
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 
@@ -9,23 +8,23 @@ import (
 )
 
 func TestJSONExtrasRootShapeMoreCoverage(t *testing.T) {
-	if err := jsonExtrasRootShape(FilePath("f.json"), json.Number("1"), reflect.ValueOf(struct{}{})); err == nil {
+	if err := jsonExtrasRootShape(FilePath("f.json"), '0', reflect.ValueOf(struct{}{})); err == nil {
 		t.Fatal("expected")
 	}
 
-	if err := jsonExtrasRootShape(FilePath("f.json"), true, reflect.ValueOf([]int{})); err == nil {
+	if err := jsonExtrasRootShape(FilePath("f.json"), 't', reflect.ValueOf([]int{})); err == nil {
 		t.Fatal("expected")
 	}
 
-	if err := jsonExtrasRootShape(FilePath("f.json"), nil, reflect.ValueOf(struct{}{})); err == nil {
+	if err := jsonExtrasRootShape(FilePath("f.json"), 'n', reflect.ValueOf(struct{}{})); err == nil {
 		t.Fatal("expected")
 	}
 
-	if err := jsonExtrasRootShape(FilePath("f.json"), json.Delim('['), reflect.ValueOf(map[string]int{})); err == nil {
+	if err := jsonExtrasRootShape(FilePath("f.json"), '[', reflect.ValueOf(map[string]int{})); err == nil {
 		t.Fatal("expected")
 	}
 
-	if err := jsonExtrasRootShape(FilePath("f.json"), json.Delim('{'), reflect.ValueOf([1]int{})); err == nil {
+	if err := jsonExtrasRootShape(FilePath("f.json"), '{', reflect.ValueOf([1]int{})); err == nil {
 		t.Fatal("expected")
 	}
 }

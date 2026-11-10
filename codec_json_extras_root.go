@@ -1,7 +1,7 @@
 package goconf
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"reflect"
 )
 
@@ -14,8 +14,8 @@ const (
 	rootFoundNull   goTypeName = "null"
 )
 
-func jsonExtrasRootShape(file FilePath, tok json.Token, dst reflect.Value) error {
-	found, ok := jsonRootTokenKind(tok)
+func jsonExtrasRootShape(file FilePath, kind jsontext.Kind, dst reflect.Value) error {
+	found, ok := jsonRootKindName(kind)
 	if !ok {
 		return nil
 	}
@@ -39,27 +39,23 @@ func jsonExtrasRootShape(file FilePath, tok json.Token, dst reflect.Value) error
 	return nil
 }
 
-func jsonRootTokenKind(tok json.Token) (goTypeName, bool) {
-	switch d := tok.(type) {
-	case json.Delim:
-		if d == '{' {
-			return rootFoundObject, true
-		}
-
-		if d == '[' {
-			return rootFoundArray, true
-		}
-
-		return "", false
-	case string:
+func jsonRootKindName(kind jsontext.Kind) (goTypeName, bool) {
+	switch kind {
+	case '{':
+		return rootFoundObject, true
+	case '[':
+		return rootFoundArray, true
+	case '"':
 		return rootFoundString, true
-	case json.Number:
+	case '0':
 		return rootFoundNumber, true
-	case bool:
+	case 't', 'f':
 		return rootFoundBool, true
-	case nil:
+	case 'n':
 		return rootFoundNull, true
-	default:
+	case jsontext.KindInvalid, '}', ']':
 		return "", false
 	}
+
+	return "", false
 }

@@ -1,7 +1,7 @@
 package goconf
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"reflect"
 	"testing"
 
@@ -39,19 +39,19 @@ func TestTOMLWordAndFoundTermCoverage(t *testing.T) {
 }
 
 func TestJSONExtrasRootShapeCoverage(t *testing.T) {
-	if err := jsonExtrasRootShape(FilePath("f.json"), json.Delim('['), reflect.ValueOf(struct{}{})); err == nil {
+	if err := jsonExtrasRootShape(FilePath("f.json"), '[', reflect.ValueOf(struct{}{})); err == nil {
 		t.Fatal("expected")
 	}
 
-	if err := jsonExtrasRootShape(FilePath("f.json"), json.Delim('{'), reflect.ValueOf([]int{})); err == nil {
+	if err := jsonExtrasRootShape(FilePath("f.json"), '{', reflect.ValueOf([]int{})); err == nil {
 		t.Fatal("expected")
 	}
 
-	if err := jsonExtrasRootShape(FilePath("f.json"), json.Delim('{'), reflect.ValueOf(struct{}{})); err != nil {
+	if err := jsonExtrasRootShape(FilePath("f.json"), '{', reflect.ValueOf(struct{}{})); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := jsonExtrasRootShape(FilePath("f.json"), "x", reflect.ValueOf(0)); err != nil {
+	if err := jsonExtrasRootShape(FilePath("f.json"), jsontext.Kind('"'), reflect.ValueOf(0)); err != nil {
 		t.Fatal(err)
 	}
 }

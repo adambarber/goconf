@@ -1,7 +1,6 @@
 package goconf
 
 import (
-	"encoding/json"
 	"reflect"
 	"strconv"
 	"strings"
@@ -50,7 +49,7 @@ func setJSONBool(dst reflect.Value, v bool, file FilePath, path FieldPath) error
 	return nil
 }
 
-func setJSONNumber(dst reflect.Value, n json.Number, file FilePath, path FieldPath) error {
+func setJSONNumberText(dst reflect.Value, n jsonText, file FilePath, path FieldPath) error {
 	switch dst.Kind() {
 	case reflect.Interface:
 		return setJSONAnyNum(dst, n, file, path)
@@ -69,8 +68,8 @@ func setJSONNumber(dst reflect.Value, n json.Number, file FilePath, path FieldPa
 	return jsonExtrasTypeMismatch(file, path, kindOf(dst.Type()), kindUserTerm(kindFloat))
 }
 
-func applyJSONNumeric(n json.Number, file FilePath, path FieldPath, dst reflect.Value, got userTerm, apply func(jsonText, reflect.Value) bool) error {
-	if apply(jsonText(n.String()), dst) {
+func applyJSONNumeric(n jsonText, file FilePath, path FieldPath, dst reflect.Value, got userTerm, apply func(jsonText, reflect.Value) bool) error {
+	if apply(n, dst) {
 		return nil
 	}
 
@@ -119,8 +118,8 @@ func parseJSONFloat(s jsonText, dst reflect.Value) bool {
 	return true
 }
 
-func setJSONAnyNum(dst reflect.Value, n json.Number, file FilePath, path FieldPath) error {
-	ns := n.String()
+func setJSONAnyNum(dst reflect.Value, n jsonText, file FilePath, path FieldPath) error {
+	ns := string(n)
 	if i64, err := strconv.ParseInt(ns, 10, 64); err == nil {
 		dst.Set(reflect.ValueOf(i64))
 
@@ -143,6 +142,14 @@ func jsonExtrasTypeMismatch(file FilePath, path FieldPath, want valueKind, got u
 	return refuseAt(ErrTypeMismatch, file, 0,
 		gorefuse.Subject("the value of \""+string(seg)+"\" is "+string(got)+", not "+string(kindUserTerm(want))),
 		gorefuse.Why("change the value of \""+string(seg)+"\" to "+string(kindUserTerm(want))+"."))
+}
+
+func jsonFixedArrayOverflow(file FilePath, path FieldPath) error {
+	seg := lastPathSeg(path)
+
+	return refuseAt(ErrTypeMismatch, file, 0,
+		gorefuse.Subject(`the value of "`+string(seg)+`" has too many items`),
+		gorefuse.Why(`remove the extra items from "`+string(seg)+`".`))
 }
 
 func lastPathSeg(path FieldPath) FieldPath {
