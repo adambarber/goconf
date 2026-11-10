@@ -42,7 +42,7 @@ func canonicalTOMLPath(k toml.Key, file FilePath, t reflect.Type) (FieldPath, er
 	// key space: when true, the current segment is an arbitrary map key.
 	inDynamic := false
 
-	for _, seg := range k {
+	for i, seg := range k {
 		t = elemType(t)
 
 		switch {
@@ -64,13 +64,8 @@ func canonicalTOMLPath(k toml.Key, file FilePath, t reflect.Type) (FieldPath, er
 				continue
 			}
 
-			if ef, ok := extrasField(t); ok {
-				// Fixed+extras: unknown-to-fixed key is captured by extras.
-				path = childPath(path, FieldPath(seg))
-				t = extrasValueType(ef.Type)
-				inDynamic = false
-
-				continue
+			if _, ok := extrasField(t); ok {
+				return extrasCanonicalPath(path, k, i, keySegment(seg)), nil
 			}
 
 			return "", refuseAt(ErrUnknownField, file, 0,
@@ -135,9 +130,6 @@ func mapValueType(t reflect.Type) reflect.Type {
 // descent into structured dynamic values.
 func dynamicValueType(t reflect.Type) reflect.Type { return mapValueType(t) }
 
-// extrasValueType returns the value type captured by an extras map field.
-func extrasValueType(t reflect.Type) reflect.Type { return mapValueType(t) }
-
 // keySegment is one segment of a document key being mapped to a field.
 type keySegment string
 
@@ -171,3 +163,12 @@ type tomlKeyMap map[tomlKey]toml.Primitive
 
 // tomlKey is one top-level TOML table name.
 type tomlKey string
+
+func extrasCanonicalPath(path FieldPath, k toml.Key, i int, seg keySegment) FieldPath {
+	path = childPath(path, FieldPath(seg))
+	for _, rest := range k[i+1:] {
+		path = childPath(path, FieldPath(rest))
+	}
+
+	return path
+}

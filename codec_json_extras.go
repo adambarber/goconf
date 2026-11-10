@@ -39,9 +39,10 @@ func decodeJSONStrictWithExtras(data SourceBytes, file FilePath, dst Target) err
 		return jsonErr(data, file, err)
 	}
 
-	v := dst.Value
-	if v.Kind() == reflect.Pointer {
-		v = v.Elem()
+	v := derefValue(dst.Value)
+
+	if err := jsonExtrasRootShape(file, tok, v); err != nil {
+		return err
 	}
 
 	if err := decodeJSONValue(dec, tok, data, file, v, ""); err != nil {

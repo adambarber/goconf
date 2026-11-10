@@ -109,7 +109,7 @@ func tomlSetExtra(extras, raw reflect.Value, k toml.Key, idx int) (bool, error) 
 	}
 
 	key := reflect.ValueOf(k[idx]).Convert(extras.Type().Key())
-	val := rawLookupRV(raw, k[idx:])
+	val := rawChildRV(raw, keySegment(k[idx]))
 	setExtraValue(extras, key, val)
 
 	return true, nil

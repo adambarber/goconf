@@ -31,10 +31,7 @@ func decodeYAMLStrictWithExtras(data SourceBytes, file FilePath, dst Target) err
 		root = root.Content[0]
 	}
 
-	v := dst.Value
-	if v.Kind() == reflect.Pointer {
-		v = v.Elem()
-	}
+	v := derefValue(dst.Value)
 
 	if err := yamlPopulateNode(root, v, file); err != nil {
 		return err

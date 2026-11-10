@@ -86,8 +86,9 @@ func parseJSONUint(s jsonText, dst reflect.Value) bool {
 }
 
 func parseJSONInteger(s jsonText, dst reflect.Value, signed bool) bool {
+	bits := dst.Type().Bits()
 	if signed {
-		iv, err := strconv.ParseInt(string(s), 10, 64)
+		iv, err := strconv.ParseInt(string(s), 10, bits)
 		if err != nil {
 			return false
 		}
@@ -97,7 +98,7 @@ func parseJSONInteger(s jsonText, dst reflect.Value, signed bool) bool {
 		return true
 	}
 
-	uv, err := strconv.ParseUint(string(s), 10, 64)
+	uv, err := strconv.ParseUint(string(s), 10, bits)
 	if err != nil {
 		return false
 	}

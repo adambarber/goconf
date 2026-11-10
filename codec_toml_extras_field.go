@@ -2,8 +2,6 @@ package goconf
 
 import (
 	"reflect"
-
-	"github.com/BurntSushi/toml"
 )
 
 func findStructFieldByKey(t reflect.Type, key keySegment) (*reflect.StructField, bool) {
@@ -42,19 +40,6 @@ func rawChildRV(raw reflect.Value, key keySegment) reflect.Value {
 	}
 
 	return v
-}
-
-func rawLookupRV(raw reflect.Value, path toml.Key) reflect.Value {
-	cur := raw
-	for _, p := range path {
-		cur = rawChildRV(cur, keySegment(p))
-	}
-
-	if cur.IsValid() && cur.Kind() == reflect.Interface && !cur.IsNil() {
-		return cur.Elem()
-	}
-
-	return cur
 }
 
 func mapGetStringKey(m reflect.Value, key keySegment) reflect.Value {

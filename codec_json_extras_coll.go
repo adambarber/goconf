@@ -70,14 +70,21 @@ func decodeJSONArrayTyped(dec *json.Decoder, data SourceBytes, file FilePath, ds
 }
 
 func decodeJSONArrayElem(dec *json.Decoder, tok json.Token, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath, idx int) (reflect.Value, error) {
-	if idx >= dst.Len() && dst.Kind() == reflect.Slice {
-		dst.Set(reflect.Append(dst, reflect.Zero(dst.Type().Elem())))
-	}
-
-	if idx < dst.Len() {
-		if err := decodeJSONValue(dec, tok, data, file, dst.Index(idx), path); err != nil {
+	if dst.Kind() == reflect.Slice {
+		if idx >= dst.Len() {
+			dst.Set(reflect.Append(dst, reflect.Zero(dst.Type().Elem())))
+		}
+	} else if idx >= dst.Len() {
+		elem := reflect.New(dst.Type().Elem()).Elem()
+		if err := decodeJSONValue(dec, tok, data, file, elem, path); err != nil {
 			return dst, err
 		}
+
+		return dst, jsonExtrasTypeMismatch(file, path, kindOf(dst.Type()), kindUserTerm(kindList))
+	}
+
+	if err := decodeJSONValue(dec, tok, data, file, dst.Index(idx), path); err != nil {
+		return dst, err
 	}
 
 	return dst, nil
