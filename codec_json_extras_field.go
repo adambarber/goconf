@@ -1,33 +1,60 @@
 package goconf
 
 import (
-	"bytes"
 	"reflect"
+	"strings"
 )
 
-func jsonFieldMatches(f *reflect.StructField, key keySegment) bool {
+func matchJSONStructField(t reflect.Type, key keySegment) (*reflect.StructField, bool) {
+	t = derefTargetType(reflect.New(t).Elem())
+	if t.Kind() != reflect.Struct {
+		return nil, false
+	}
+
+	return jsonStructFieldByKey(t, key)
+}
+
+func jsonStructFieldByKey(t reflect.Type, key keySegment) (*reflect.StructField, bool) {
+	var foldMatch *reflect.StructField
+
+	n := t.NumField()
+	for i := range n {
+		f := fieldAt(t, i)
+		if !jsonFieldEligible(f) {
+			continue
+		}
+
+		name := string(jsonFieldName(f))
+		if name == string(key) {
+			return f, true
+		}
+
+		if foldMatch == nil && strings.EqualFold(name, string(key)) {
+			foldMatch = f
+		}
+	}
+
+	return foldMatch, foldMatch != nil
+}
+
+func jsonFieldEligible(f *reflect.StructField) bool {
 	if !f.IsExported() || isExtrasField(f) {
 		return false
 	}
 
-	name := jsonFieldName(f)
-	if name == "-" {
-		return false
-	}
-
-	return string(name) == string(key)
+	return jsonFieldName(f) != "-"
 }
 
 func jsonFieldName(f *reflect.StructField) keySegment {
-	tag := f.Tag.Get("json")
-	if tag == "" {
+	tag, ok := f.Tag.Lookup("json")
+	if !ok {
 		return keySegment(f.Name)
 	}
 
-	name, _, _ := bytes.Cut([]byte(tag), []byte(","))
-	if len(name) == 0 {
-		return keySegment(f.Name)
+	name, _, _ := strings.Cut(tag, ",")
+	if name != "" {
+		return keySegment(name)
 	}
 
-	return keySegment(string(name))
+	return keySegment(f.Name)
 }

@@ -143,7 +143,7 @@ func decodeJSONObjectField(dec *json.Decoder, data SourceBytes, file FilePath, d
 		return jsonErr(data, file, err)
 	}
 
-	sf, ok := matchStructField(dst.Type(), key, jsonFieldMatches)
+	sf, ok := matchJSONStructField(dst.Type(), key)
 	if ok {
 		child := childPath(path, tagPathOf(sf))
 		return decodeJSONValue(dec, vtok, data, file, dst.FieldByIndex(sf.Index), child)
