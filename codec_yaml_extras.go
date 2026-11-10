@@ -33,14 +33,14 @@ func decodeYAMLStrictWithExtras(data SourceBytes, file FilePath, dst Target) err
 
 	v := derefValue(dst.Value)
 
-	if err := yamlPopulateNode(root, v, file); err != nil {
+	if err := yamlPopulateNode(root, v, file, ""); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func yamlPopulateNode(node *yaml.Node, dst reflect.Value, file FilePath) error {
+func yamlPopulateNode(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	if node.Kind == yaml.AliasNode && node.Alias != nil {
 		node = node.Alias
 	}
@@ -49,60 +49,60 @@ func yamlPopulateNode(node *yaml.Node, dst reflect.Value, file FilePath) error {
 
 	k := dst.Kind()
 	if k == reflect.Struct {
-		return yamlPopulateStructNode(node, dst, file)
+		return yamlPopulateStructNode(node, dst, file, path)
 	}
 
 	if k == reflect.Map {
-		return yamlPopulateMapNode(node, dst, file)
+		return yamlPopulateMapNode(node, dst, file, path)
 	}
 
 	if k == reflect.Slice {
-		return yamlPopulateSliceNode(node, dst, file)
+		return yamlPopulateSliceNode(node, dst, file, path)
 	}
 
-	return yamlDecodeScalarNode(node, dst, file)
+	return yamlDecodeScalarNode(node, dst, file, path)
 }
 
-func yamlPopulateStructNode(node *yaml.Node, dst reflect.Value, file FilePath) error {
+func yamlPopulateStructNode(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	if node.Kind == yaml.MappingNode {
-		return yamlPopulateStruct(node, dst, file)
+		return yamlPopulateStruct(node, dst, file, path)
 	}
 
-	return typeMismatchRefusal(file, node.Line, "", kindTable, shapeUserTerm(node))
+	return typeMismatchRefusal(file, node.Line, ObjectKey(path), kindTable, shapeUserTerm(node))
 }
 
-func yamlPopulateMapNode(node *yaml.Node, dst reflect.Value, file FilePath) error {
+func yamlPopulateMapNode(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	switch node.Kind {
 	case yaml.MappingNode:
-		return yamlPopulateMap(node, dst, file)
+		return yamlPopulateMap(node, dst, file, path)
 	case yaml.DocumentNode, yaml.SequenceNode, yaml.ScalarNode, yaml.AliasNode:
-		return typeMismatchRefusal(file, node.Line, "", kindTable, shapeUserTerm(node))
+		return typeMismatchRefusal(file, node.Line, ObjectKey(path), kindTable, shapeUserTerm(node))
 	default:
-		return typeMismatchRefusal(file, node.Line, "", kindTable, shapeUserTerm(node))
+		return typeMismatchRefusal(file, node.Line, ObjectKey(path), kindTable, shapeUserTerm(node))
 	}
 }
 
-func yamlPopulateSliceNode(node *yaml.Node, dst reflect.Value, file FilePath) error {
+func yamlPopulateSliceNode(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	if node.Kind != yaml.SequenceNode {
-		return typeMismatchRefusal(file, node.Line, "", kindList, shapeUserTerm(node))
+		return typeMismatchRefusal(file, node.Line, ObjectKey(path), kindList, shapeUserTerm(node))
 	}
 
-	return yamlPopulateSlice(node, dst, file)
+	return yamlPopulateSlice(node, dst, file, path)
 }
 
-func yamlDecodeScalarNode(node *yaml.Node, dst reflect.Value, file FilePath) error {
+func yamlDecodeScalarNode(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	if err := node.Decode(dst.Addr().Interface()); err != nil {
-		return refuseDecoder(gorefuse.At(gorefuse.File(file), gorefuse.Line(node.Line), gorefuse.Subject("YAML value"), gorefuse.Why("the value does not fit the expected type.")), err)
+		return yamlNodeDecodeRefusal(file, node, dst, path, err)
 	}
 
 	return nil
 }
 
-func yamlPopulateStruct(node *yaml.Node, dst reflect.Value, file FilePath) error {
+func yamlPopulateStruct(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	initYAMLExtrasMap(dst)
 
 	for i := 0; i+1 < len(node.Content); i += 2 {
-		if err := yamlPopulateStructPair(dst, node.Content[i], node.Content[i+1], file); err != nil {
+		if err := yamlPopulateStructPair(dst, node.Content[i], node.Content[i+1], file, path); err != nil {
 			return err
 		}
 	}
@@ -112,16 +112,16 @@ func yamlPopulateStruct(node *yaml.Node, dst reflect.Value, file FilePath) error
 
 func initYAMLExtrasMap(dst reflect.Value) { initExtrasMap(dst) }
 
-func yamlPopulateStructPair(dst reflect.Value, kNode, vNode *yaml.Node, file FilePath) error {
+func yamlPopulateStructPair(dst reflect.Value, kNode, vNode *yaml.Node, file FilePath, path FieldPath) error {
 	key := keySegment(kNode.Value)
 
 	sf, ok := matchStructField(dst.Type(), key, yamlFieldMatches)
 	if ok {
-		return yamlPopulateNode(vNode, dst.FieldByIndex(sf.Index), file)
+		return yamlPopulateNode(vNode, dst.FieldByIndex(sf.Index), file, childPath(path, tagPathOf(sf)))
 	}
 
 	if ef, ok := extrasField(dst.Type()); ok {
-		return yamlSetExtra(vNode, dst.FieldByIndex(ef.Index), key, file)
+		return yamlSetExtra(vNode, dst.FieldByIndex(ef.Index), key, file, childPath(path, FieldPath(key)))
 	}
 
 	return refuseAt(ErrUnknownField, file, gorefuse.Line(kNode.Line),
@@ -129,7 +129,7 @@ func yamlPopulateStructPair(dst reflect.Value, kNode, vNode *yaml.Node, file Fil
 		gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
 }
 
-func yamlPopulateMap(node *yaml.Node, dst reflect.Value, file FilePath) error {
+func yamlPopulateMap(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	if dst.IsNil() && dst.CanSet() {
 		dst.Set(reflect.MakeMap(dst.Type()))
 	}
@@ -140,7 +140,7 @@ func yamlPopulateMap(node *yaml.Node, dst reflect.Value, file FilePath) error {
 		key := kNode.Value
 
 		elem := reflect.New(dst.Type().Elem()).Elem()
-		if err := yamlPopulateNode(vNode, elem, file); err != nil {
+		if err := yamlPopulateNode(vNode, elem, file, childPath(path, FieldPath(key))); err != nil {
 			return err
 		}
 
@@ -150,11 +150,11 @@ func yamlPopulateMap(node *yaml.Node, dst reflect.Value, file FilePath) error {
 	return nil
 }
 
-func yamlPopulateSlice(node *yaml.Node, dst reflect.Value, file FilePath) error {
+func yamlPopulateSlice(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	slice := reflect.MakeSlice(dst.Type(), 0, len(node.Content))
 	for _, item := range node.Content {
 		elem := reflect.New(dst.Type().Elem()).Elem()
-		if err := yamlPopulateNode(item, elem, file); err != nil {
+		if err := yamlPopulateNode(item, elem, file, path); err != nil {
 			return err
 		}
 
@@ -166,10 +166,10 @@ func yamlPopulateSlice(node *yaml.Node, dst reflect.Value, file FilePath) error 
 	return nil
 }
 
-func yamlSetExtra(node *yaml.Node, extras reflect.Value, key keySegment, file FilePath) error {
+func yamlSetExtra(node *yaml.Node, extras reflect.Value, key keySegment, file FilePath, path FieldPath) error {
 	if extras.Kind() != reflect.Map {
 		return refuseAt(ErrUnknownField, file, gorefuse.Line(node.Line),
-			gorefuse.Subject(`"`+key+`"`),
+			gorefuse.Subject(`"`+string(key)+`"`),
 			gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
 	}
 
@@ -178,11 +178,15 @@ func yamlSetExtra(node *yaml.Node, extras reflect.Value, key keySegment, file Fi
 	}
 
 	elem := reflect.New(extras.Type().Elem()).Elem()
-	if err := yamlPopulateNode(node, elem, file); err != nil {
+	if err := yamlPopulateNode(node, elem, file, path); err != nil {
 		return err
 	}
 
 	extras.SetMapIndex(reflect.ValueOf(string(key)).Convert(extras.Type().Key()), elem)
 
 	return nil
+}
+
+func yamlNodeDecodeRefusal(file FilePath, node *yaml.Node, dst reflect.Value, path FieldPath, _ error) error {
+	return typeMismatchRefusal(file, node.Line, ObjectKey(path), kindOf(dst.Type()), shapeUserTerm(node))
 }
