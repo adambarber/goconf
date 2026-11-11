@@ -41,7 +41,7 @@ func TestYAMLPopulateMapNodeSequenceNested(t *testing.T) {
 func TestTOMLCaptureKeyInvalidDest(t *testing.T) {
 	raw := reflect.ValueOf(map[string]int{"a": 1})
 
-	ok, err := tomlCaptureKey(reflect.Value{}, raw, toml.Key{"a"}, FilePath("f.toml"))
+	ok, err := tomlCaptureKey(reflect.Value{}, raw, toml.Key{"a"}, tomlAOTIndex{}, FilePath("f.toml"))
 	if err != nil || ok {
 		t.Fatalf("ok=%v err=%v", ok, err)
 	}

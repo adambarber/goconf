@@ -39,19 +39,30 @@ func tomlLookupFromPrimitives(v reflect.Value, md *toml.MetaData, k toml.Key, ao
 		return reflect.Value{}
 	}
 
-	return tomlLookupDecodedInValue(decoded, k[1:], aotCurrent, inlineCur, 1)
+	decoded = tomlSelectIndexedElement(decoded, k, 0, aotCurrent, inlineCur)
+	if !decoded.IsValid() {
+		return reflect.Value{}
+	}
+
+	return tomlLookupDecodedInValue(decoded, k, aotCurrent, inlineCur, 1)
+}
+
+func tomlSelectIndexedElement(v reflect.Value, k toml.Key, i int, aotCurrent, inlineCur map[tomlPathKey]int) reflect.Value {
+	v = derefReflect(v)
+	if !v.IsValid() {
+		return v
+	}
+
+	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
+		return v
+	}
+
+	return tomlStepSliceDecoded(v, k, i, aotCurrent, inlineCur)
 }
 
 func tomlLookupDecodedInValue(v reflect.Value, k toml.Key, aotCurrent, inlineCur map[tomlPathKey]int, offset int) reflect.Value {
-	for j, seg := range k {
-		i := offset + j
-
-		v = derefReflect(v)
-		if !v.IsValid() {
-			return reflect.Value{}
-		}
-
-		next, ok := tomlStepDecodedValue(v, k, i, metaSeg(seg), aotCurrent, inlineCur)
+	for i := offset; i < len(k); i++ {
+		next, ok := tomlLookupDecodedSegment(v, k, i, aotCurrent, inlineCur)
 		if !ok {
 			return reflect.Value{}
 		}
@@ -60,6 +71,46 @@ func tomlLookupDecodedInValue(v reflect.Value, k toml.Key, aotCurrent, inlineCur
 	}
 
 	return derefReflect(v)
+}
+
+func tomlLookupDecodedSegment(v reflect.Value, k toml.Key, i int, aotCurrent, inlineCur map[tomlPathKey]int) (reflect.Value, bool) {
+	v = derefReflect(v)
+	if !v.IsValid() {
+		return reflect.Value{}, false
+	}
+
+	v = tomlSelectDecodedArrayPrefix(v, k, i, aotCurrent, inlineCur)
+	if !v.IsValid() {
+		return reflect.Value{}, false
+	}
+
+	next, ok := tomlStepDecodedValue(v, k, i, metaSeg(k[i]), aotCurrent, inlineCur)
+	if !ok {
+		return reflect.Value{}, false
+	}
+
+	return tomlSelectDecodedArraySuffix(next, k, i, aotCurrent, inlineCur), true
+}
+
+func tomlSelectDecodedArrayPrefix(v reflect.Value, k toml.Key, i int, aotCurrent, inlineCur map[tomlPathKey]int) reflect.Value {
+	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
+		return v
+	}
+
+	return derefReflect(tomlStepSliceDecoded(v, k, i-1, aotCurrent, inlineCur))
+}
+
+func tomlSelectDecodedArraySuffix(v reflect.Value, k toml.Key, i int, aotCurrent, inlineCur map[tomlPathKey]int) reflect.Value {
+	if i >= len(k)-1 {
+		return v
+	}
+
+	v = derefReflect(v)
+	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
+		return v
+	}
+
+	return tomlStepSliceDecoded(v, k, i, aotCurrent, inlineCur)
 }
 
 func tomlStepDecodedValue(v reflect.Value, k toml.Key, i int, seg metaSeg, aotCurrent, inlineCur map[tomlPathKey]int) (reflect.Value, bool) {

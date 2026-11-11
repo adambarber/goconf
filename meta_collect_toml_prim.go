@@ -39,7 +39,17 @@ func tomlPrimDecoders() []tomlPrimDecoder {
 		tomlDecodePrimScalar[bool],
 		tomlDecodePrimAsStringSlice,
 		tomlDecodePrimAsIntSlice,
+		tomlDecodePrimAsAny,
 	}
+}
+
+func tomlDecodePrimAsAny(md *toml.MetaData, prim toml.Primitive) (reflect.Value, bool) {
+	rv := reflect.New(reflect.TypeOf((*interface{})(nil)).Elem())
+	if err := md.PrimitiveDecode(prim, rv.Interface()); err != nil {
+		return reflect.Value{}, false
+	}
+
+	return rv.Elem(), true
 }
 
 func tomlDecodePrimScalar[T tomlScalar](md *toml.MetaData, prim toml.Primitive) (reflect.Value, bool) {

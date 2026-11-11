@@ -11,7 +11,7 @@ import (
 )
 
 func TestTOMLCaptureKeyEmpty(t *testing.T) {
-	ok, err := tomlCaptureKey(reflect.Value{}, reflect.Value{}, toml.Key{}, FilePath("f.toml"))
+	ok, err := tomlCaptureKey(reflect.Value{}, reflect.Value{}, toml.Key{}, tomlAOTIndex{}, FilePath("f.toml"))
 	if err != nil || ok {
 		t.Fatalf("ok=%v err=%v", ok, err)
 	}

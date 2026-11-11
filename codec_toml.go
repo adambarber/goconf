@@ -161,7 +161,7 @@ func tomlUndecoded(dst Target, data SourceBytes, md *toml.MetaData, file FilePat
 			gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
 	}
 
-	return tomlRouteExtras(dst, data, undec, file)
+	return tomlRouteExtras(dst, data, undec, md, file)
 }
 
 // keyQuote wraps one key in quotes for a refusal message.
