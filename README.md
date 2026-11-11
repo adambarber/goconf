@@ -32,6 +32,14 @@ cfg, prov, err := goconf.Load[Config](
 // cfg.Region == "eu", cfg.Port == 8080 (filled from defaults)
 // prov[0].Path names the file; prov[0].Digest is its sha256.
 // err is nil.
+
+// For per-occurrence key/value/location metadata, use LoadWithMeta:
+cfg, prov, meta, err := goconf.LoadWithMeta[Config](
+	goconf.Spec{Name: "app", Format: goconf.FormatJSON},
+	goconf.WithDefaults(Config{Port: 8080}),
+)
+// meta.Entries() returns ordered occurrences with indexed/schema
+// paths, key, line, file, source index, value, and effective flag.
 ```
 
 With `{"region": "eu", "tls": true}`, the load is refused: `tls` is not a
@@ -72,6 +80,11 @@ type Config struct {
   null is never overridden by a default.
 - Use it if you want **provenance** — every load returns one `Provenance`
   per contributing source: the path and the sha256 of the bytes decoded.
+- Use it if you want **per-occurrence metadata** — `LoadWithMeta` returns
+  ordered, queryable occurrence records (indexed occurrence path and
+  unindexed schema path, key, 1-based line, file, source/provenance index,
+  value, and effective flag) across TOML, JSON, and YAML, including dynamic
+  and extras keys and repeated array/array-of-tables elements.
 - Use it if you want **optional config** — `WithOptionalConfig` forgives
   true absence (every search directory readable, zero candidates) so a
   fresh install can run before any config exists; a fault is never

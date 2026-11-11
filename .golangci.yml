@@ -239,7 +239,7 @@ linters:
       - path: (codec_.*_extras.*\.go|dynamic_keys.*\.go|extras_keys.*\.go)$
         linters:
           - forbidigo   # extras absorb arbitrary config values: the captured value kind is genuinely dynamic at the absorption boundary
-          - ireturn   # raw TOML value navigation returns heterogeneous decoded values by design
+          - ireturn     # raw TOML value navigation returns heterogeneous decoded values by design
           - modernize   # interface{} in extras capture is required to satisfy birdcage no_untyped_value; modernize would force `any` which birdcage flags
       - path: dynamic_keys_test\.go$
         linters:

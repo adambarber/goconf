@@ -11,9 +11,17 @@ import (
 // caller declares the config NAME and optionally a FORMAT; the details
 // are in docs/load.md.
 func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
+	got, prov, _, err := LoadWithMeta[T](spec, opts...)
+	return got, prov, err
+}
+
+// LoadWithMeta behaves like Load and also returns per-occurrence metadata.
+// On refusal it returns zero config, nil provenance, zero Meta, and the error.
+// See docs/load.md for metadata semantics and query helpers.
+func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, error) {
 	var zero T
 	if err := spec.Format.check(); err != nil {
-		return zero, nil, err
+		return zero, nil, Meta{}, err
 	}
 
 	s := settings{search: nil, globalDir: "", defaults: nil, optional: false}
@@ -28,7 +36,7 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 	files, err := discover(Discovery{Search: s.search, Name: spec.Name, Format: spec.Format})
 	if err != nil {
 		if !s.optional || !errors.Is(err, ErrNothingFound) {
-			return zero, nil, err
+			return zero, nil, Meta{}, err
 		}
 
 		// true absence, opted in: every leg listed cleanly and zero
@@ -41,44 +49,46 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 
 	dst := Target{Value: reflect.ValueOf(new(T)).Elem()}
 
-	prov, err := decodeInto(dst, files, s.defaults)
+	prov, meta, err := decodeInto(dst, files, s.defaults)
 	if err != nil {
-		return zero, nil, err
+		return zero, nil, Meta{}, err
 	}
 
 	got, ok := reflect.TypeAssert[T](dst.Value)
 	if !ok {
-		return zero, nil, refuseWhy(ErrTargetCast,
+		return zero, nil, Meta{}, refuseWhy(ErrTargetCast,
 			gorefuse.Subject("the decode target"),
 			gorefuse.Why("the decode target does not hold the requested type; this is a construction fault."))
 	}
 
-	return got, prov, nil
+	return got, prov, meta, nil
 }
 
 // decodeInto reads every file, layers their presence, decodes in order
 // (later sources override earlier ones), then fills absents from the
 // defaults; each source decodes through its own file's format.
-func decodeInto(dst Target, files []FoundFile, defaults []layeredDefault) ([]Provenance, error) {
+func decodeInto(dst Target, files []FoundFile, defaults []layeredDefault) ([]Provenance, Meta, error) {
 	sources, prov, err := readSources(files)
 	if err != nil {
-		return nil, err
+		return nil, Meta{}, err
 	}
 
-	present, err := unionPresence(sources, files, dst.Value.Type())
+	present, meta, err := collectPresenceAndMeta(sources, files, dst.Value.Type())
 	if err != nil {
-		return nil, err
+		return nil, Meta{}, err
 	}
 
 	for i, src := range sources {
 		if err := decodeFormat(src, files[i].Path, dst, files[i].Format); err != nil {
-			return nil, err
+			return nil, Meta{}, err
 		}
 	}
 
 	if err := fillAbsents(dst, present, defaults); err != nil {
-		return nil, err
+		return nil, Meta{}, err
 	}
 
-	return prov, nil
+	enrichMeta(&meta, dst)
+
+	return prov, meta, nil
 }

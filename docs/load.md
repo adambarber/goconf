@@ -2,6 +2,34 @@
 
 `Load[T](spec Spec, opts ...Option) (T, []Provenance, error)` discovers, merges, and decodes one config into `T`, strictly.
 
+`LoadWithMeta[T](spec Spec, opts ...Option) (T, []Provenance, Meta, error)` is the metadata-returning sibling: it preserves `Load`'s behavior and contracts and additionally returns per-occurrence key/value/location metadata. `Load` is equivalent to discarding `Meta`.
+
+## Per-occurrence metadata (`LoadWithMeta`)
+
+`Meta` is an ordered, queryable collection of `Occurrence` records. Records are emitted in discovery/load order by source, and in document order within each source, so every present key occurrence is observable (including repeated array/sequence elements and TOML array-of-tables entries).
+
+Each `Occurrence` carries:
+
+- `Path` (`OccurrencePath`): the indexed occurrence path identifying this specific occurrence (for example `servers[0].host`, `resource[2].name`, `env.FOO`). Indexed paths distinguish repeated elements/occurrences.
+- `SchemaPath` (`SchemaPath`): the unindexed canonical schema path in the same vocabulary as presence and unknown-field handling (for example `servers.host`, `resource.name`). Array indices are not part of schema identity.
+- `Key`: the leaf key or element name at this path segment (array elements use `[i]`).
+- `Line`: the 1-based source line for the key/element occurrence.
+- `File`: the source file path.
+- `SourceIndex`: the index of the contributing source in load/provenance order.
+- `Value`: the decoded value for this occurrence. For occurrences that contribute to the effective result, `Value` is enriched from the final loaded configuration after decode, layering/merge, and defaults when the path resolves in the effective config; for superseded occurrences, `Value` is the source-captured decoded value (and may remain source-derived when no effective value resolves at that indexed path).
+- `Effective`: whether this occurrence contributes to the effective loaded configuration.
+
+Query helpers: `Entries()`, `Len()`, `ByPath`/`Lookup` (indexed path), `BySchemaPath`/`LookupSchema` (schema path), `At`/`AtSchema` (zero-based occurrence position within matches), and `Effective()`.
+
+Semantics and resolution:
+
+- **Uniformity:** metadata is collected through goconf's format-specific decode/canonicalization paths and normalized to one occurrence model across TOML, JSON, and YAML. Line extraction is parser-derived for JSON (token offsets) and YAML (node lines); for TOML, BurntSushi/toml v1 metadata does not expose per-key source positions, so key/occurrence line attribution uses a hardened line-anchored, comment-aware heuristic (best-effort) while preserving uniform path/identity/ordering semantics.
+- **Indexed paths, arrays, and array-of-tables:** array/sequence elements are recorded as indexed element occurrences (`items[i]`) with `Key="[i]"`, and their children under indexed paths (`items[i].name`). Container occurrences are recorded for array fields/paths where applicable, and ordering is consistent (container, then element, then element children, in document order). This includes JSON/YAML sequences, TOML array-of-tables `[[t]]` (element occurrences `t[i]`, including nested AOT indexed per parent element, with AOT container and element metadata normalized to the same array contract), and TOML inline arrays (scalar elements and inline table-array elements/containers/children) with best-effort line attribution per the TOML parser model.
+- **Dynamic and extras:** keys inside `goconf:"dynamic"` maps and keys captured by `goconf:"extras"`/`goconf:"rest"` are representable as occurrences; unknown keys outside absorbing sites remain refused as before.
+- **YAML merge keys (`<<`):** merged fields are emitted at their effective schema/occurrence paths (not under `<<`) so merged effective values are queryable at the paths they occupy in the loaded config. Explicit keys override merged keys; when `<<` merges a sequence of mappings, precedence follows YAML semantics (earlier merged mappings take precedence among merged sources, subject to explicit-key override). The literal `<<` key is not emitted as a separate occurrence.
+- **Layering/merge and defaults:** all occurrences from all loaded sources are recorded. Effective contribution is determined per indexed occurrence path in load order: the last occurrence for a path that resolves in the final effective config is marked effective; earlier/superseded occurrences (including elements replaced by a later array value) are non-effective. Nested object merge and later-source override follow normal decode semantics. Defaults fill absent fields but do not synthesize source occurrences; effective values on contributing occurrences reflect the final post-merge/default config when resolvable.
+- **Refusals and value-freedom:** metadata is structured API output, not refusal text. Refusal behavior, unknown-field handling, duplicate-key refusal, type-mismatch refusal, multi-document refusal, and refusal value-freedom guarantees are unchanged. On refusal, `LoadWithMeta` returns the zero config, nil provenance, zero `Meta`, and the refusal error (same as `Load`).
+
 ## The contract
 
 The caller declares a config NAME and optionally a FORMAT. A format is
