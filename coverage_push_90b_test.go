@@ -14,22 +14,7 @@ func TestTOMLFoundTermMoreCoverage(t *testing.T) {
 }
 
 func TestYAMLErrValueFreeTypeError(t *testing.T) {
-	type doc struct {
-		Extra map[extraKey]extraVal `goconf:"extras" yaml:"-"`
-		N     int                   `yaml:"n"`
-	}
-
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("n: [1,2]\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[doc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
-
+	err := refuseBytesErr[loadCfg](t, SourceBytes("region: [1,2]\n"), FormatYAML)
 	if !errors.Is(err, ErrTypeMismatch) {
 		t.Fatalf("err=%v", err)
 	}
@@ -56,19 +41,5 @@ func TestJSONExtrasRootShapeArrayIntoMap(t *testing.T) {
 }
 
 func TestYAMLMapNodeDefaultBranch(t *testing.T) {
-	type doc struct {
-		Extra map[extraKey]extraVal `goconf:"extras" yaml:"-"`
-		M     map[extraKey]extraVal `yaml:"m"`
-	}
-
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("m: !!str nope\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[doc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
+	refuseBytes[yamlMapDoc](t, SourceBytes("m: !!str nope\n"), FormatYAML, WantText("expected refusal"))
 }

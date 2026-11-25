@@ -34,7 +34,7 @@ func TestExtrasTypedNarrowIntTOML(t *testing.T) {
 }
 
 func TestExtrasTypedUintTOMLRefused(t *testing.T) {
-	err := refuseBytes[uintExtrasDoc](t, SourceBytes("name = \"r\"\nu = 7\n"), FormatTOML, WantText("expected refusal"))
+	err := refuseBytesErr[uintExtrasDoc](t, SourceBytes("name = \"r\"\nu = 7\n"), FormatTOML)
 
 	if !errors.Is(err, ErrTypeMismatch) {
 		t.Fatalf("err=%v", err)
@@ -42,7 +42,7 @@ func TestExtrasTypedUintTOMLRefused(t *testing.T) {
 }
 
 func TestExtrasTypedInt8OverflowTOML(t *testing.T) {
-	err := refuseBytes[int8ExtrasDoc](t, SourceBytes("name = \"r\"\nn = 999999\n"), FormatTOML, WantText("expected refusal"))
+	err := refuseBytesErr[int8ExtrasDoc](t, SourceBytes("name = \"r\"\nn = 999999\n"), FormatTOML)
 
 	if !errors.Is(err, ErrTypeMismatch) {
 		t.Fatalf("err=%v", err)

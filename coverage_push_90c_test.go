@@ -21,21 +21,7 @@ func TestDerefValueNilPointer(t *testing.T) {
 }
 
 func TestYAMLPopulateMapNodeSequenceNested(t *testing.T) {
-	type doc struct {
-		Extra map[extraKey]extraVal `goconf:"extras" yaml:"-"`
-		M     map[extraKey]extraVal `yaml:"m"`
-	}
-
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("m: [1, 2]\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[doc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
+	refuseBytes[yamlMapDoc](t, SourceBytes("m: [1, 2]\n"), FormatYAML, WantText("expected refusal"))
 }
 
 func TestTOMLCaptureKeyInvalidDest(t *testing.T) {

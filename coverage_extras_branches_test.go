@@ -49,39 +49,11 @@ func TestTOMLExtrasTypeMismatchOnStructExtra(t *testing.T) {
 }
 
 func TestYAMLMapFieldScalarMismatch(t *testing.T) {
-	type doc struct {
-		Extra map[extraKey]extraVal `goconf:"extras" yaml:"-"`
-		M     map[extraKey]extraVal `yaml:"m"`
-	}
-
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("m: nope\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[doc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
+	refuseBytes[yamlMapDoc](t, SourceBytes("m: nope\n"), FormatYAML, WantText("expected refusal"))
 }
 
 func TestYAMLMapFieldSequenceMismatch(t *testing.T) {
-	type doc struct {
-		Extra map[extraKey]extraVal `goconf:"extras" yaml:"-"`
-		M     map[extraKey]extraVal `yaml:"m"`
-	}
-
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("m:\n  - a\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[doc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
+	refuseBytes[yamlMapDoc](t, SourceBytes("m:\n  - a\n"), FormatYAML, WantText("expected refusal"))
 }
 
 func TestJSONExtrasNonMapExtrasFieldRefusal(t *testing.T) {
