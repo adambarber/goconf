@@ -10,16 +10,7 @@ import (
 // Load refusal answers errors.Is against a Reason constant — directly
 // and through a %w wrapper.
 func TestErrorsIsThroughLoadAndWrap(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"region":"eu","extra":1}`)},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatalf("unknown field must be refused")
-	}
+	err := refuseLoadCfgBytes(t, SourceBytes(`{"region":"eu","extra":1}`), FormatJSON, WantText("unknown field must be refused"))
 
 	if !errors.Is(err, ErrUnknownField) {
 		t.Fatalf("refusal %v must errors.Is ErrUnknownField", err)

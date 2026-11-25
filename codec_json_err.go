@@ -39,11 +39,8 @@ func jsonErr(data SourceBytes, file FilePath, err error) error {
 	case errors.As(err, &sem):
 		return jsonSemanticErr(data, file, sem)
 	default:
-		if len(data) == 0 {
-			return refuseDecoder(
-				gorefuse.At(gorefuse.File(file), 0,
-					gorefuse.Subject("JSON syntax"),
-					gorefuse.Why("the file is empty; add settings or delete it.")), nil)
+		if jsonSourceEmpty(data) {
+			return jsonEmptyRefusal(file)
 		}
 
 		return refuseDecoder(
@@ -51,6 +48,17 @@ func jsonErr(data SourceBytes, file FilePath, err error) error {
 				gorefuse.Subject("JSON syntax"),
 				syntaxCheck()), nil)
 	}
+}
+
+func jsonSourceEmpty(data SourceBytes) bool {
+	return len(bytes.TrimSpace(data)) == 0
+}
+
+func jsonEmptyRefusal(file FilePath) error {
+	return refuseDecoder(
+		gorefuse.At(gorefuse.File(file), 0,
+			gorefuse.Subject("JSON syntax"),
+			gorefuse.Why("the file is empty; add settings or delete it.")), nil)
 }
 
 func jsonSyntacticErr(data SourceBytes, file FilePath, syntax *jsontext.SyntacticError) error {
@@ -77,11 +85,8 @@ func jsonSyntacticErr(data SourceBytes, file FilePath, syntax *jsontext.Syntacti
 		}
 	}
 
-	if len(bytes.TrimSpace(data)) == 0 {
-		return refuseDecoder(
-			gorefuse.At(gorefuse.File(file), 0,
-				gorefuse.Subject("JSON syntax"),
-				gorefuse.Why("the file is empty; add settings or delete it.")), nil)
+	if jsonSourceEmpty(data) {
+		return jsonEmptyRefusal(file)
 	}
 
 	return refuseDecoder(

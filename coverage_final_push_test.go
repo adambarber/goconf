@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"gopkg.in/yaml.v3"
 )
 
 func TestTOMLCaptureKeyEmpty(t *testing.T) {
@@ -18,15 +17,7 @@ func TestTOMLCaptureKeyEmpty(t *testing.T) {
 }
 
 func TestYAMLPopulateStructNodeMismatchNonRoot(t *testing.T) {
-	var doc yaml.Node
-	if err := yaml.Unmarshal([]byte("- a\n"), &doc); err != nil {
-		t.Fatal(err)
-	}
-
-	root := &doc
-	if root.Kind == yaml.DocumentNode && len(root.Content) > 0 {
-		root = root.Content[0]
-	}
+	root := yamlContentNode(t, SourceText("- a\n"))
 
 	dst := reflect.New(reflect.TypeFor[intExtrasDoc]()).Elem()
 	if err := yamlPopulateStructNode(root, dst, FilePath("f.yaml"), "nested"); err == nil {
@@ -35,15 +26,7 @@ func TestYAMLPopulateStructNodeMismatchNonRoot(t *testing.T) {
 }
 
 func TestYAMLPopulateMapNodeAliasAndDefault(t *testing.T) {
-	var doc yaml.Node
-	if err := yaml.Unmarshal([]byte("a: 1\n"), &doc); err != nil {
-		t.Fatal(err)
-	}
-
-	root := &doc
-	if root.Kind == yaml.DocumentNode && len(root.Content) > 0 {
-		root = root.Content[0]
-	}
+	root := yamlContentNode(t, SourceText("a: 1\n"))
 
 	dst := reflect.MakeMap(reflect.MapOf(reflect.TypeFor[extraKey](), reflect.TypeFor[extraVal]()))
 	if err := yamlPopulateMapNode(root, dst, FilePath("f.yaml"), "m"); err != nil {

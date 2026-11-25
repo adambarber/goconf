@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"gopkg.in/yaml.v3"
 )
 
 func TestYAMLExtrasRootNotMappingInternal(t *testing.T) {
@@ -92,15 +90,7 @@ func TestConsumeJSONObjectEndCoverage(t *testing.T) {
 }
 
 func TestYAMLPopulateSliceNodeMismatch(t *testing.T) {
-	var doc yaml.Node
-	if err := yaml.Unmarshal([]byte("a: 1\n"), &doc); err != nil {
-		t.Fatal(err)
-	}
-
-	root := &doc
-	if root.Kind == yaml.DocumentNode && len(root.Content) > 0 {
-		root = root.Content[0]
-	}
+	root := yamlContentNode(t, SourceText("a: 1\n"))
 
 	dst := reflect.New(reflect.TypeFor[[]extraVal]()).Elem()
 	if err := yamlPopulateSliceNode(root, dst, FilePath("f.yaml"), "x"); err == nil {
@@ -109,15 +99,7 @@ func TestYAMLPopulateSliceNodeMismatch(t *testing.T) {
 }
 
 func TestYAMLPopulateSliceCoverage(t *testing.T) {
-	var doc yaml.Node
-	if err := yaml.Unmarshal([]byte("- a\n- b\n"), &doc); err != nil {
-		t.Fatal(err)
-	}
-
-	root := &doc
-	if root.Kind == yaml.DocumentNode && len(root.Content) > 0 {
-		root = root.Content[0]
-	}
+	root := yamlContentNode(t, SourceText("- a\n- b\n"))
 
 	dst := reflect.New(reflect.TypeFor[[]extraVal]()).Elem()
 	if err := yamlPopulateSlice(root, dst, FilePath("f.yaml"), "x"); err != nil {

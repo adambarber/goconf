@@ -2,7 +2,6 @@ package goconf
 
 import (
 	"errors"
-	"path/filepath"
 	"testing"
 
 	"github.com/adambarber/gorefuse"
@@ -12,16 +11,7 @@ import (
 // contract: every refusal a Load returns is a gorefuse.Because[Reason] a
 // caller can extract with errors.As and switch on with errors.Is.
 func TestRefusalCarriesErrThroughErrorsAs(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"region":"eu","region":"us"}`)},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatalf("duplicate key must be refused")
-	}
+	err := refuseLoadCfgBytes(t, SourceBytes(`{"region":"eu","region":"us"}`), FormatJSON, WantText("duplicate key must be refused"))
 
 	var because gorefuse.Because[Reason]
 	if !errors.As(err, &because) {
@@ -36,13 +26,8 @@ func TestRefusalCarriesErrThroughErrorsAs(t *testing.T) {
 // TestRefusalFrameNamesTheRealFile pins that a decode refusal carries a
 // frame pointing at the file that was refused, not the decoder's internals.
 func TestRefusalFrameNamesTheRealFile(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes("{\n  \"region\": \"eu\",\n  \"extra\": 1\n}")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
+	_, _, err := LoadBytes[loadCfg]([]byte("{\n  \"region\": \"eu\",\n  \"extra\": 1\n}"),
+		Spec{Name: configName("app"), Format: FormatJSON})
 	if err == nil {
 		t.Fatalf("unknown field must be refused")
 	}
@@ -52,7 +37,7 @@ func TestRefusalFrameNamesTheRealFile(t *testing.T) {
 		t.Fatalf("refusal %v must be a gorefuse.Because[Reason]", err)
 	}
 
-	want := FilePath(filepath.Join(string(root), string(fileNameJSON)))
+	want := FilePath(configName("app"))
 	if because.What.File != gorefuse.File(want) {
 		t.Fatalf("frame file = %q, want %q", because.What.File, want)
 	}
@@ -118,16 +103,7 @@ func TestReasonsAreDistinct(t *testing.T) {
 // target does not declare refuses with ErrUnknownField, in the presence
 // walk (the stage that refuses before decode) and in decode alike.
 func TestTOMLUnknownFieldCarriesErrUnknownField(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameTOML: SourceBytes("region = \"eu\"\nnonesuch = 1\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatTOML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatalf("unknown TOML field must be refused")
-	}
+	err := refuseLoadCfgBytes(t, SourceBytes("region = \"eu\"\nnonesuch = 1\n"), FormatTOML, WantText("unknown TOML field must be refused"))
 
 	var because gorefuse.Because[Reason]
 	if !errors.As(err, &because) {

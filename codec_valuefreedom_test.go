@@ -110,16 +110,7 @@ func TestKeyNamingRefusalsStillQuoteKeys(t *testing.T) {
 // half of the invariant: the collector's TOML parse runs before decode, so
 // its parse errors must be sanitized like the decode path's.
 func TestNoValueFragmentSurvivesTheTOMLPresenceWalk(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameTOML: SourceBytes("retries = " + secretFragment + "\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatTOML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatalf("parse-error TOML must be refused")
-	}
+	err := refuseLoadCfgBytes(t, SourceBytes("retries = "+secretFragment+"\n"), FormatTOML, WantText("parse-error TOML must be refused"))
 
 	refusal := refusalText(err.Error())
 	assertNoValueEcho(t, refusal, echoFragments{secretFragment, fragmentZZQ, fragmentMarker})

@@ -46,23 +46,12 @@ type yamlPresenceCfg struct {
 // TestLoadWithMetaYAMLPresence pins the YAML presence walk through LoadWithMeta:
 // keys inside mappings and sequences are recorded under their schema paths.
 func TestLoadWithMetaYAMLPresence(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameYAML: SourceBytes("region: eu\nnested:\n  host: h\nlist:\n  - a\n  - b\n")},
-	})
-
-	_, _, meta, err := LoadWithMeta[yamlPresenceCfg](Spec{Name: configName("app"), Format: FormatYAML},
-		loadOpts(globalPathOf(root))...)
+	_, _, meta, err := LoadBytesWithMeta[yamlPresenceCfg]([]byte("region: eu\nnested:\n  host: h\nlist:\n  - a\n  - b\n"),
+		Spec{Name: configName("app"), Format: FormatYAML})
 	if err != nil {
 		t.Fatalf("LoadWithMeta: %v", err)
 	}
 
-	for _, p := range []SchemaPath{spRegion, spNested, spNestedHost, "list"} {
-		if len(meta.BySchemaPath(p)) == 0 {
-			t.Errorf("schema path %q missing: %#v", p, meta.Entries())
-		}
-	}
-
-	if len(meta.BySchemaPath("nested.port")) != 0 {
-		t.Errorf("nested.port is absent and must not be present")
-	}
+	assertSchemaPaths(t, meta, spRegion, spNested, spNestedHost, "list")
+	assertSchemaAbsent(t, meta, "nested.port")
 }

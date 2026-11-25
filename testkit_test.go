@@ -109,28 +109,63 @@ func loadRefused(t *testing.T, spec Spec, opts ...Option) error {
 	return err
 }
 
-// scratchWorkDir creates and chdirs into a scratch work directory.
-func scratchWorkDir(t *testing.T, scratch DirPath) {
+// refuseLoadCfgBytes loads one in-memory source through the public API and
+// fails unless it is refused. Single-source format tests use this instead of
+// manufacturing a directory tree and chdir.
+func refuseLoadCfgBytes(t *testing.T, data SourceBytes, format Format, want WantText) error {
 	t.Helper()
 
-	work := filepath.Join(string(scratch), "work")
-	if err := os.MkdirAll(work, 0o700); err != nil {
-		t.Fatalf("mkdir: %v", err)
+	_, _, err := LoadBytes[loadCfg]([]byte(data), Spec{Name: configName("app"), Format: format})
+	if err == nil {
+		t.Fatalf("%s", want)
 	}
 
-	t.Chdir(work)
+	return err
 }
 
-// discoverOK runs one discovery and fails the test on any error.
-func discoverOK(t *testing.T, d Discovery) []FoundFile {
+// loadResourceOK loads one in-memory source into the shared extras fixture.
+func loadResourceOK(t *testing.T, data SourceBytes, format Format) resourceDoc {
 	t.Helper()
 
-	found, err := discover(d)
+	got, _, err := LoadBytes[resourceDoc]([]byte(data), Spec{Name: configName("app"), Format: format})
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
 
-	return found
+	return got
+}
+
+// assertSchemaPaths pins that each named schema path has an occurrence.
+func assertSchemaPaths(t *testing.T, meta Meta, paths ...SchemaPath) {
+	t.Helper()
+
+	for _, p := range paths {
+		if len(meta.BySchemaPath(p)) == 0 {
+			t.Errorf("schema path %q missing: %#v", p, meta.Entries())
+		}
+	}
+}
+
+// assertSchemaAbsent pins that no occurrence was recorded for a path.
+func assertSchemaAbsent(t *testing.T, meta Meta, paths ...SchemaPath) {
+	t.Helper()
+
+	for _, p := range paths {
+		if len(meta.BySchemaPath(p)) != 0 {
+			t.Errorf("schema path %q must be absent: %#v", p, meta.Entries())
+		}
+	}
+}
+
+// assertOccurrencePaths pins that each named indexed path has an occurrence.
+func assertOccurrencePaths(t *testing.T, meta Meta, paths ...OccurrencePath) {
+	t.Helper()
+
+	for _, p := range paths {
+		if len(meta.ByPath(p)) != 1 {
+			t.Errorf("occurrence path %q missing: %#v", p, meta.Entries())
+		}
+	}
 }
 
 // cfgEquals asserts got equals the fully-spelled expected value.
@@ -159,14 +194,4 @@ func loadDefaultsOK(t *testing.T, root DirPath, format Format, d loadCfg) loadCf
 	}
 
 	return got
-}
-
-// nullNotOverridden asserts region stayed empty: an explicit null is a
-// decision the loader must respect.
-func nullNotOverridden(t *testing.T, got loadCfg) {
-	t.Helper()
-
-	if got.Region != "" {
-		t.Fatalf("explicit null is a decision and must not be overridden, got %q", got.Region)
-	}
 }

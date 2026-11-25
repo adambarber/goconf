@@ -12,16 +12,7 @@ import (
 // holding a root array is refused with Reason "not a mapping", the same
 // fault YAML names, whichever decoder noticed it.
 func TestJSONRootArrayIsNotAMapping(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes("[1,2,3]")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatalf("a root array must be refused")
-	}
+	err := refuseLoadCfgBytes(t, SourceBytes("[1,2,3]"), FormatJSON, WantText("a root array must be refused"))
 
 	var because gorefuse.Because[Reason]
 	if !errors.As(err, &because) {

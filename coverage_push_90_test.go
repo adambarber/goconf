@@ -3,8 +3,6 @@ package goconf
 import (
 	"reflect"
 	"testing"
-
-	"gopkg.in/yaml.v3"
 )
 
 func TestJSONExtrasRootShapeMoreCoverage(t *testing.T) {
@@ -30,15 +28,7 @@ func TestJSONExtrasRootShapeMoreCoverage(t *testing.T) {
 }
 
 func TestYAMLPopulateStructNodeTypeMismatchNested(t *testing.T) {
-	var doc yaml.Node
-	if err := yaml.Unmarshal([]byte("1\n"), &doc); err != nil {
-		t.Fatal(err)
-	}
-
-	root := &doc
-	if root.Kind == yaml.DocumentNode && len(root.Content) > 0 {
-		root = root.Content[0]
-	}
+	root := yamlContentNode(t, SourceText("1\n"))
 
 	dst := reflect.New(reflect.TypeFor[intExtrasDoc]()).Elem()
 	if err := yamlPopulateStructNode(root, dst, FilePath("f.yaml"), "nested"); err == nil {
@@ -47,15 +37,7 @@ func TestYAMLPopulateStructNodeTypeMismatchNested(t *testing.T) {
 }
 
 func TestYAMLPopulateMapNodeTypeMismatchNested(t *testing.T) {
-	var doc yaml.Node
-	if err := yaml.Unmarshal([]byte("1\n"), &doc); err != nil {
-		t.Fatal(err)
-	}
-
-	root := &doc
-	if root.Kind == yaml.DocumentNode && len(root.Content) > 0 {
-		root = root.Content[0]
-	}
+	root := yamlContentNode(t, SourceText("1\n"))
 
 	dst := reflect.MakeMap(reflect.MapOf(reflect.TypeFor[extraKey](), reflect.TypeFor[extraVal]()))
 	if err := yamlPopulateMapNode(root, dst, FilePath("f.yaml"), "nested"); err == nil {

@@ -28,19 +28,32 @@ func Redact[T any](cfg T) Rendered {
 func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, error) {
 	var zero T
 
-	s, err := prepareLoad(spec, opts...)
-	if err != nil {
-		return zero, nil, Meta{}, err
-	}
+	return withLoadSettings(zero, spec, func(zero T, s settings) (T, []Provenance, Meta, error) {
+		dst, err := newTarget[T](&s)
+		if err != nil {
+			return zero, nil, Meta{}, err
+		}
 
+		files, sources, prov, err := acquireDiscovered(spec, &s)
+		if err != nil {
+			return zero, nil, Meta{}, err
+		}
+
+		return loadAcquired(zero, dst, &s, acquired{sources: sources, files: files, prov: prov})
+	}, opts...)
+}
+
+// acquireDiscovered is the disk acquisition half of Load: it resolves search
+// paths, treats opted-in absence as success, and reads the discovered bytes.
+func acquireDiscovered(spec Spec, s *settings) ([]FoundFile, []SourceBytes, []Provenance, error) {
 	if len(s.search) == 0 {
-		s.search = defaultSearchPaths(&s, spec.Name)
+		s.search = defaultSearchPaths(s, spec.Name)
 	}
 
 	files, err := discover(Discovery{Search: s.search, Name: spec.Name, Format: spec.Format})
 	if err != nil {
-		if !envOrOptionalAbsence(&s, err) {
-			return zero, nil, Meta{}, err
+		if !envOrOptionalAbsence(s, err) {
+			return nil, nil, nil, err
 		}
 
 		// True absence is allowed when the caller opted in or declared an
@@ -53,17 +66,12 @@ func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, erro
 		}
 	}
 
-	dst, err := newTarget[T](&s)
-	if err != nil {
-		return zero, nil, Meta{}, err
-	}
-
 	sources, prov, err := readSources(files, s.maxBytes)
 	if err != nil {
-		return zero, nil, Meta{}, err
+		return nil, nil, nil, err
 	}
 
-	return loadAcquired(zero, dst, &s, acquired{sources: sources, files: files, prov: prov})
+	return files, sources, prov, nil
 }
 
 // envOrOptionalAbsence reports whether a discovery fault is true absence that
@@ -123,6 +131,23 @@ func finishLoad[T any](zero T, dst Target) (T, error) {
 	}
 
 	return got, nil
+}
+
+// withLoadSettings is the shared settings boundary for both entry points.
+func withLoadSettings[T any](zero T, spec Spec, fn func(T, settings) (T, []Provenance, Meta, error), opts ...Option) (T, []Provenance, Meta, error) {
+	s, err := prepareLoad(spec, opts...)
+	if err != nil {
+		return refuseLoad[T](err)
+	}
+
+	return fn(zero, s)
+}
+
+// refuseLoad is the single zero-result shape for both Load entry points.
+func refuseLoad[T any](err error) (T, []Provenance, Meta, error) {
+	var zero T
+
+	return zero, nil, Meta{}, err
 }
 
 // prepareLoad validates the spec and folds the options into one settings

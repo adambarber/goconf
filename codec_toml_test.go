@@ -33,23 +33,12 @@ func TestDecodeTOMLStrict(t *testing.T) {
 // TestLoadWithMetaTOMLPresence pins the TOML presence walk through the
 // public surface; it is the reference implementation the other formats match.
 func TestLoadWithMetaTOMLPresence(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameTOML: SourceBytes("region = \"eu\"\n\n[nested]\nhost = \"h\"\n")},
-	})
-
-	_, _, meta, err := LoadWithMeta[codecCfg](Spec{Name: configName("app"), Format: FormatTOML},
-		loadOpts(globalPathOf(root))...)
+	_, _, meta, err := LoadBytesWithMeta[codecCfg]([]byte("region = \"eu\"\n\n[nested]\nhost = \"h\"\n"),
+		Spec{Name: configName("app"), Format: FormatTOML})
 	if err != nil {
 		t.Fatalf("LoadWithMeta: %v", err)
 	}
 
-	for _, p := range []SchemaPath{spRegion, spNested, spNestedHost} {
-		if len(meta.BySchemaPath(p)) == 0 {
-			t.Errorf("schema path %q missing: %#v", p, meta.Entries())
-		}
-	}
-
-	if len(meta.BySchemaPath("nested.port")) != 0 {
-		t.Errorf("nested.port is absent and must not be present")
-	}
+	assertSchemaPaths(t, meta, spRegion, spNested, spNestedHost)
+	assertSchemaAbsent(t, meta, "nested.port")
 }

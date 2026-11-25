@@ -15,25 +15,22 @@ func LoadBytes[T any](data []byte, spec Spec, opts ...Option) (T, []Provenance, 
 func LoadBytesWithMeta[T any](data []byte, spec Spec, opts ...Option) (T, []Provenance, Meta, error) {
 	var zero T
 
-	s, err := prepareLoad(spec, opts...)
-	if err != nil {
-		return zero, nil, Meta{}, err
-	}
+	return withLoadSettings(zero, spec, func(zero T, s settings) (T, []Provenance, Meta, error) {
+		if spec.Format == undetermined {
+			return zero, nil, Meta{}, refuseWhy(ErrUnknownFormat,
+				gorefuse.Subject("the in-memory source has no declared format"),
+				gorefuse.Why("declare a format on Spec; accepted: "+acceptedFormats+"."))
+		}
 
-	if spec.Format == undetermined {
-		return zero, nil, Meta{}, refuseWhy(ErrUnknownFormat,
-			gorefuse.Subject("the in-memory source has no declared format"),
-			gorefuse.Why("declare a format on Spec; accepted: "+acceptedFormats+"."))
-	}
+		dst, err := newTarget[T](&s)
+		if err != nil {
+			return zero, nil, Meta{}, err
+		}
 
-	dst, err := newTarget[T](&s)
-	if err != nil {
-		return zero, nil, Meta{}, err
-	}
+		file := FoundFile{Path: FilePath(string(spec.Name)), Format: spec.Format, Leg: DirPath("")}
+		sources := []SourceBytes{SourceBytes(data)}
+		prov := []Provenance{provenanceOf(file, sources[0])}
 
-	file := FoundFile{Path: FilePath(string(spec.Name)), Format: spec.Format, Leg: DirPath("")}
-	sources := []SourceBytes{SourceBytes(data)}
-	prov := []Provenance{provenanceOf(file, sources[0])}
-
-	return loadAcquired(zero, dst, &s, acquired{sources: sources, files: []FoundFile{file}, prov: prov})
+		return loadAcquired(zero, dst, &s, acquired{sources: sources, files: []FoundFile{file}, prov: prov})
+	}, opts...)
 }

@@ -25,16 +25,7 @@ type resourceDoc struct {
 const testProvider = "aws"
 
 func TestExtrasJSON(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"resource":{"name":"r","kind":"k","provider":"` + testProvider + `"}}`)},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[resourceDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
+	got := loadResourceOK(t, SourceBytes(`{"resource":{"name":"r","kind":"k","provider":"`+testProvider+`"}}`), FormatJSON)
 
 	if got.Resource.Name != "r" || got.Resource.Kind != "k" {
 		t.Fatalf("fixed: %#v", got.Resource)
@@ -46,16 +37,7 @@ func TestExtrasJSON(t *testing.T) {
 }
 
 func TestExtrasYAML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("resource:\n  name: r\n  kind: k\n  provider: aws\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[resourceDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
+	got := loadResourceOK(t, SourceBytes("resource:\n  name: r\n  kind: k\n  provider: aws\n"), FormatYAML)
 
 	if got.Resource.Name != "r" || got.Resource.Kind != "k" {
 		t.Fatalf("fixed: %#v", got.Resource)
@@ -67,16 +49,7 @@ func TestExtrasYAML(t *testing.T) {
 }
 
 func TestExtrasTOML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameTOML: SourceBytes("[resource]\nname = \"r\"\nkind = \"k\"\nprovider = \"aws\"\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[resourceDoc](Spec{Name: configName("app"), Format: FormatTOML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
+	got := loadResourceOK(t, SourceBytes("[resource]\nname = \"r\"\nkind = \"k\"\nprovider = \"aws\"\n"), FormatTOML)
 
 	if got.Resource.Name != "r" || got.Resource.Kind != "k" {
 		t.Fatalf("fixed: %#v", got.Resource)
@@ -88,16 +61,7 @@ func TestExtrasTOML(t *testing.T) {
 }
 
 func TestExtrasFixedFieldPrecedenceJSON(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"resource":{"name":"fixed","kind":"k","provider":"aws"}}`)},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[resourceDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
+	got := loadResourceOK(t, SourceBytes(`{"resource":{"name":"fixed","kind":"k","provider":"aws"}}`), FormatJSON)
 
 	if got.Resource.Name != "fixed" {
 		t.Fatalf("name = %q", got.Resource.Name)
@@ -115,29 +79,14 @@ func TestUnknownOutsideExtrasStillRefused(t *testing.T) {
 		A strictA `json:"a" toml:"a" yaml:"a"`
 	}
 
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"a":"x","b":"y"}`)},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[strict](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
+	_, _, err := LoadBytes[strict]([]byte(`{"a":"x","b":"y"}`), Spec{Name: configName("app"), Format: FormatJSON})
 	if err == nil {
 		t.Fatal("expected refusal")
 	}
 }
 
 func TestExtrasYAMLPrecedence(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("resource:\n  name: fixed\n  kind: k\n  provider: aws\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[resourceDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
+	got := loadResourceOK(t, SourceBytes("resource:\n  name: fixed\n  kind: k\n  provider: aws\n"), FormatYAML)
 
 	if _, ok := got.Resource.Extra["name"]; ok {
 		t.Fatalf("fixed field must not be captured as extra")
@@ -145,16 +94,7 @@ func TestExtrasYAMLPrecedence(t *testing.T) {
 }
 
 func TestExtrasTOMLPrecedence(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameTOML: SourceBytes("[resource]\nname = \"fixed\"\nkind = \"k\"\nprovider = \"aws\"\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[resourceDoc](Spec{Name: configName("app"), Format: FormatTOML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
+	got := loadResourceOK(t, SourceBytes("[resource]\nname = \"fixed\"\nkind = \"k\"\nprovider = \"aws\"\n"), FormatTOML)
 
 	if _, ok := got.Resource.Extra["name"]; ok {
 		t.Fatalf("fixed field must not be captured as extra")

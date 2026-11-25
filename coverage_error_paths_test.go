@@ -62,13 +62,8 @@ func TestYAMLMapFieldDuplicateKeyRefused(t *testing.T) {
 		M     map[extraKey]extraVal `json:"m"        toml:"m" yaml:"m"`
 	}
 
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("m:\n  a: 1\n  a: 2\nx: y\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[doc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
+	_, _, err := LoadBytes[doc]([]byte("m:\n  a: 1\n  a: 2\nx: y\n"),
+		Spec{Name: configName("app"), Format: FormatYAML})
 	if err == nil {
 		t.Fatal("expected refusal")
 	}
@@ -82,13 +77,8 @@ func TestYAMLExtrasMapValueNodeMismatch(t *testing.T) {
 		Name  resName             `json:"name"     toml:"name" yaml:"name"`
 	}
 
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("name: r\nm: not-a-map\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[doc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
+	_, _, err := LoadBytes[doc]([]byte("name: r\nm: not-a-map\n"),
+		Spec{Name: configName("app"), Format: FormatYAML})
 	if err == nil {
 		t.Fatal("expected refusal")
 	}
@@ -107,15 +97,7 @@ func TestYAMLTagKindCoverage(t *testing.T) {
 }
 
 func TestYAMLExtrasRootNotMappingDirect(t *testing.T) {
-	var doc yaml.Node
-	if err := yaml.Unmarshal([]byte("x\n"), &doc); err != nil {
-		t.Fatal(err)
-	}
-
-	root := &doc
-	if root.Kind == yaml.DocumentNode && len(root.Content) > 0 {
-		root = root.Content[0]
-	}
+	root := yamlContentNode(t, SourceText("x\n"))
 
 	if err := yamlExtrasRootNotMapping(FilePath("f.yaml"), root); err == nil {
 		t.Fatal("expected")

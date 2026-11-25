@@ -75,18 +75,9 @@ func decodeJSONExtra(dec *jsontext.Decoder, data SourceBytes, file FilePath, ext
 		return jsonUnknownFieldRefusal(data, file, dec, key)
 	}
 
-	if extras.IsNil() && extras.CanSet() {
-		extras.Set(reflect.MakeMap(extras.Type()))
-	}
-
-	elem := reflect.New(extras.Type().Elem()).Elem()
-	if err := decodeJSONNextValue(dec, data, file, elem, childPath(path, FieldPath(key))); err != nil {
-		return err
-	}
-
-	extras.SetMapIndex(reflect.ValueOf(string(key)).Convert(extras.Type().Key()), elem)
-
-	return nil
+	return setExtraMapValue(extras, key, func(elem reflect.Value) error {
+		return decodeJSONNextValue(dec, data, file, elem, childPath(path, FieldPath(key)))
+	})
 }
 
 func jsonUnknownFieldRefusal(data SourceBytes, file FilePath, dec *jsontext.Decoder, key keySegment) error {

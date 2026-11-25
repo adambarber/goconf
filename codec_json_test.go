@@ -167,23 +167,12 @@ type jsonPresenceCfg struct {
 // TestLoadWithMetaJSONPresence pins the JSON presence walk through LoadWithMeta:
 // keys inside objects and arrays are recorded under their schema paths.
 func TestLoadWithMetaJSONPresence(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameJSON: SourceBytes(`{"region":"eu","nested":{"host":"h"},"list":[1,2]}`)},
-	})
-
-	_, _, meta, err := LoadWithMeta[jsonPresenceCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		loadOpts(globalPathOf(root))...)
+	_, _, meta, err := LoadBytesWithMeta[jsonPresenceCfg]([]byte(`{"region":"eu","nested":{"host":"h"},"list":[1,2]}`),
+		Spec{Name: configName("app"), Format: FormatJSON})
 	if err != nil {
 		t.Fatalf("LoadWithMeta: %v", err)
 	}
 
-	for _, p := range []SchemaPath{spRegion, spNested, spNestedHost, "list"} {
-		if len(meta.BySchemaPath(p)) == 0 {
-			t.Errorf("schema path %q missing: %#v", p, meta.Entries())
-		}
-	}
-
-	if len(meta.BySchemaPath("nested.port")) != 0 {
-		t.Errorf("nested.port is absent and must not be present")
-	}
+	assertSchemaPaths(t, meta, spRegion, spNested, spNestedHost, "list")
+	assertSchemaAbsent(t, meta, "nested.port")
 }

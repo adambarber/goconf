@@ -19,11 +19,7 @@ func TestYAMLAliasKeysArePresent(t *testing.T) {
 		t.Fatalf("LoadWithMeta: %v", err)
 	}
 
-	for _, p := range []OccurrencePath{"creds.host", "creds.port", "auth.host", "auth.port"} {
-		if len(meta.ByPath(p)) != 1 {
-			t.Errorf("alias key %q missing: %#v", p, meta.Entries())
-		}
-	}
+	assertOccurrencePaths(t, meta, "creds.host", "creds.port", "auth.host", "auth.port")
 }
 
 // aliasCfg is the decode target of the alias tests.
