@@ -69,13 +69,14 @@ func (dw *dupWalk) step(tok jsontext.Token, line int, file FilePath) error {
 // and a close bracket returns to the enclosing scope untouched.
 func (dw *dupWalk) stepDelim(kind jsontext.Kind) error {
 	switch kind {
-	case '{':
+	case jsontext.KindBeginObject:
 		dw.scopes = append(dw.scopes, dupScope{seen: make(map[ObjectKey]int)})
-	case '}':
+	case jsontext.KindEndObject:
 		if len(dw.scopes) > 0 {
 			dw.scopes = dw.scopes[:len(dw.scopes)-1]
 		}
-	case '[', ']', jsontext.KindInvalid, 'n', 'f', 't', '"', '0':
+	case jsontext.KindBeginArray, jsontext.KindEndArray, jsontext.KindInvalid,
+		jsontext.KindNull, jsontext.KindFalse, jsontext.KindTrue, jsontext.KindString, jsontext.KindNumber:
 	}
 
 	dw.expectVal = false

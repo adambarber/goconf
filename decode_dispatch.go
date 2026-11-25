@@ -29,8 +29,8 @@ func decodeFormat(src SourceBytes, file FilePath, dst Target, f Format) error {
 }
 
 // presenceOf records the field paths present in one source, per format.
-// TOML presence is mapped through the decode target's field vocabulary,
-// so t is the decode target's type.
+// Presence is mapped through the decode target's field vocabulary in every
+// format, so t is the decode target's type.
 func presenceOf(src SourceBytes, f Format, file FilePath, t reflect.Type) (KeySet, error) {
 	keys, _, err := collectSourceMeta(src, f, file, 0, t)
 	return keys, err
@@ -63,9 +63,9 @@ func collectPresenceAndMeta(sources []SourceBytes, files []FoundFile, t reflect.
 func collectSourceMeta(src SourceBytes, f Format, file FilePath, sourceIndex int, t reflect.Type) (KeySet, []Occurrence, error) {
 	switch f {
 	case FormatJSON:
-		return collectJSONMeta(src, file, sourceIndex)
+		return collectJSONMeta(src, file, sourceIndex, t)
 	case FormatYAML:
-		return collectYAMLMeta(src, file, sourceIndex)
+		return collectYAMLMeta(src, file, sourceIndex, t)
 	case FormatTOML:
 		return collectTOMLMeta(src, file, sourceIndex, t)
 	case undetermined:

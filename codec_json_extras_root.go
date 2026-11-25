@@ -41,19 +41,19 @@ func jsonExtrasRootShape(file FilePath, kind jsontext.Kind, dst reflect.Value) e
 
 func jsonRootKindName(kind jsontext.Kind) (goTypeName, bool) {
 	switch kind {
-	case '{':
+	case jsontext.KindBeginObject:
 		return rootFoundObject, true
-	case '[':
+	case jsontext.KindBeginArray:
 		return rootFoundArray, true
-	case '"':
+	case jsontext.KindString:
 		return rootFoundString, true
-	case '0':
+	case jsontext.KindNumber:
 		return rootFoundNumber, true
-	case 't', 'f':
+	case jsontext.KindTrue, jsontext.KindFalse:
 		return rootFoundBool, true
-	case 'n':
+	case jsontext.KindNull:
 		return rootFoundNull, true
-	case jsontext.KindInvalid, '}', ']':
+	case jsontext.KindInvalid, jsontext.KindEndObject, jsontext.KindEndArray:
 		return "", false
 	}
 

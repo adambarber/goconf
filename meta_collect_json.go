@@ -11,12 +11,13 @@ import (
 	"github.com/adambarber/gorefuse"
 )
 
-func collectJSONMeta(src SourceBytes, file FilePath, sourceIndex int) (KeySet, []Occurrence, error) {
+func collectJSONMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.Type) (KeySet, []Occurrence, error) {
 	c := newMetaCollector(file, sourceIndex)
 	dec := jsontext.NewDecoder(bytes.NewReader(src), jsontext.AllowDuplicateNames(true))
 
 	if err := jsonMetaConsume(dec, src, file, c, "", ""); err != nil {
 		if errors.Is(err, io.EOF) {
+			canonicalizeMetaPaths(c, t)
 			keys, entries := c.result()
 
 			return keys, entries, nil
@@ -25,6 +26,7 @@ func collectJSONMeta(src SourceBytes, file FilePath, sourceIndex int) (KeySet, [
 		return KeySet{}, nil, err
 	}
 
+	canonicalizeMetaPaths(c, t)
 	keys, entries := c.result()
 
 	return keys, entries, nil
@@ -32,9 +34,9 @@ func collectJSONMeta(src SourceBytes, file FilePath, sourceIndex int) (KeySet, [
 
 func jsonMetaConsume(dec *jsontext.Decoder, src SourceBytes, file FilePath, c *metaCollector, prefix OccurrencePath, schema SchemaPath) error {
 	switch dec.PeekKind() {
-	case '{':
+	case jsontext.KindBeginObject:
 		return jsonMetaObject(dec, src, file, c, prefix, schema)
-	case '[':
+	case jsontext.KindBeginArray:
 		return jsonMetaArray(dec, src, file, c, prefix, schema)
 	case jsontext.KindNull, jsontext.KindFalse, jsontext.KindTrue, jsontext.KindString, jsontext.KindNumber, '-':
 		_, err := dec.ReadValue()
@@ -150,7 +152,7 @@ func jsonMetaEmit(dec *jsontext.Decoder, src SourceBytes, file FilePath, c *meta
 
 func jsonMetaPeekOrReadScalar(dec *jsontext.Decoder, src SourceBytes, file FilePath) (reflect.Value, bool, error) {
 	switch dec.PeekKind() {
-	case '{', '[':
+	case jsontext.KindBeginObject, jsontext.KindBeginArray:
 		return reflect.Value{}, true, nil
 	case jsontext.KindInvalid, jsontext.KindEndObject, jsontext.KindEndArray,
 		jsontext.KindNull, jsontext.KindFalse, jsontext.KindTrue, jsontext.KindString, jsontext.KindNumber, '-':

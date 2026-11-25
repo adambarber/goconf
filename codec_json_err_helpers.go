@@ -7,11 +7,10 @@ import (
 
 func isJSONRootKind(kind jsontext.Kind) bool {
 	switch kind {
-	case '{', '[', '"', '0', 't', 'f', 'n':
+	case jsontext.KindBeginObject, jsontext.KindBeginArray, jsontext.KindString, jsontext.KindNumber,
+		jsontext.KindTrue, jsontext.KindFalse, jsontext.KindNull:
 		return true
-	case jsontext.KindInvalid, '}':
-		return false
-	case ']':
+	case jsontext.KindInvalid, jsontext.KindEndObject, jsontext.KindEndArray:
 		return false
 	}
 
@@ -53,19 +52,19 @@ func jsonErrQuotedName(msg refusalText) ObjectKey {
 
 func jsonKindFoundName(kind jsontext.Kind) goTypeName {
 	switch kind {
-	case '"':
+	case jsontext.KindString:
 		return "string"
-	case '0':
+	case jsontext.KindNumber:
 		return "number"
-	case 't', 'f':
+	case jsontext.KindTrue, jsontext.KindFalse:
 		return "bool"
-	case '[':
+	case jsontext.KindBeginArray:
 		return "array"
-	case '{':
+	case jsontext.KindBeginObject:
 		return "object"
-	case 'n':
+	case jsontext.KindNull:
 		return "null"
-	case jsontext.KindInvalid, '}', ']':
+	case jsontext.KindInvalid, jsontext.KindEndObject, jsontext.KindEndArray:
 		return ""
 	}
 

@@ -36,12 +36,9 @@ const (
 	nameUnknown caseName = "unknown field is refused naming the field"
 )
 
-// Field paths shared across the codec key-walk tests.
+// Schema paths the format presence tests share.
 const (
-	fpRegion     FieldPath = "region"
-	fpRetries    FieldPath = "retries"
-	fpNested     FieldPath = "nested"
-	fpNestedHost FieldPath = "nested.host"
-	fpNestedPort FieldPath = "nested.port"
-	fpList       FieldPath = "list"
+	spRegion     SchemaPath = "region"
+	spNested     SchemaPath = "nested"
+	spNestedHost SchemaPath = "nested.host"
 )

@@ -144,10 +144,33 @@ func assertDupCase(t *testing.T, tc *dupCase, got dupCfg, err error) {
 	}
 }
 
-func TestPresentJSONKeys(t *testing.T) {
-	data := SourceBytes(`{"region":"eu","nested":{"host":"h"},"list":[1,2]}`)
+// jsonPresenceCfg is the public-API target for the JSON presence walk test.
+type jsonPresenceCfg struct {
+	Region mstr      `json:"region"`
+	Nested nestedCfg `json:"nested"`
+	List   []int     `json:"list"`
+}
 
-	keys := presentKeysOK(t, fileKeys(presentJSONKeys, fileNameJSON), data)
+// TestLoadWithMetaJSONPresence pins the JSON presence walk through LoadWithMeta:
+// keys inside objects and arrays are recorded under their schema paths.
+func TestLoadWithMetaJSONPresence(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		dirGlobal: {fileNameJSON: SourceBytes(`{"region":"eu","nested":{"host":"h"},"list":[1,2]}`)},
+	})
 
-	keysPresent(t, keys, []FieldPath{fpRegion, fpNested, fpNestedHost, fpList}, []FieldPath{fpNestedPort})
+	_, _, meta, err := LoadWithMeta[jsonPresenceCfg](Spec{Name: configName("app"), Format: FormatJSON},
+		loadOpts(globalPathOf(root))...)
+	if err != nil {
+		t.Fatalf("LoadWithMeta: %v", err)
+	}
+
+	for _, p := range []SchemaPath{spRegion, spNested, spNestedHost, "list"} {
+		if len(meta.BySchemaPath(p)) == 0 {
+			t.Errorf("schema path %q missing: %#v", p, meta.Entries())
+		}
+	}
+
+	if len(meta.BySchemaPath("nested.port")) != 0 {
+		t.Errorf("nested.port is absent and must not be present")
+	}
 }

@@ -28,6 +28,7 @@ func collectTOMLMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.
 		return KeySet{}, nil, err
 	}
 
+	canonicalizeMetaPaths(c, t)
 	keys, entries := c.result()
 
 	return keys, entries, nil

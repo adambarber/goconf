@@ -102,6 +102,12 @@ rule no_lint_bypass {
     negative = { file = "policy/fixtures/no_lint_bypass_negative/fixture.go", expects = no_finding }
 }
 
+# Presence target flow is checked by TestPresenceCollectorsReceiveTarget,
+# a Go AST test in the root package, not by a BPL rule: call() sees a callee
+# name but no arguments, type() sees a declared parameter but not the value
+# passed at a call site, and this binary's Go adapter binds no twins
+# primitive. The test is covered by the command test door below.
+
 # Doors: every gate a passing commit must survive is declared here, so the
 # policy is the single ledger of what the commit path runs. The engine's
 # verify pass covers the rules above; the doors below are the rest.

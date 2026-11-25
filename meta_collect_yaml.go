@@ -1,13 +1,14 @@
 package goconf
 
 import (
+	"reflect"
 	"strconv"
 
 	"github.com/adambarber/gorefuse"
 	"gopkg.in/yaml.v3"
 )
 
-func collectYAMLMeta(src SourceBytes, file FilePath, sourceIndex int) (KeySet, []Occurrence, error) {
+func collectYAMLMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.Type) (KeySet, []Occurrence, error) {
 	c := newMetaCollector(file, sourceIndex)
 
 	docs, err := yamlDocuments(src, file)
@@ -16,6 +17,7 @@ func collectYAMLMeta(src SourceBytes, file FilePath, sourceIndex int) (KeySet, [
 	}
 
 	if len(docs) == 0 {
+		canonicalizeMetaPaths(c, t)
 		keys, entries := c.result()
 
 		return keys, entries, nil
@@ -26,6 +28,7 @@ func collectYAMLMeta(src SourceBytes, file FilePath, sourceIndex int) (KeySet, [
 	}
 
 	if len(docs[0].Content) == 0 {
+		canonicalizeMetaPaths(c, t)
 		keys, entries := c.result()
 
 		return keys, entries, nil
@@ -40,6 +43,7 @@ func collectYAMLMeta(src SourceBytes, file FilePath, sourceIndex int) (KeySet, [
 
 	seen := map[*yaml.Node]bool{}
 	walkYAMLMeta(c, "", "", root, seen)
+	canonicalizeMetaPaths(c, t)
 	keys, entries := c.result()
 
 	return keys, entries, nil

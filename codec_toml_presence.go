@@ -1,92 +1,10 @@
 package goconf
 
 import (
-	"bytes"
 	"reflect"
-	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/adambarber/gorefuse"
 )
-
-// presentTOMLKeys records the dotted field paths of every key present in
-// the TOML document: the decoder's key report covers table headers and
-// leaf keys, dotted in document order; values are never inspected.
-func presentTOMLKeys(data SourceBytes, file FilePath, t reflect.Type) (KeySet, error) {
-	keys := KeySet{paths: nil}
-
-	var raw tomlKeyMap
-
-	md, err := toml.NewDecoder(bytes.NewReader(data)).Decode(&raw)
-	if err != nil {
-		return keys, tomlRefusal(file, errTOMLValueFree(err))
-	}
-
-	for _, k := range md.Keys() {
-		p, err := canonicalTOMLPath(k, file, t)
-		if err != nil {
-			return keys, err
-		}
-
-		keys = keys.Add(p)
-	}
-
-	return keys, nil
-}
-
-// canonicalTOMLPath maps one document key through the decode target's
-// field vocabulary, absorbing dynamic/extras keys and refusing unknowns.
-func canonicalTOMLPath(k toml.Key, file FilePath, t reflect.Type) (FieldPath, error) {
-	path := FieldPath("")
-	// inDynamic tracks whether we are descending inside a dynamic map's
-	// key space: when true, the current segment is an arbitrary map key.
-	inDynamic := false
-
-	for i, seg := range k {
-		t = elemType(t)
-
-		switch {
-		case inDynamic:
-			// Arbitrary key inside a dynamic map: accept the segment as
-			// the map entry key and descend into the map's value type
-			// for schema-guided validation of structured values.
-			path = childPath(path, FieldPath(seg))
-			t = dynamicValueType(t)
-			inDynamic = isDynamicValueMap(t)
-
-		case t.Kind() == reflect.Struct:
-			f, ok := fieldMatching(t, keySegment(seg))
-			if ok {
-				path = childPath(path, tagPathOf(f))
-				t = f.Type
-				inDynamic = isDynamicMapField(f)
-
-				continue
-			}
-
-			if _, ok := extrasField(t); ok {
-				return extrasCanonicalPath(path, k, i, keySegment(seg)), nil
-			}
-
-			return "", refuseAt(ErrUnknownField, file, 0,
-				gorefuse.Subject(`"`+k.String()+`"`),
-				gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
-
-		case t.Kind() == reflect.Map:
-			// Descended into a map type (e.g. nested dynamic). Any key is valid.
-			path = childPath(path, FieldPath(seg))
-			t = t.Elem()
-			inDynamic = false
-
-		default:
-			return "", refuseAt(ErrUnknownField, file, 0,
-				gorefuse.Subject(`"`+k.String()+`"`),
-				gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
-		}
-	}
-
-	return path, nil
-}
 
 // elemType unwraps pointers, slices, and arrays to the element/container
 // type that key segments match against (array-of-tables elements, etc.).
@@ -133,24 +51,18 @@ func dynamicValueType(t reflect.Type) reflect.Type { return mapValueType(t) }
 // keySegment is one segment of a document key being mapped to a field.
 type keySegment string
 
-// fieldMatching returns the struct field whose tag or Go name matches
-// seg case-insensitively, unexported fields skipped.
+// fieldMatching maps any declared spelling to its field, then canonicalizes
+// with tagPathOf so defaults and metadata share one vocabulary. Fields whose
+// canonical path is "-" are not schema fields.
 func fieldMatching(t reflect.Type, seg keySegment) (*reflect.StructField, bool) {
-	if t.Kind() == reflect.Pointer {
-		t = t.Elem()
-	}
-
+	t = elemType(t)
 	if t.Kind() != reflect.Struct {
 		return nil, false
 	}
 
 	for i := range t.NumField() {
 		f := fieldAt(t, i)
-		if !f.IsExported() {
-			continue
-		}
-
-		if strings.EqualFold(string(tagPathOf(f)), string(seg)) {
+		if f.IsExported() && string(tagPathOf(f)) != "-" && fieldHasName(f, seg) {
 			return f, true
 		}
 	}
@@ -163,12 +75,3 @@ type tomlKeyMap map[tomlKey]toml.Primitive
 
 // tomlKey is one top-level TOML table name.
 type tomlKey string
-
-func extrasCanonicalPath(path FieldPath, k toml.Key, i int, seg keySegment) FieldPath {
-	path = childPath(path, FieldPath(seg))
-	for _, rest := range k[i+1:] {
-		path = childPath(path, FieldPath(rest))
-	}
-
-	return path
-}

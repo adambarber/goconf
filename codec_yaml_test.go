@@ -36,10 +36,33 @@ func TestDecodeYAMLStrict(t *testing.T) {
 	}
 }
 
-func TestPresentYAMLKeys(t *testing.T) {
-	data := SourceBytes("region: eu\nnested:\n  host: h\nlist:\n  - a\n  - b\n")
+// yamlPresenceCfg is the public-API target for the YAML presence walk test.
+type yamlPresenceCfg struct {
+	Region mstr      `yaml:"region"`
+	Nested nestedCfg `yaml:"nested"`
+	List   []mstr    `yaml:"list"`
+}
 
-	keys := presentKeysOK(t, fileKeys(presentYAMLKeys, fileNameYAML), data)
+// TestLoadWithMetaYAMLPresence pins the YAML presence walk through LoadWithMeta:
+// keys inside mappings and sequences are recorded under their schema paths.
+func TestLoadWithMetaYAMLPresence(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		dirGlobal: {fileNameYAML: SourceBytes("region: eu\nnested:\n  host: h\nlist:\n  - a\n  - b\n")},
+	})
 
-	keysPresent(t, keys, []FieldPath{fpRegion, fpNested, fpNestedHost, fpList}, []FieldPath{fpNestedPort})
+	_, _, meta, err := LoadWithMeta[yamlPresenceCfg](Spec{Name: configName("app"), Format: FormatYAML},
+		loadOpts(globalPathOf(root))...)
+	if err != nil {
+		t.Fatalf("LoadWithMeta: %v", err)
+	}
+
+	for _, p := range []SchemaPath{spRegion, spNested, spNestedHost, "list"} {
+		if len(meta.BySchemaPath(p)) == 0 {
+			t.Errorf("schema path %q missing: %#v", p, meta.Entries())
+		}
+	}
+
+	if len(meta.BySchemaPath("nested.port")) != 0 {
+		t.Errorf("nested.port is absent and must not be present")
+	}
 }

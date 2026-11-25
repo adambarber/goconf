@@ -76,9 +76,10 @@ func copyMissing(dst, def reflect.Value, prefix FieldPath, present KeySet) error
 	return nil
 }
 
-// tagPathOf returns the config key of one struct field: the first
-// non-empty of its json, yaml, and toml tags, or the Go name.
-func tagPathOf(f *reflect.StructField) FieldPath {
+// declaredTagNames lists the non-empty json, yaml, and toml names of f.
+func declaredTagNames(f *reflect.StructField) []string {
+	names := []string{}
+
 	for _, tagKey := range []string{"json", "yaml", "toml"} {
 		tag, ok := f.Tag.Lookup(tagKey)
 		if !ok {
@@ -87,11 +88,37 @@ func tagPathOf(f *reflect.StructField) FieldPath {
 
 		name, _, _ := strings.Cut(tag, ",")
 		if name != "" {
-			return FieldPath(name)
+			names = append(names, name)
 		}
 	}
 
+	return names
+}
+
+// tagPathOf returns the config key of one struct field: the first declared
+// tag name, or the Go name when no tag declares one.
+func tagPathOf(f *reflect.StructField) FieldPath {
+	names := declaredTagNames(f)
+	if len(names) > 0 {
+		return FieldPath(names[0])
+	}
+
 	return FieldPath(f.Name)
+}
+
+// fieldHasName reports whether seg matches the Go name or any declared tag.
+func fieldHasName(f *reflect.StructField, seg keySegment) bool {
+	if strings.EqualFold(f.Name, string(seg)) {
+		return true
+	}
+
+	for _, name := range declaredTagNames(f) {
+		if strings.EqualFold(name, string(seg)) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // copyField fills one field: structs recurse so presence is decided at

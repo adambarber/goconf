@@ -57,17 +57,27 @@ func tagCombos() []tagComboTarget {
 		In innerTagged `json:"in" toml:"in" yaml:"in"`
 	}
 
-	type untagged struct {
-		In innerUntagged
-	}
-
 	return []tagComboTarget{
 		newCombo(reflect.TypeOf(jsonOnly{In: innerTagged{V: ""}}), "in.v", FormatJSON),
 		newCombo(reflect.TypeOf(yamlOnly{In: innerTagged{V: ""}}), "in.v", FormatYAML),
 		newCombo(reflect.TypeOf(tomlOnly{In: innerTagged{V: ""}}), "in.v", FormatTOML),
 		newCombo(reflect.TypeOf(allTags{In: innerTagged{V: ""}}), "in.v", FormatJSON, FormatYAML, FormatTOML),
-		newCombo(reflect.TypeOf(untagged{In: innerUntagged{V: ""}}), "In.V", FormatJSON),
+		untaggedCombo(),
 	}
+}
+
+// untaggedCombo fixes the blind spot: no longer JSON-only with capitalised
+// keys. Each format spells the untagged Go fields as its decoder accepts
+// them; the canonical schema path stays In.V.
+func untaggedCombo() tagComboTarget {
+	type untagged struct {
+		In innerUntagged
+	}
+
+	combo := newCombo(reflect.TypeOf(untagged{In: innerUntagged{V: ""}}), "In.V", FormatJSON, FormatYAML, FormatTOML)
+	combo.data[FormatYAML] = SourceBytes("in:\n  v: " + string(explicitValue) + "\n")
+
+	return combo
 }
 
 // newCombo builds one combination: a fresh decode target of the shape's

@@ -81,11 +81,11 @@ func decodeJSONNextValue(dec *jsontext.Decoder, data SourceBytes, file FilePath,
 	}
 
 	switch kind {
-	case '{', '[':
+	case jsontext.KindBeginObject, jsontext.KindBeginArray:
 		return decodeJSONContainerValue(dec, kind, data, file, dst, path)
-	case '"', '0', 't', 'f', 'n':
+	case jsontext.KindString, jsontext.KindNumber, jsontext.KindTrue, jsontext.KindFalse, jsontext.KindNull:
 		return decodeJSONScalar(dec, kind, data, file, dst, path)
-	case jsontext.KindInvalid, '}', ']':
+	case jsontext.KindInvalid, jsontext.KindEndObject, jsontext.KindEndArray:
 		return jsonUnexpectedToken(file)
 	default:
 		return jsonUnexpectedToken(file)
@@ -98,7 +98,7 @@ func decodeJSONContainerValue(dec *jsontext.Decoder, kind jsontext.Kind, data So
 		return jsonErr(data, file, err)
 	}
 
-	if kind == '[' {
+	if kind == jsontext.KindBeginArray {
 		return decodeJSONArray(dec, data, file, dst, path)
 	}
 
@@ -107,28 +107,28 @@ func decodeJSONContainerValue(dec *jsontext.Decoder, kind jsontext.Kind, data So
 
 func decodeJSONScalar(dec *jsontext.Decoder, kind jsontext.Kind, data SourceBytes, file FilePath, dst reflect.Value, path FieldPath) error {
 	switch kind {
-	case '"':
+	case jsontext.KindString:
 		tok, err := dec.ReadToken()
 		if err != nil {
 			return jsonErr(data, file, err)
 		}
 
 		return setJSONScalar(dst, jsonText(tok.String()), file, path)
-	case '0':
+	case jsontext.KindNumber:
 		vval, err := dec.ReadValue()
 		if err != nil {
 			return jsonErr(data, file, err)
 		}
 
 		return setJSONNumberText(dst, jsonText(vval), file, path)
-	case 't', 'f':
+	case jsontext.KindTrue, jsontext.KindFalse:
 		tok, err := dec.ReadToken()
 		if err != nil {
 			return jsonErr(data, file, err)
 		}
 
 		return setJSONBool(dst, tok.Bool(), file, path)
-	case 'n':
+	case jsontext.KindNull:
 		if _, err := dec.ReadToken(); err != nil {
 			return jsonErr(data, file, err)
 		}
@@ -136,7 +136,8 @@ func decodeJSONScalar(dec *jsontext.Decoder, kind jsontext.Kind, data SourceByte
 		dst.Set(reflect.Zero(dst.Type()))
 
 		return nil
-	case '{', '[', jsontext.KindInvalid, '}', ']':
+	case jsontext.KindBeginObject, jsontext.KindBeginArray, jsontext.KindInvalid,
+		jsontext.KindEndObject, jsontext.KindEndArray:
 		return jsonUnexpectedToken(file)
 	}
 

@@ -1,18 +1,29 @@
 package goconf
 
 import (
-	"reflect"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
-// TestYAMLAliasKeysArePresent pins that an alias resolves to its
-// anchor's keys in the presence walk, so defaults never override them.
+// TestYAMLAliasKeysArePresent pins that an alias resolves to its anchor's
+// keys in the presence walk, so defaults never override them.
 func TestYAMLAliasKeysArePresent(t *testing.T) {
-	data := SourceBytes("creds: &c\n  host: h\n  port: 1\nauth: *c\n")
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		dirGlobal: {fileNameYAML: SourceBytes("creds: &c\n  host: h\n  port: 1\nauth: *c\n")},
+	})
 
-	keys := presentKeysOK(t, fileKeys(presentYAMLKeys, fileNameYAML), data)
+	_, _, meta, err := LoadWithMeta[aliasCfg](Spec{Name: configName("app"), Format: FormatYAML},
+		loadOpts(globalPathOf(root))...)
+	if err != nil {
+		t.Fatalf("LoadWithMeta: %v", err)
+	}
 
-	keysPresent(t, keys, []FieldPath{"creds.host", "creds.port", "auth.host", "auth.port"}, nil)
+	for _, p := range []OccurrencePath{"creds.host", "creds.port", "auth.host", "auth.port"} {
+		if len(meta.ByPath(p)) != 1 {
+			t.Errorf("alias key %q missing: %#v", p, meta.Entries())
+		}
+	}
 }
 
 // aliasCfg is the decode target of the alias tests.
@@ -25,43 +36,62 @@ type aliasCfg struct {
 // default layer filling auth.host must not override the alias-resolved
 // value, because presence recorded auth.host.
 func TestYAMLAliasDefaultDoesNotOverride(t *testing.T) {
-	data := SourceBytes("creds: &c\n  host: h\n  port: 1\nauth: *c\n")
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		dirGlobal: {fileNameYAML: SourceBytes("creds: &c\n  host: h\n  port: 1\nauth: *c\n")},
+	})
 
-	keys, err := presentYAMLKeys(data, FilePath(string(fileNameYAML)))
+	got, _, _, err := LoadWithMeta[aliasCfg](Spec{Name: configName("app"), Format: FormatYAML},
+		append(loadOpts(globalPathOf(root)), WithDefaults(aliasCfg{
+			Creds: nestedCfg{Host: "", Port: 0},
+			Auth:  nestedCfg{Host: "DEFAULT", Port: 0},
+		}))...)
 	if err != nil {
-		t.Fatalf("presence: %v", err)
+		t.Fatalf("LoadWithMeta: %v", err)
 	}
 
-	dst := Target{Value: reflect.ValueOf(&aliasCfg{Creds: nestedCfgWant("", 0), Auth: nestedCfgWant("", 0)}).Elem()}
-
-	if err := decodeYAMLStrict(data, FilePath(string(fileNameYAML)), dst); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-
-	if err := fillAbsents(dst, keys, nil); err != nil {
-		t.Fatalf("fill: %v", err)
+	if got.Auth.Host != "h" {
+		t.Fatalf("default overrode an alias-resolved value: got %q", got.Auth.Host)
 	}
 }
 
-// TestYAMLAliasCycleDoesNotLoop pins that a self-referencing alias —
-// legal yaml — terminates the presence walk instead of looping.
-func TestYAMLAliasCycleDoesNotLoop(t *testing.T) {
-	data := SourceBytes("creds: &c\n  host: h\n  self: *c\n")
+// aliasCycleCfg holds a self-referencing alias without a recursive Go type:
+// yaml.Node absorbs the alias node so the loader can still run end to end.
+type aliasCycleCfg struct {
+	Creds aliasCycleHost `yaml:"creds"`
+}
 
-	keys, err := presentYAMLKeys(data, FilePath(string(fileNameYAML)))
+type aliasCycleHost struct {
+	Host mstr      `yaml:"host"`
+	Self yaml.Node `yaml:"self"`
+}
+
+// TestYAMLAliasCycleDoesNotLoop pins that a self-referencing alias — legal
+// yaml — terminates the public load path instead of looping.
+func TestYAMLAliasCycleDoesNotLoop(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		dirGlobal: {fileNameYAML: SourceBytes("creds: &c\n  host: h\n  self: *c\n")},
+	})
+
+	_, _, meta, err := LoadWithMeta[aliasCycleCfg](Spec{Name: configName("app"), Format: FormatYAML},
+		loadOpts(globalPathOf(root))...)
 	if err != nil {
-		t.Fatalf("presence: %v", err)
+		t.Fatalf("LoadWithMeta: %v", err)
 	}
 
-	if !keys.Has("creds.host") {
-		t.Fatalf("anchor keys must be present: %v", keys)
+	if len(meta.ByPath("creds.host")) == 0 {
+		t.Fatalf("anchor keys must be present: %#v", meta.Entries())
 	}
 }
 
 // TestYAMLScalarRootRefusalNamesLine pins that a scalar-root yaml
 // document is refused with its line named.
 func TestYAMLScalarRootRefusalNamesLine(t *testing.T) {
-	_, err := presentYAMLKeys(SourceBytes("# a comment\njust a scalar\n"), FilePath(string(fileNameYAML)))
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		dirGlobal: {fileNameYAML: SourceBytes("# a comment\njust a scalar\n")},
+	})
+
+	_, _, err := Load[aliasCfg](Spec{Name: configName("app"), Format: FormatYAML},
+		loadOpts(globalPathOf(root))...)
 	if err == nil {
 		t.Fatalf("scalar root must be refused")
 	}

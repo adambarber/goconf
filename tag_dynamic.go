@@ -75,31 +75,34 @@ func hasExtrasInType(t reflect.Type) bool {
 }
 
 func hasExtrasInTypeSeen(t reflect.Type, seen map[reflect.Type]bool) bool {
-	if t == nil {
-		return false
-	}
-
-	if seen[t] {
+	if t == nil || seen[t] {
 		return false
 	}
 
 	seen[t] = true
 
-	k := t.Kind()
-	if k == reflect.Pointer || k == reflect.Slice || k == reflect.Array {
+	return extrasInKind(t, seen)
+}
+
+// extrasInKind dispatches one reachable type by kind to its children.
+func extrasInKind(t reflect.Type, seen map[reflect.Type]bool) bool {
+	switch t.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Array:
 		return hasExtrasInTypeSeen(t.Elem(), seen)
-	}
-
-	if k == reflect.Map {
+	case reflect.Map:
 		return hasExtrasInTypeSeen(t.Key(), seen) || hasExtrasInTypeSeen(t.Elem(), seen)
-	}
-
-	if k == reflect.Struct {
+	case reflect.Struct:
 		if _, ok := extrasField(t); ok {
 			return true
 		}
 
 		return structHasExtras(t, seen)
+	case reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16,
+		reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16,
+		reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64,
+		reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func, reflect.Interface,
+		reflect.String, reflect.UnsafePointer:
+		return false
 	}
 
 	return false
