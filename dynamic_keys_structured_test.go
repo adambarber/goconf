@@ -17,16 +17,7 @@ type nestedEnv struct {
 }
 
 func TestLoadDynamicMapStructuredValuesJSON(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"env":{"a":{"host":"h","port":1},"b":{"host":"x","port":2}}}`)},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[nestedDynCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
+	got := loadBytesOK[nestedDynCfg](t, SourceBytes(`{"env":{"a":{"host":"h","port":1},"b":{"host":"x","port":2}}}`), FormatJSON)
 
 	if got.Env["a"].Host != "h" || got.Env["a"].Port != 1 || got.Env["b"].Port != 2 {
 		t.Fatalf("env = %#v", got.Env)
@@ -34,16 +25,7 @@ func TestLoadDynamicMapStructuredValuesJSON(t *testing.T) {
 }
 
 func TestLoadDynamicMapStructuredValuesYAML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("env:\n  a:\n    host: h\n    port: 1\n  b:\n    host: x\n    port: 2\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[nestedDynCfg](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
+	got := loadBytesOK[nestedDynCfg](t, SourceBytes("env:\n  a:\n    host: h\n    port: 1\n  b:\n    host: x\n    port: 2\n"), FormatYAML)
 
 	if got.Env["a"].Host != "h" || got.Env["b"].Port != 2 {
 		t.Fatalf("env = %#v", got.Env)
@@ -51,16 +33,7 @@ func TestLoadDynamicMapStructuredValuesYAML(t *testing.T) {
 }
 
 func TestLoadDynamicMapStructuredValuesTOML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameTOML: SourceBytes("[env.a]\nhost = \"h\"\nport = 1\n[env.b]\nhost = \"x\"\nport = 2\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[nestedDynCfg](Spec{Name: configName("app"), Format: FormatTOML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
+	got := loadBytesOK[nestedDynCfg](t, SourceBytes("[env.a]\nhost = \"h\"\nport = 1\n[env.b]\nhost = \"x\"\nport = 2\n"), FormatTOML)
 
 	if got.Env["a"].Host != "h" || got.Env["b"].Port != 2 {
 		t.Fatalf("env = %#v", got.Env)

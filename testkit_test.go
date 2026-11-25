@@ -115,12 +115,7 @@ func loadRefused(t *testing.T, spec Spec, opts ...Option) error {
 func refuseLoadCfgBytes(t *testing.T, data SourceBytes, format Format, want WantText) error {
 	t.Helper()
 
-	_, _, err := LoadBytes[loadCfg]([]byte(data), Spec{Name: configName("app"), Format: format})
-	if err == nil {
-		t.Fatalf("%s", want)
-	}
-
-	return err
+	return refuseBytes[loadCfg](t, data, format, want)
 }
 
 // loadResourceOK loads one in-memory source into the shared extras fixture.
