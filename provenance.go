@@ -34,12 +34,12 @@ func provenanceOf(f FoundFile, data SourceBytes) Provenance {
 // readSources reads every located file, in discovery order, naming the
 // full path on a read failure. Each file is confined at
 // read time so a symlink cannot smuggle bytes in from outside.
-func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
+func readSources(files []FoundFile, limit byteCap) ([]SourceBytes, []Provenance, error) {
 	sources := make([]SourceBytes, 0, len(files))
 
 	prov := make([]Provenance, 0, len(files))
 	for _, f := range files {
-		if err := confine(f.Path); err != nil {
+		if _, err := measureSource(f, limit); err != nil {
 			return nil, nil, err
 		}
 
@@ -53,6 +53,24 @@ func readSources(files []FoundFile) ([]SourceBytes, []Provenance, error) {
 	}
 
 	return sources, prov, nil
+}
+
+// measureSource confines and sizes one candidate before its bytes are read.
+func measureSource(f FoundFile, limit byteCap) (int64, error) {
+	if err := confine(f.Path); err != nil {
+		return 0, err
+	}
+
+	info, err := os.Stat(string(f.Path))
+	if err != nil {
+		return 0, ioReadRefusal(f.Path, err)
+	}
+
+	if capErr := checkByteCap(int(info.Size()), f.Path, limit); capErr != nil {
+		return 0, capErr
+	}
+
+	return info.Size(), nil
 }
 
 // confine refuses a candidate file whose symlink-resolved target leaves
@@ -114,7 +132,7 @@ func withinDir(resolved, searched resolvedPath) bool {
 // defaultSearchPaths is the discovery default: the user's global config
 // directory first, then the local file of the same name in the working
 // directory; local wins over global.
-func defaultSearchPaths(s settings, name configName) []DirPath {
+func defaultSearchPaths(s *settings, name configName) []DirPath {
 	global := s.globalDir
 	if global == "" {
 		if dir, err := os.UserConfigDir(); err == nil {

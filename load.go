@@ -27,7 +27,7 @@ func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, erro
 	}
 
 	if len(s.search) == 0 {
-		s.search = defaultSearchPaths(s, spec.Name)
+		s.search = defaultSearchPaths(&s, spec.Name)
 	}
 
 	files, err := discover(Discovery{Search: s.search, Name: spec.Name, Format: spec.Format})
@@ -44,17 +44,17 @@ func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, erro
 		warnOptionalAbsence()
 	}
 
-	dst, err := newTarget[T](s)
+	dst, err := newTarget[T](&s)
 	if err != nil {
 		return zero, nil, Meta{}, err
 	}
 
-	sources, prov, err := readSources(files)
+	sources, prov, err := readSources(files, s.maxBytes)
 	if err != nil {
 		return zero, nil, Meta{}, err
 	}
 
-	return loadAcquired(zero, dst, s, acquired{sources: sources, files: files, prov: prov})
+	return loadAcquired(zero, dst, &s, acquired{sources: sources, files: files, prov: prov})
 }
 
 // acquired is one load's sources and their provenance, after discovery and
@@ -67,7 +67,7 @@ type acquired struct {
 
 // newTarget builds the decode target after checking defaults against it, so a
 // bad default refuses before any source bytes are read.
-func newTarget[T any](s settings) (Target, error) {
+func newTarget[T any](s *settings) (Target, error) {
 	dst := Target{Value: reflect.ValueOf(new(T)).Elem()}
 	if err := validateDefaults(dst.Value, s.defaults); err != nil {
 		return Target{}, err
@@ -78,7 +78,13 @@ func newTarget[T any](s settings) (Target, error) {
 
 // loadAcquired decodes and casts one acquired load; every entry point funnels
 // through here so the strict contract has one owner.
-func loadAcquired[T any](zero T, dst Target, s settings, src acquired) (T, []Provenance, Meta, error) {
+func loadAcquired[T any](zero T, dst Target, s *settings, src acquired) (T, []Provenance, Meta, error) {
+	for i, data := range src.sources {
+		if err := checkByteCap(len(data), src.files[i].Path, s.maxBytes); err != nil {
+			return zero, nil, Meta{}, err
+		}
+	}
+
 	meta, err := decodeSources(dst, src.sources, src.files, s.defaults)
 	if err != nil {
 		return zero, nil, Meta{}, err
@@ -112,6 +118,8 @@ func prepareLoad(spec Spec, opts ...Option) (settings, error) {
 	}
 
 	var s settings
+
+	s.maxBytes = defaultByteCap
 	for _, o := range opts {
 		o.apply(&s)
 	}

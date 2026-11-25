@@ -18,7 +18,7 @@ func LoadBytesWithMeta[T any](data []byte, spec Spec, opts ...Option) (T, []Prov
 		return zero, nil, Meta{}, err
 	}
 
-	dst, err := newTarget[T](s)
+	dst, err := newTarget[T](&s)
 	if err != nil {
 		return zero, nil, Meta{}, err
 	}
@@ -27,5 +27,5 @@ func LoadBytesWithMeta[T any](data []byte, spec Spec, opts ...Option) (T, []Prov
 	sources := []SourceBytes{SourceBytes(data)}
 	prov := []Provenance{provenanceOf(file, sources[0])}
 
-	return loadAcquired(zero, dst, s, acquired{sources: sources, files: []FoundFile{file}, prov: prov})
+	return loadAcquired(zero, dst, &s, acquired{sources: sources, files: []FoundFile{file}, prov: prov})
 }

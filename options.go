@@ -28,6 +28,7 @@ type settings struct {
 	search    []DirPath
 	globalDir DirPath
 	defaults  []layeredDefault
+	maxBytes  byteCap
 	optional  bool
 }
 
