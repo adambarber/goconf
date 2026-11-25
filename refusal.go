@@ -67,9 +67,9 @@ func refuseIO(what gorefuse.Refusal, cause error) error {
 	}
 }
 
-// refuseDecoder builds the decoder-refused refusal carrying the
-// underlying decoder's error as its cause tail: the detail survives, the
-// identity is ErrDecoderRefused.
+// refuseDecoder builds the decoder-refused refusal. Safe decoder detail
+// rides as the cause tail; formats whose text carries offsets or values
+// pass none. The identity is always ErrDecoderRefused.
 func refuseDecoder(what gorefuse.Refusal, cause error) error {
 	return refuseReason(ErrDecoderRefused, what, cause)
 }

@@ -43,13 +43,13 @@ func jsonErr(data SourceBytes, file FilePath, err error) error {
 			return refuseDecoder(
 				gorefuse.At(gorefuse.File(file), 0,
 					gorefuse.Subject("JSON syntax"),
-					gorefuse.Why("the file is empty; add settings or delete it.")), err)
+					gorefuse.Why("the file is empty; add settings or delete it.")), nil)
 		}
 
 		return refuseDecoder(
 			gorefuse.At(gorefuse.File(file), 0,
 				gorefuse.Subject("JSON syntax"),
-				syntaxCheck()), err)
+				syntaxCheck()), nil)
 	}
 }
 
@@ -81,13 +81,13 @@ func jsonSyntacticErr(data SourceBytes, file FilePath, syntax *jsontext.Syntacti
 		return refuseDecoder(
 			gorefuse.At(gorefuse.File(file), 0,
 				gorefuse.Subject("JSON syntax"),
-				gorefuse.Why("the file is empty; add settings or delete it.")), syntax)
+				gorefuse.Why("the file is empty; add settings or delete it.")), nil)
 	}
 
 	return refuseDecoder(
 		gorefuse.At(gorefuse.File(file), gorefuse.Line(line),
 			gorefuse.Subject("JSON syntax"),
-			syntaxCheck()), syntax)
+			syntaxCheck()), nil)
 }
 
 func jsonSemanticErr(data SourceBytes, file FilePath, sem *json.SemanticError) error {
@@ -139,7 +139,7 @@ func jsonSemanticValueErr(file FilePath, sem *json.SemanticError, line int) erro
 	return refuseDecoder(
 		gorefuse.At(gorefuse.File(file), gorefuse.Line(line),
 			gorefuse.Subject("JSON syntax"),
-			syntaxCheck()), sem)
+			syntaxCheck()), nil)
 }
 
 /* kind and pointer helpers moved to codec_json_err_helpers.go */

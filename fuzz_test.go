@@ -40,6 +40,9 @@ func FuzzLoad(f *testing.F) {
 		deep,
 		`{"region":"eu"}{"region":"us"}`,
 		`{"reg\"ion"="x"}`,
+		// a marker used only as an array value: a false duplicate-key
+		// refusal would echo it, so the twin oracle must catch that
+		`{"tags":["` + fuzzSentinel + `","b","` + fuzzSentinel + `"]}`,
 		// invalid UTF-8, null bytes, empty, huge scalar
 		"\xff\xfe\xfa",
 		"\x00\x01\x02",

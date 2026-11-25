@@ -3,6 +3,7 @@ package goconf
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -136,7 +137,7 @@ func discoverOK(t *testing.T, d Discovery) []FoundFile {
 func cfgEquals(t *testing.T, got, want loadCfg) {
 	t.Helper()
 
-	if got != want {
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v, want %+v", got, want)
 	}
 }

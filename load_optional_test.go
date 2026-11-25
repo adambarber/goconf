@@ -71,7 +71,7 @@ func TestOptionalAbsenceZeroValueLoads(t *testing.T) {
 		t.Fatalf("optional config with no defaults must load the zero value: %v", err)
 	}
 
-	cfgEquals(t, got, loadCfg{Region: "", Nested: nestedCfg{Host: "", Port: 0}, Retries: 0})
+	cfgEquals(t, got, loadCfg{Region: "", Nested: nestedCfg{Host: "", Port: 0}, Tags: nil, Retries: 0})
 
 	if len(prov) != 0 {
 		t.Fatalf("absence contributes no sources, got provenance %v", prov)

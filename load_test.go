@@ -8,7 +8,7 @@ import (
 
 // loadCfgWant composes a fully-spelled expected value.
 func loadCfgWant(retries int, reg region, nested nestedCfg) loadCfg {
-	return loadCfg{Nested: nested, Region: reg, Retries: retries}
+	return loadCfg{Nested: nested, Region: reg, Tags: nil, Retries: retries}
 }
 
 // nestedCfgWant composes a fully-spelled nested config.
@@ -19,6 +19,7 @@ func nestedCfgWant(h host, port int) nestedCfg {
 type loadCfg struct {
 	Region  region    `json:"region"`
 	Nested  nestedCfg `json:"nested"`
+	Tags    []tagWord `json:"tags"`
 	Retries int       `json:"retries"`
 }
 

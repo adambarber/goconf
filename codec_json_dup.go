@@ -12,15 +12,24 @@ import (
 // ObjectKey is one JSON object key exactly as it appears in the document.
 type ObjectKey string
 
-// dupScope is one open JSON object: the keys already declared in it,
-// mapped to the line of first definition.
-type dupScope struct {
+// dupContainerKind is the grammar role of one open JSON container.
+type dupContainerKind uint8
+
+const (
+	dupObject dupContainerKind = iota
+	dupArray
+)
+
+// dupFrame is one open container: an object carries its declared keys; an
+// array carries none, because its elements are values in every position.
+type dupFrame struct {
 	seen map[ObjectKey]int
+	kind dupContainerKind
 }
 
 // dupWalk is the mutable state of the duplicate-key token walk.
 type dupWalk struct {
-	scopes    []dupScope
+	stack     []dupFrame
 	expectVal bool
 }
 
@@ -30,7 +39,7 @@ type dupWalk struct {
 func refuseDuplicateJSONKeys(data SourceBytes, file FilePath) error {
 	dec := jsontext.NewDecoder(bytes.NewReader(data), jsontext.AllowDuplicateNames(true))
 
-	dw := &dupWalk{scopes: nil, expectVal: false}
+	dw := &dupWalk{stack: nil, expectVal: false}
 
 	for {
 		tok, err := dec.ReadToken()
@@ -47,12 +56,30 @@ func refuseDuplicateJSONKeys(data SourceBytes, file FilePath) error {
 	}
 }
 
-// step folds one token into the duplicate-key walk: delimiters push and
-// pop object scopes, keys in the top scope are refused on re-declaration.
+// step folds one token into the walk. A string is a key only when the
+// innermost container is an object and no value is expected; inside an
+// array every token is a value, so no string can forge an object key.
 func (dw *dupWalk) step(tok jsontext.Token, line int, file FilePath) error {
 	kind := tok.Kind()
-	if kind == '{' || kind == '}' || kind == '[' || kind == ']' {
-		return dw.stepDelim(kind)
+	if kind == jsontext.KindBeginObject {
+		dw.stack = append(dw.stack, dupFrame{kind: dupObject, seen: make(map[ObjectKey]int)})
+		dw.expectVal = false
+
+		return nil
+	}
+
+	if kind == jsontext.KindBeginArray {
+		dw.stack = append(dw.stack, dupFrame{kind: dupArray, seen: nil})
+		dw.expectVal = true
+
+		return nil
+	}
+
+	if kind == jsontext.KindEndObject || kind == jsontext.KindEndArray {
+		dw.pop()
+		dw.expectVal = false
+
+		return nil
 	}
 
 	if dw.expectVal {
@@ -64,43 +91,34 @@ func (dw *dupWalk) step(tok jsontext.Token, line int, file FilePath) error {
 	return dw.stepKey(tok, line, file)
 }
 
-// stepDelim handles one structural token: { pushes a scope, } pops one;
-// brackets carry no scope — array elements open their own object scopes
-// and a close bracket returns to the enclosing scope untouched.
-func (dw *dupWalk) stepDelim(kind jsontext.Kind) error {
-	switch kind {
-	case jsontext.KindBeginObject:
-		dw.scopes = append(dw.scopes, dupScope{seen: make(map[ObjectKey]int)})
-	case jsontext.KindEndObject:
-		if len(dw.scopes) > 0 {
-			dw.scopes = dw.scopes[:len(dw.scopes)-1]
-		}
-	case jsontext.KindBeginArray, jsontext.KindEndArray, jsontext.KindInvalid,
-		jsontext.KindNull, jsontext.KindFalse, jsontext.KindTrue, jsontext.KindString, jsontext.KindNumber:
+// pop closes the innermost container. JSON is well-formed at this point:
+// the decoder has already refused mismatched delimiters.
+func (dw *dupWalk) pop() {
+	if len(dw.stack) > 0 {
+		dw.stack = dw.stack[:len(dw.stack)-1]
 	}
-
-	dw.expectVal = false
-
-	return nil
 }
 
-// stepKey records one object key in the top scope, refusing the key when
-// it was already declared there, with the first-definition line named.
+// stepKey records one object key, refusing re-declaration with the
+// first-definition line named. Only object scopes have keys to record.
 func (dw *dupWalk) stepKey(tok jsontext.Token, line int, file FilePath) error {
-	if tok.Kind() != '"' || len(dw.scopes) == 0 {
+	if tok.Kind() != jsontext.KindString || len(dw.stack) == 0 {
+		return nil
+	}
+
+	frame := &dw.stack[len(dw.stack)-1]
+	if frame.kind != dupObject {
 		return nil
 	}
 
 	key := tok.String()
-
-	scope := &dw.scopes[len(dw.scopes)-1]
-	if first, dup := scope.seen[ObjectKey(key)]; dup {
+	if first, dup := frame.seen[ObjectKey(key)]; dup {
 		return refuseAt(ErrDuplicateKey, file, gorefuse.Line(first),
 			gorefuse.Subject(`"`+key+`"`),
 			gorefuse.Why(`delete one of the two "`+key+`" lines.`))
 	}
 
-	scope.seen[ObjectKey(key)] = line
+	frame.seen[ObjectKey(key)] = line
 	dw.expectVal = true
 
 	return nil

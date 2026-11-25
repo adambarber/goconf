@@ -65,12 +65,13 @@ type dupCase struct {
 type dupCfg struct {
 	Servers []nestedCfg `json:"servers"`
 	Server  nestedCfg   `json:"server"`
+	Tags    []tagWord   `json:"tags"`
 	Admin   bool        `json:"admin"`
 	Port    int         `json:"port"`
 }
 
 func dupCases() []dupCase {
-	zero := dupCfg{Server: nestedCfgWant("", 0), Servers: nil, Admin: false, Port: 0}
+	zero := dupCfg{Server: nestedCfgWant("", 0), Servers: nil, Tags: nil, Admin: false, Port: 0}
 
 	return []dupCase{
 		{
@@ -104,15 +105,27 @@ func dupCases() []dupCase {
 			wantErr: refusalNeed(`duplicate key: "servers"`),
 		},
 		{
+			name:    caseName("repeated strings inside an array are not object keys"),
+			data:    SourceBytes(`{"tags":["a","b","a"]}`),
+			want:    dupCfg{Servers: nil, Server: nestedCfg{Host: "", Port: 0}, Tags: []tagWord{"a", "b", "a"}, Admin: false, Port: 0},
+			wantErr: "",
+		},
+		{
+			name:    caseName("an array string and a same-named object key are distinct"),
+			data:    SourceBytes(`{"tags":["a"],"a":1}`),
+			want:    zero,
+			wantErr: refusalNeed(`unknown field: "a"`),
+		},
+		{
 			name:    caseName("no duplicate keys still decodes"),
 			data:    SourceBytes(`{"admin":true,"port":1,"server":{"host":"h","port":2}}`),
-			want:    dupCfg{Server: nestedCfg{Host: "h", Port: 2}, Servers: nil, Admin: true, Port: 1},
+			want:    dupCfg{Servers: nil, Server: nestedCfg{Host: "h", Port: 2}, Tags: nil, Admin: true, Port: 1},
 			wantErr: "",
 		},
 		{
 			name:    "repeated field names across different array elements are legal",
 			data:    SourceBytes(`{"servers":[{"host":"a"},{"host":"b"}]}`),
-			want:    dupCfg{Servers: []nestedCfg{{Host: "a", Port: 0}, {Host: "b", Port: 0}}, Server: nestedCfg{Host: "", Port: 0}, Admin: false, Port: 0},
+			want:    dupCfg{Servers: []nestedCfg{{Host: "a", Port: 0}, {Host: "b", Port: 0}}, Server: nestedCfg{Host: "", Port: 0}, Tags: nil, Admin: false, Port: 0},
 			wantErr: "",
 		},
 	}
@@ -125,22 +138,22 @@ func TestDecodeJSONStrictRefusesDuplicateKeys(t *testing.T) {
 
 			err := fileDecode(decodeJSONStrict, fileNameJSON)(tc.data, Target{Value: reflect.ValueOf(&got).Elem()})
 
-			assertDupCase(t, &tc, got, err)
+			assertDupCase(t, &tc, &got, err)
 		})
 	}
 }
 
 // assertDupCase pins the duplicate-key contract: a refusal case errors
 // with the key named, a clean case decodes to the exact expected value.
-func assertDupCase(t *testing.T, tc *dupCase, got dupCfg, err error) {
+func assertDupCase(t *testing.T, tc *dupCase, got *dupCfg, err error) {
 	t.Helper()
 
 	if refusalSatisfied(t, tc.wantErr, err) {
 		return
 	}
 
-	if !reflect.DeepEqual(got, tc.want) {
-		t.Fatalf("got %+v, want %+v", got, tc.want)
+	if !reflect.DeepEqual(*got, tc.want) {
+		t.Fatalf("got %+v, want %+v", *got, tc.want)
 	}
 }
 
