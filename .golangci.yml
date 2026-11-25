@@ -244,6 +244,13 @@ linters:
       - path: dynamic_keys_test\.go$
         linters:
           - govet   # fieldalignment in synthetic config structs is not a correctness concern for issue-7 coverage tests
+      # defaults_contract_test.go's helper is generic over the concrete config
+      # type a test loads; a constraint cannot name a domain kind, so `any`
+      # is the only permissive spelling. The exclusion covers only that file.
+      - path: defaults_contract_test\.go$
+        linters:
+          - forbidigo
+          - modernize
       - path: refusal\.go$
         linters:
           - errname   # Reason constants are reason identities (Err-prefixed per convention); the TYPE Reason is a domain word, not a sentinel

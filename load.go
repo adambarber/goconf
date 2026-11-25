@@ -49,6 +49,10 @@ func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, erro
 
 	dst := Target{Value: reflect.ValueOf(new(T)).Elem()}
 
+	if defaultErr := validateDefaults(dst.Value, s.defaults); defaultErr != nil {
+		return zero, nil, Meta{}, defaultErr
+	}
+
 	prov, meta, err := decodeInto(dst, files, s.defaults)
 	if err != nil {
 		return zero, nil, Meta{}, err

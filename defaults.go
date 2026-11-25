@@ -2,73 +2,49 @@ package goconf
 
 import (
 	"reflect"
-	"strings"
+
+	"github.com/adambarber/gorefuse"
 )
 
-// fillAbsents applies the defaults layers to the fields no source set:
-// a field present in any source (including an explicit null) is kept as
-// decoded; only true absences are filled, layer by layer.
+// fillAbsents applies each defaults layer only to fields absent from every
+// source. A layer is matched by canonical path against the decode target; a
+// shape or type that cannot fill the target is refused before any write.
 func fillAbsents(dst Target, present KeySet, defaults []layeredDefault) error {
-	for _, d := range defaults {
-		if err := checkDefaultShape(d.value); err != nil {
-			// the option-construction check did not run (a hand-built
-			// layeredDefault): refuse with a domain error, never panic
-			return err
-		}
-
-		if err := fillOne(dst, present, d); err != nil {
-			return err
-		}
-
-		present = absorbPresent(present, d.value)
-	}
-
-	return nil
-}
-
-// fillOne copies each absent field of one defaults layer into the target.
-func fillOne(dst Target, present KeySet, d layeredDefault) error {
-	return copyMissing(dst.Value, d.value, "", present)
-}
-
-// absorbPresent extends the presence view with the fields a defaults
-// layer has now filled, so later layers do not re-fill them.
-func absorbPresent(present KeySet, d reflect.Value) KeySet {
-	out := present
-	for _, p := range fieldsOf(d, "") {
-		out = out.Add(p)
-	}
-
-	return out
-}
-
-// fieldsOf lists the field paths a defaults layer would fill.
-func fieldsOf(v reflect.Value, prefix FieldPath) []FieldPath {
-	out := []FieldPath{}
-
-	if v.Kind() == reflect.Struct {
-		t := v.Type()
-		for i := range t.NumField() {
-			p := childPath(prefix, tagPathOf(fieldAt(t, i)))
-			out = append(out, p)
-			out = append(out, fieldsOf(v.Field(i), p)...)
-		}
-	}
-	// every other kind contributes only itself, already recorded by the caller
-
-	return out
-}
-
-// copyMissing copies absent leaf fields from the defaults value into the
-// target, recursing through struct fields with presence decided per leaf.
-func copyMissing(dst, def reflect.Value, prefix FieldPath, present KeySet) error {
-	if dst.Kind() != reflect.Struct {
+	if len(defaults) == 0 {
 		return nil
 	}
 
-	t := dst.Type()
-	for i := range t.NumField() {
-		if err := copyField(dst.Field(i), def.Field(i), childPath(prefix, tagPathOf(fieldAt(t, i))), present); err != nil {
+	root, err := writableStruct(dst.Value)
+	if err != nil {
+		return err
+	}
+
+	for _, d := range defaults {
+		values, err := checkedDefaults(root, d.value)
+		if err != nil {
+			return err
+		}
+
+		if err := fillFromValues(root, present, values, ""); err != nil {
+			return err
+		}
+
+		present = absorbPresent(present, values)
+	}
+
+	return nil
+}
+
+// validateDefaults checks every layer against the target type before any
+// source is read, so a bad default refuses without touching config files.
+func validateDefaults(dst reflect.Value, defaults []layeredDefault) error {
+	view, err := defaultTargetView(dst)
+	if err != nil {
+		return err
+	}
+
+	for _, d := range defaults {
+		if _, err := checkedDefaults(view, d.value); err != nil {
 			return err
 		}
 	}
@@ -76,64 +52,121 @@ func copyMissing(dst, def reflect.Value, prefix FieldPath, present KeySet) error
 	return nil
 }
 
-// declaredTagNames lists the non-empty json, yaml, and toml names of f.
-func declaredTagNames(f *reflect.StructField) []string {
-	names := []string{}
-
-	for _, tagKey := range []string{"json", "yaml", "toml"} {
-		tag, ok := f.Tag.Lookup(tagKey)
-		if !ok {
-			continue
-		}
-
-		name, _, _ := strings.Cut(tag, ",")
-		if name != "" {
-			names = append(names, name)
-		}
+// defaultTargetView is a non-mutating view of a (possibly pointer) target.
+func defaultTargetView(v reflect.Value) (reflect.Value, error) {
+	for v.Kind() == reflect.Pointer {
+		v = reflect.New(v.Type().Elem()).Elem()
 	}
 
-	return names
-}
-
-// tagPathOf returns the config key of one struct field: the first declared
-// tag name, or the Go name when no tag declares one.
-func tagPathOf(f *reflect.StructField) FieldPath {
-	names := declaredTagNames(f)
-	if len(names) > 0 {
-		return FieldPath(names[0])
+	if v.Kind() != reflect.Struct {
+		return reflect.Value{}, badDefaultRefusal(gorefuse.Subject("a default target of kind " + v.Kind().String()))
 	}
 
-	return FieldPath(f.Name)
+	return v, nil
 }
 
-// copyField fills one field: structs recurse so presence is decided at
-// each leaf; leaves fill only when the leaf path itself is absent.
-func copyField(dst, def reflect.Value, path FieldPath, present KeySet) error {
-	if dst.Kind() == reflect.Struct {
-		return copyMissing(dst, def, path, present)
+// writableStruct returns the struct a pointer target points at, allocating it
+// only when defaults actually need to write into it.
+func writableStruct(v reflect.Value) (reflect.Value, error) {
+	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			if !v.CanSet() {
+				return reflect.Value{}, badDefaultRefusal("an unsettable pointer target")
+			}
+
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		return reflect.Value{}, badDefaultRefusal(gorefuse.Subject("a default target of kind " + v.Kind().String()))
+	}
+
+	return v, nil
+}
+
+// checkedDefaults normalizes one layer and checks its whole shape against the
+// target before any field is written.
+func checkedDefaults(dst, raw reflect.Value) (defaultValueMap, error) {
+	def, err := normalizeDefault(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := defaultValueMapOf(def)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := validateDefault(dst, values, ""); err != nil {
+		return nil, err
+	}
+
+	return values, nil
+}
+
+// fillFromValues fills each absent field from the default value at its path.
+func fillFromValues(dst reflect.Value, present KeySet, values defaultValueMap, prefix FieldPath) error {
+	return eachDefaultField(dst, prefix, func(_ *reflect.StructField, path FieldPath, field reflect.Value) error {
+		// validateDefault already proved every target path has a value.
+		return fillValue(field, values[path], path, present, values)
+	})
+}
+
+// fillValue handles a pointer field by allocating a fresh element so no
+// default backing object is shared with the target.
+func fillValue(dst, def reflect.Value, path FieldPath, present KeySet, values defaultValueMap) error {
+	if dst.Kind() != reflect.Pointer {
+		return fillLeafOrStruct(dst, def, path, present, values)
+	}
+
+	if def.Kind() != reflect.Pointer || def.IsNil() {
+		return defaultMismatch(path, def.Type())
+	}
+
+	if !dst.CanSet() {
+		return nil
+	}
+
+	elem := reflect.New(dst.Type().Elem())
+	if err := fillLeafOrStruct(elem.Elem(), def.Elem(), path, present, values); err != nil {
+		return err
+	}
+
+	dst.Set(elem)
+
+	return nil
+}
+
+// fillLeafOrStruct recurses through schema structs; opaque leaves such as
+// time.Time are assigned wholesale after a type check.
+func fillLeafOrStruct(dst, def reflect.Value, path FieldPath, present KeySet, values defaultValueMap) error {
+	if isSchemaStruct(dst) && isSchemaStruct(def) {
+		return fillFromValues(dst, present, values, path)
 	}
 
 	if present.Has(path) || !dst.CanSet() {
 		return nil
 	}
 
-	dst.Set(def)
+	converted, err := convertDefault(def, dst.Type(), path)
+	if err != nil {
+		return err
+	}
+
+	dst.Set(cloneValue(converted))
 
 	return nil
 }
 
-// childPath joins one field to its parent's dotted path.
-func childPath(parent, name FieldPath) FieldPath {
-	if parent == "" {
-		return name
+// absorbPresent records the paths a layer filled so later layers stand down.
+func absorbPresent(present KeySet, values defaultValueMap) KeySet {
+	out := present
+	for p := range values {
+		out = out.Add(p)
 	}
 
-	return parent + "." + name
-}
-
-// fieldAt returns a pointer to one field's metadata, so heavy structs
-// pass by pointer.
-func fieldAt(t reflect.Type, i int) *reflect.StructField {
-	f := t.Field(i)
-	return &f
+	return out
 }

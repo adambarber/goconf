@@ -23,22 +23,3 @@ func TestYAMLPopulateMapNodeRootScalarMismatch(t *testing.T) {
 		t.Fatal("expected")
 	}
 }
-
-func TestCopyMissingWithPresentField(t *testing.T) {
-	type cfg struct {
-		A resName `json:"a"`
-		B resName `json:"b"`
-	}
-
-	dst := reflect.ValueOf(&cfg{A: "x", B: ""}).Elem()
-	def := reflect.ValueOf(cfg{A: "y", B: "z"})
-	present := KeySet{paths: nil}.Add("a")
-
-	if err := copyMissing(dst, def, "", present); err != nil {
-		t.Fatal(err)
-	}
-
-	if dst.FieldByName("A").String() != "x" {
-		t.Fatalf("A=%v", dst.FieldByName("A").Interface())
-	}
-}

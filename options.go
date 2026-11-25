@@ -91,31 +91,27 @@ func WithGlobalDir(dir DirPath) *globalDirOption {
 	return &globalDirOption{dir: dir}
 }
 
-// WithDefaults appends one defaults layer. The value must be marshalable
-// by the spec's format and struct-shaped: a broken default PANICS here —
-// a Must-style contract — and is never silently stored.
+// WithDefaults appends a struct-shaped defaults layer (a struct or pointer to
+// one) and PANICS on a broken value — a Must-style contract. The stored value
+// is a deep copy, so later caller mutations cannot alter a load.
 func WithDefaults[T any](value T) *defaultsOption {
 	v := reflect.ValueOf(value)
 	if err := marshalable(v); err != nil {
 		panic(err)
 	}
 
-	if err := checkDefaultShape(v); err != nil {
+	structValue, err := checkDefaultShape(v)
+	if err != nil {
 		panic(err)
 	}
 
-	return &defaultsOption{value: v}
+	return &defaultsOption{value: cloneValue(structValue)}
 }
 
-// checkDefaultShape refuses a default value that is not struct-shaped.
-func checkDefaultShape(v reflect.Value) error {
-	if v.Kind() != reflect.Struct {
-		return refuseWhy(ErrBadDefaultShape,
-			gorefuse.Subject("a default value of kind "+v.Kind().String()),
-			gorefuse.Why("WithDefaults needs a struct whose fields fill the target's fields; only a struct can fill named fields."))
-	}
-
-	return nil
+// checkDefaultShape refuses a default value that is not struct-shaped,
+// returning the struct its fields will be matched from.
+func checkDefaultShape(v reflect.Value) (reflect.Value, error) {
+	return normalizeDefault(v)
 }
 
 // marshalable refuses a default whose value JSON cannot represent: a

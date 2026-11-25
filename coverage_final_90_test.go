@@ -61,20 +61,21 @@ func TestExtrasFieldCoverage(t *testing.T) {
 	}
 }
 
-func TestCopyMissingCoverage(t *testing.T) {
-	type cfg struct {
+func TestDefaultFillsAbsentAndKeepsPresent(t *testing.T) {
+	type coveredCfg struct {
 		A resName `json:"a"`
 		B resName `json:"b"`
 	}
 
-	dst := reflect.ValueOf(&cfg{A: "x", B: ""}).Elem()
-	def := reflect.ValueOf(cfg{A: "y", B: "z"})
-
-	if err := copyMissing(dst, def, "", KeySet{paths: nil}); err != nil {
-		t.Fatal(err)
+	absent := loadDefaulted[coveredCfg](t, SourceBytes(`{"a":"x"}`),
+		WithDefaults(coveredCfg{A: "y", B: "z"}))
+	if absent.A != "x" || absent.B != "z" {
+		t.Fatalf("absent: got A=%q B=%q, want x/z", absent.A, absent.B)
 	}
 
-	if dst.FieldByName("B").String() != "z" {
-		t.Fatalf("B=%v", dst.FieldByName("B").Interface())
+	present := loadDefaulted[coveredCfg](t, SourceBytes(`{"a":"x","b":"w"}`),
+		WithDefaults(coveredCfg{A: "y", B: "z"}))
+	if present.A != "x" || present.B != "w" {
+		t.Fatalf("present: got A=%q B=%q, want x/w", present.A, present.B)
 	}
 }
