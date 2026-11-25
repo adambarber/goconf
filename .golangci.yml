@@ -233,9 +233,9 @@ linters:
   exclusions:
     generated: strict
     rules:
-      - path: (load|options)\.go$
+      - path: (load|load_bytes|options)\.go$
         linters:
-          - forbidigo   # the sanctioned `any` lives in type-parameter constraint positions: Load[T any], WithDefaults[T any]
+          - forbidigo   # the sanctioned `any` lives in type-parameter constraint positions: Load[T any], LoadBytes[T any], WithDefaults[T any]
       - path: (codec_.*_extras.*\.go|dynamic_keys.*\.go|extras_keys.*\.go|meta_collect_toml_prim\.go)$
         linters:
           - forbidigo   # extras absorb arbitrary config values: the captured value kind is genuinely dynamic at the absorption boundary
@@ -244,6 +244,9 @@ linters:
       - path: dynamic_keys_test\.go$
         linters:
           - govet   # fieldalignment in synthetic config structs is not a correctness concern for issue-7 coverage tests
+      - path: load_bytes_test\.go$
+        linters:
+          - govet   # fieldalignment in the synthetic metadata-shape comparison struct is not a correctness concern
       # defaults_contract_test.go's helper is generic over the concrete config
       # type a test loads; a constraint cannot name a domain kind, so `any`
       # is the only permissive spelling. The exclusion covers only that file.

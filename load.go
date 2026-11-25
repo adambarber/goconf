@@ -20,13 +20,10 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 // See docs/load.md for metadata semantics and query helpers.
 func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, error) {
 	var zero T
-	if err := spec.Format.check(); err != nil {
-		return zero, nil, Meta{}, err
-	}
 
-	s := settings{search: nil, globalDir: "", defaults: nil, optional: false}
-	for _, o := range opts {
-		o.apply(&s)
+	s, err := prepareLoad(spec, opts...)
+	if err != nil {
+		return zero, nil, Meta{}, err
 	}
 
 	if len(s.search) == 0 {
@@ -47,52 +44,100 @@ func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, erro
 		warnOptionalAbsence()
 	}
 
-	dst := Target{Value: reflect.ValueOf(new(T)).Elem()}
-
-	if defaultErr := validateDefaults(dst.Value, s.defaults); defaultErr != nil {
-		return zero, nil, Meta{}, defaultErr
-	}
-
-	prov, meta, err := decodeInto(dst, files, s.defaults)
+	dst, err := newTarget[T](s)
 	if err != nil {
 		return zero, nil, Meta{}, err
 	}
 
+	sources, prov, err := readSources(files)
+	if err != nil {
+		return zero, nil, Meta{}, err
+	}
+
+	return loadAcquired(zero, dst, s, acquired{sources: sources, files: files, prov: prov})
+}
+
+// acquired is one load's sources and their provenance, after discovery and
+// before decoding. Disk discovery and LoadBytes both produce this same shape.
+type acquired struct {
+	sources []SourceBytes
+	files   []FoundFile
+	prov    []Provenance
+}
+
+// newTarget builds the decode target after checking defaults against it, so a
+// bad default refuses before any source bytes are read.
+func newTarget[T any](s settings) (Target, error) {
+	dst := Target{Value: reflect.ValueOf(new(T)).Elem()}
+	if err := validateDefaults(dst.Value, s.defaults); err != nil {
+		return Target{}, err
+	}
+
+	return dst, nil
+}
+
+// loadAcquired decodes and casts one acquired load; every entry point funnels
+// through here so the strict contract has one owner.
+func loadAcquired[T any](zero T, dst Target, s settings, src acquired) (T, []Provenance, Meta, error) {
+	meta, err := decodeSources(dst, src.sources, src.files, s.defaults)
+	if err != nil {
+		return zero, nil, Meta{}, err
+	}
+
+	got, err := finishLoad[T](zero, dst)
+	if err != nil {
+		return zero, nil, Meta{}, err
+	}
+
+	return got, src.prov, meta, nil
+}
+
+// finishLoad casts the decoded target to T, refusing a construction fault.
+func finishLoad[T any](zero T, dst Target) (T, error) {
 	got, ok := reflect.TypeAssert[T](dst.Value)
 	if !ok {
-		return zero, nil, Meta{}, refuseWhy(ErrTargetCast,
+		return zero, refuseWhy(ErrTargetCast,
 			gorefuse.Subject("the decode target"),
 			gorefuse.Why("the decode target does not hold the requested type; this is a construction fault."))
 	}
 
-	return got, prov, meta, nil
+	return got, nil
 }
 
-// decodeInto reads every file, layers their presence, decodes in order
-// (later sources override earlier ones), then fills absents from the
-// defaults; each source decodes through its own file's format.
-func decodeInto(dst Target, files []FoundFile, defaults []layeredDefault) ([]Provenance, Meta, error) {
-	sources, prov, err := readSources(files)
-	if err != nil {
-		return nil, Meta{}, err
+// prepareLoad validates the spec and folds the options into one settings
+// value; disk and in-memory entry points share this boundary.
+func prepareLoad(spec Spec, opts ...Option) (settings, error) {
+	if err := spec.Format.check(); err != nil {
+		return settings{}, err
 	}
 
+	var s settings
+	for _, o := range opts {
+		o.apply(&s)
+	}
+
+	return s, nil
+}
+
+// decodeSources runs the strict decode, default fill, and metadata pass over
+// already-acquired bytes; disk and in-memory entry points share it.
+func decodeSources(dst Target, sources []SourceBytes, files []FoundFile, defaults []layeredDefault) (Meta, error) {
 	present, meta, err := collectPresenceAndMeta(sources, files, dst.Value.Type())
 	if err != nil {
-		return nil, Meta{}, err
+		return Meta{}, err
 	}
 
 	for i, src := range sources {
 		if err := decodeFormat(src, files[i].Path, dst, files[i].Format); err != nil {
-			return nil, Meta{}, err
+			return Meta{}, err
 		}
 	}
 
 	if err := fillAbsents(dst, present, defaults); err != nil {
-		return nil, Meta{}, err
+		return Meta{}, err
 	}
 
 	enrichMeta(&meta, dst)
 
-	return prov, meta, nil
+	return meta, nil
 }
