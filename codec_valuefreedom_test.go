@@ -107,8 +107,8 @@ func TestKeyNamingRefusalsStillQuoteKeys(t *testing.T) {
 }
 
 // TestNoValueFragmentSurvivesTheTOMLPresenceWalk pins the presence-walk
-// half of the invariant: presentTOMLKeys runs before decode, so its parse
-// errors must be sanitized like the decode path's.
+// half of the invariant: the collector's TOML parse runs before decode, so
+// its parse errors must be sanitized like the decode path's.
 func TestNoValueFragmentSurvivesTheTOMLPresenceWalk(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
 		"": {fileNameTOML: SourceBytes("retries = " + secretFragment + "\n")},

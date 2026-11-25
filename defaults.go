@@ -106,21 +106,6 @@ func tagPathOf(f *reflect.StructField) FieldPath {
 	return FieldPath(f.Name)
 }
 
-// fieldHasName reports whether seg matches the Go name or any declared tag.
-func fieldHasName(f *reflect.StructField, seg keySegment) bool {
-	if strings.EqualFold(f.Name, string(seg)) {
-		return true
-	}
-
-	for _, name := range declaredTagNames(f) {
-		if strings.EqualFold(name, string(seg)) {
-			return true
-		}
-	}
-
-	return false
-}
-
 // copyField fills one field: structs recurse so presence is decided at
 // each leaf; leaves fill only when the leaf path itself is absent.
 func copyField(dst, def reflect.Value, path FieldPath, present KeySet) error {

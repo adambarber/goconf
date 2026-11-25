@@ -17,7 +17,7 @@ func collectJSONMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.
 
 	if err := jsonMetaConsume(dec, src, file, c, "", ""); err != nil {
 		if errors.Is(err, io.EOF) {
-			canonicalizeMetaPaths(c, t)
+			canonicalizeMetaPaths(c, t, FormatJSON)
 			keys, entries := c.result()
 
 			return keys, entries, nil
@@ -26,7 +26,7 @@ func collectJSONMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.
 		return KeySet{}, nil, err
 	}
 
-	canonicalizeMetaPaths(c, t)
+	canonicalizeMetaPaths(c, t, FormatJSON)
 	keys, entries := c.result()
 
 	return keys, entries, nil

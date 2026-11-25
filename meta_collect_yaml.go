@@ -17,7 +17,7 @@ func collectYAMLMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.
 	}
 
 	if len(docs) == 0 {
-		canonicalizeMetaPaths(c, t)
+		canonicalizeMetaPaths(c, t, FormatYAML)
 		keys, entries := c.result()
 
 		return keys, entries, nil
@@ -28,7 +28,7 @@ func collectYAMLMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.
 	}
 
 	if len(docs[0].Content) == 0 {
-		canonicalizeMetaPaths(c, t)
+		canonicalizeMetaPaths(c, t, FormatYAML)
 		keys, entries := c.result()
 
 		return keys, entries, nil
@@ -43,7 +43,7 @@ func collectYAMLMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.
 
 	seen := map[*yaml.Node]bool{}
 	walkYAMLMeta(c, "", "", root, seen)
-	canonicalizeMetaPaths(c, t)
+	canonicalizeMetaPaths(c, t, FormatYAML)
 	keys, entries := c.result()
 
 	return keys, entries, nil

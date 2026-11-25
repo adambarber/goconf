@@ -153,10 +153,13 @@ a decision and is never overridden. A default whose value cannot marshal
 fails loud at option construction: `WithDefaults` panics, a Must-style
 contract like `regexp.MustCompile`.
 
-The presence-path vocabulary is one across formats: a field's config key
-is the first non-empty of its `json`, `yaml`, and `toml` tags, falling
-back to the Go field name. Defaults fill exactly the fields no source —
-any format — recorded as present.
+Presence is matched in the source format, then recorded in one schema
+vocabulary: a key resolves through that format's tag (or the Go field
+name when no tag for that format exists; JSON and TOML match names
+case-insensitively, YAML exactly). The recorded path is the field's
+first non-empty `json`, `yaml`, or `toml` tag, falling back to the Go
+field name. Defaults fill exactly the fields no source — any format —
+recorded as present.
 
 ## Extras and dynamic keys
 

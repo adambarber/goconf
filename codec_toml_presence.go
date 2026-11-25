@@ -2,6 +2,7 @@ package goconf
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -51,9 +52,9 @@ func dynamicValueType(t reflect.Type) reflect.Type { return mapValueType(t) }
 // keySegment is one segment of a document key being mapped to a field.
 type keySegment string
 
-// fieldMatching maps any declared spelling to its field, then canonicalizes
-// with tagPathOf so defaults and metadata share one vocabulary. Fields whose
-// canonical path is "-" are not schema fields.
+// fieldMatching matches one segment against a field's canonical config name,
+// case-insensitively. Presence canonicalization uses the format-scoped matcher
+// instead; every other caller matches the shared first-tag vocabulary.
 func fieldMatching(t reflect.Type, seg keySegment) (*reflect.StructField, bool) {
 	t = elemType(t)
 	if t.Kind() != reflect.Struct {
@@ -62,7 +63,11 @@ func fieldMatching(t reflect.Type, seg keySegment) (*reflect.StructField, bool) 
 
 	for i := range t.NumField() {
 		f := fieldAt(t, i)
-		if f.IsExported() && string(tagPathOf(f)) != "-" && fieldHasName(f, seg) {
+		if !f.IsExported() || string(tagPathOf(f)) == "-" {
+			continue
+		}
+
+		if strings.EqualFold(string(tagPathOf(f)), string(seg)) {
 			return f, true
 		}
 	}
