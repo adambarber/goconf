@@ -1,200 +1,161 @@
 # goconf
 
-goconf loads configuration files strictly: duplicate keys and ambiguous
-discovery are refused, and unknown fields are refused unless your schema
-opts in to capture them — never silently resolved.
+Strict, auditable config loading for Go: decode JSON, YAML, or TOML into one typed struct, with layered defaults, sha256 provenance, and per-occurrence source metadata.
+
+`os.ReadFile` plus `json.Unmarshal` ignore unknown fields, resolve duplicates silently, and keep no record of which file contributed which value. goconf refuses what it cannot spell unambiguously and returns the evidence of what it loaded.
+
+## Install
 
 ```sh
 go get github.com/adambarber/goconf
 ```
 
-Refusals are typed: every error is a `gorefuse.Because[goconf.Reason]`
-you can `errors.As` out and switch on — `ErrDuplicateKey`,
-`ErrUnknownField`, `ErrNothingFound`, and friends. See [Error
-identity](#error-identity) below.
+Go 1.27 or later is required. The JSON codec uses `encoding/json/v2`.
 
-Given `app.json` in the working directory:
-
-```json
-{"region": "eu"}
-```
+## Example
 
 ```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/adambarber/goconf"
+)
+
 type Config struct {
 	Region string `json:"region"`
 	Port   int    `json:"port"`
 }
 
-cfg, prov, err := goconf.Load[Config](
-	goconf.Spec{Name: "app", Format: goconf.FormatJSON},
-	goconf.WithDefaults(Config{Port: 8080}),
-)
-// cfg.Region == "eu", cfg.Port == 8080 (filled from defaults)
-// prov[0].Path names the file; prov[0].Digest is its sha256.
-// err is nil.
+func main() {
+	cfg, prov, err := goconf.LoadBytes[Config](
+		[]byte(`{"region":"eu"}`),
+		goconf.Spec{Name: "app", Format: goconf.FormatJSON},
+		goconf.WithDefaults(Config{Port: 8080}),
+	)
+	if err != nil {
+		panic(err)
+	}
 
-// For per-occurrence key/value/location metadata, use LoadWithMeta:
-cfg, prov, meta, err := goconf.LoadWithMeta[Config](
-	goconf.Spec{Name: "app", Format: goconf.FormatJSON},
-	goconf.WithDefaults(Config{Port: 8080}),
-)
-// meta.Entries() returns ordered occurrences with indexed/schema
-// paths, key, line, file, source index, value, and effective flag.
-```
-
-With `{"region": "eu", "tls": true}`, the load is refused: `tls` is not a
-field of `Config`, and the error names the offending key. To accept
-unknown keys intentionally, declare an extras map:
-
-```go
-type Config struct {
-	Region string            `json:"region"`
-	Port   int               `json:"port"`
-	Extra  map[string]string `goconf:"extras" json:"-" toml:"-" yaml:"-"`
+	fmt.Println(cfg.Region, cfg.Port, len(prov))
 }
-
-// {"region":"eu","tls":"on"} -> cfg.Extra["tls"] == "on"
+// Output:
+// eu 8080 1
 ```
 
-For maps whose keys are user-chosen (not fixed schema fields), mark the
-map `goconf:"dynamic"`:
-
-```go
-type Config struct {
-	Env map[string]string `goconf:"dynamic" json:"env" toml:"env" yaml:"env"`
-}
-```
+`prov[0]` names the source and carries the sha256 of the exact decoded bytes. `LoadBytes` decodes in-memory bytes under the same rules as `Load`; `Load` discovers files in the working directory and the user config directory, and later layers override earlier ones field by field. Use `LoadWithMeta` instead of `Load` to also get `Meta`: ordered occurrences with indexed and schema paths, key, line, file, source index, value, and whether each occurrence survived the merge.
 
 ## At a glance
 
-- Use goconf if you want **strict decoding** into your struct —
-  `Load[T]` refuses unknown fields, duplicate keys, and type mismatches,
-  naming the offending key and line — or, when your schema declares it,
-  capture unknown keys via an `extras` field instead of refusing them.
-- Use it if you want **layered discovery** — a global layer under
-  `os.UserConfigDir()/name/` and a local file in the working directory,
-  later layers overriding earlier ones field by field, nested objects
-  deep merging (`WithSearchPaths`, `WithGlobalDir` to override).
-- Use it if you want **defaults that mean absent, not zero** —
-  `WithDefaults` fills only fields absent from every source; an explicit
-  null is never overridden by a default.
-- Use it if you want **provenance** — every load returns one `Provenance`
-  per contributing source: the path and the sha256 of the bytes decoded.
-- Use it if you want **per-occurrence metadata** — `LoadWithMeta` returns
-  ordered, queryable occurrence records (indexed occurrence path and
-  unindexed schema path, key, 1-based line, file, source/provenance index,
-  value, and effective flag) across TOML, JSON, and YAML, including dynamic
-  and extras keys and repeated array/array-of-tables elements.
-- Use it if you want **optional config** — `WithOptionalConfig` forgives
-  true absence (every search directory readable, zero candidates) so a
-  fresh install can run before any config exists; a fault is never
-  mistaken for absence, and one warning line says when nothing was
-  loaded.
-- Use it if you want **fail-loud discovery** — two format candidates in
-  one directory, an unknown extension, a path-escaping name, or a symlink
-  leaving the searched directory is refused by name, never guessed.
-- Use it if you want **schema-flexible capture** — `goconf:"extras"` (or
-  `goconf:"rest"`) captures unknown keys into a map field, and
-  `goconf:"dynamic"` accepts arbitrary keys in a map instead of fixed
-  schema fields (JSON, YAML, TOML).
+- `Load[T]` / `LoadBytes[T]`: strict decoding into your struct — unknown fields, duplicate keys, and type mismatches are refused, not silently resolved.
+- `WithDefaults`: defaults mean "absent", not "zero". An explicit null is a decision and is never filled; the stored default is deep-copied so later caller mutations cannot change a load.
+- `WithSearchPaths` / `WithGlobalDir`: layered discovery — global config first, local config next, later layers overriding earlier ones with nested-object deep merge.
+- `WithOptionalConfig`: forgive true absence so a fresh install can run before any config file exists. An IO fault or a present-but-invalid file is still refused, and one warning line says when nothing was loaded.
+- `WithEnv("APP")`: overlay process variables named `APP_PORT`, `APP_REGION`, and so on. The path comes from the schema, values parse to the field's shape, and env values are the outermost layer: they beat file values and defaults. Unknown variables are ignored. With `APP_PORT=9090` the example above prints `eu 9090`.
+- `WithMaxBytes(n)`: cap each source at `n` bytes, default 16 MiB and hard maximum 64 MiB. An out-of-range `n` is a programmer error and panics; an oversized source is refused with `ErrSourceTooLarge` before decode.
+- `Provenance`: one entry per contributing source — path plus sha256 of the bytes decoded.
+- `LoadWithMeta` / `Meta`: answer "which line set this value, and did it survive the merge" across JSON, YAML, and TOML, including dynamic keys, extras, and repeated array elements.
+- `goconf:"extras"` (or `goconf:"rest"`) captures unknown keys into a map; `goconf:"dynamic"` accepts arbitrary user-chosen keys in a map instead of fixed schema fields.
+- `goconf.Value` holds an opaque TOML value for later `DecodeValue[T]`; it is refused in JSON and YAML sources.
+- `Redact` renders a loaded config the way `fmt.Sprintf("%+v", cfg)` would, except that fields tagged `secret:"true"` render as `[redacted]`.
 
 ## Why
 
-`os.ReadFile` + `json.Unmarshal` gives you none of this: unknown fields
-slip through, duplicate keys are resolved silently by whichever decoder
-wins, one file only, no layering, no record of which file contributed
-which bytes, and a zero value in the config is indistinguishable from a
-missing one — so defaults may or may not win, depending on the file's
-whitespace. goconf refuses what it cannot spell unambiguously, layers
-sources deterministically, and returns the evidence of what it loaded.
+The standard library parses one document and returns the result; it does not say what a typo costs. goconf is built around three extra promises:
 
-What goconf does not do: no environment-variable overlay, no
-reload/watch (define your own loop around `Load[T]`), no secrets
-management. It loads one config, strictly.
+- **Fail loud.** An unknown key, a duplicate key, an ambiguous candidate, or a symlink whose target leaves the searched directory is refused by name.
+- **Never echo a value.** Refusal text names keys, paths, formats, and line numbers, but never a config value — including fragments a third-party decoder tried to echo. This is fuzz-pinned across all three formats.
+- **Keep the evidence.** Every load returns the digest of every source, and `LoadWithMeta` returns the source line of each occurrence.
+
+goconf is not a registry: no reload or file watching, no secret store, and no decision about what your application should do with a refusal. It loads one config, strictly.
+
+## Secrets
+
+A key whose name looks secret (`password`, `token`, `secret`, `api_key`, `credentials`, and their plural or camelCase spellings) must be declared with a `secret` tag on the schema field, or the load is refused. The refusal names the path, never the value:
+
+```go
+type Config struct {
+	Password string `json:"password"`
+}
+
+_, _, err := goconf.LoadBytes[Config](
+	[]byte(`{"password":"hunter2"}`),
+	goconf.Spec{Name: "app", Format: goconf.FormatJSON},
+)
+fmt.Println(err)
+// Output:
+// Error: app:1: undeclared secret: "password". add a secret tag to the field that holds it.
+```
+
+Tag the field to accept it, then use `Redact` for any output that leaves the process:
+
+```go
+type Config struct {
+	Token string `json:"token" secret:"true"`
+}
+
+cfg, _, err := goconf.LoadBytes[Config](
+	[]byte(`{"token":"hunter2"}`),
+	goconf.Spec{Name: "app", Format: goconf.FormatJSON},
+)
+if err != nil {
+	panic(err)
+}
+fmt.Println(goconf.Redact(cfg))
+// Output:
+// {Token:[redacted]}
+```
+
+`secret:"false"` overrides an inherited mark. Redaction is a rendering decision, not a secret store: it hides marked fields in `Redact` output, but the loaded struct still holds the real value.
 
 ## Error and refusal contract
 
-- `Load` never partially succeeds: on any refusal the returned config is
-  the zero value and provenance is nil.
-- Every refusal names what was refused — the key, the file, the line, or
-  the directory — and why. Refusal text names keys, paths, types, and
-  line numbers. Config values never appear in refusal text, including
-  fragments of values echoed by third-party decoders, in every format,
-  on every error path.
-- Discovery ambiguity is never resolved by guessing: if a directory holds
-  candidates with different-format extensions and the format does not
-  narrow the search, the load is refused naming both files; declaring the
-  format is the deterministic way out.
-- Symlinks are confined: a candidate whose symlink-resolved target leaves
-  the searched directory is refused at read time, naming the file and
-  where it points. This holds in both discovery legs.
-- A broken default fails loud at option construction (`WithDefaults`
-  panics, a Must-style contract like `regexp.MustCompile`), never
-  silently at load.
-- The refusal paths are fuzzed: arbitrary bytes through the real `Load`
-  in all three formats assert that no config value ever reaches refusal
-  text (see docs/load.md, "Fuzzing").
-
-### Error identity
-
-Every refusal is a `gorefuse.Because[goconf.Reason]`: extract it with
-`errors.As`, then switch on the reason or match it with `errors.Is`.
+- On any refusal, `Load`, `LoadBytes`, and their `WithMeta` siblings return the zero config, nil provenance, and zero `Meta`. There is no partial success.
+- Every refusal is a `gorefuse.Because[goconf.Reason]`. Extract it with `errors.As` and switch on `Reason`, or use `errors.Is`. One reason covers one refusal semantics across formats: `ErrUnknownField`, `ErrTypeMismatch`, `ErrDuplicateKey`, `ErrDecoderRefused`, `ErrIO`, `ErrNothingFound`, `ErrSourceTooLarge`, `ErrNeedDeclaration`, and the rest are declared in `refusal.go`.
 
 ```go
 var because gorefuse.Because[goconf.Reason]
-if errors.As(err, &because) {
-    switch because.Reason {
-    case goconf.ErrDuplicateKey:
-        // because.What.File names the file, because.What.Line the line
-    case goconf.ErrUnknownField:
-        // ...
-    }
+if errors.As(err, &because) && because.Reason == goconf.ErrNeedDeclaration {
+	// because.What.File names the file, because.What.Line the line
 }
 ```
 
-One reason per refusal semantics, across formats: `ErrUnknownField`
-covers JSON's, TOML's, and YAML's unknown-field refusals;
-`ErrTypeMismatch` covers a value that does not fit the field's declared
-type, in every format; `ErrDecoderRefused` covers syntax and scanner
-faults; `ErrIO` covers discovery and read faults — a directory that
-could not be listed, a candidate that could not be stat-ed, a file that
-could not be read, a symlink that could not be resolved. The full
-constant list is in `refusal.go`. Refusals that happened before any file
-exists (nothing found, ambiguity, an invented format, a bad option)
-carry no file frame; refusals of a specific file carry the `file:line`
-frame pointing at that file.
+- Discovery ambiguity is never resolved by guessing: two candidate extensions in one directory are refused unless `Spec.Format` narrows the search.
+- A candidate whose symlink-resolved target leaves the searched directory is refused at read time, naming the file and its target.
+- `WithDefaults` and `WithMaxBytes` are Must-style: a broken default or an out-of-range cap panics at option construction. Ordinary bad input to `Load` is a refusal, not a panic.
+- The refusal paths are fuzzed: arbitrary bytes through the real `Load` in all three formats assert that no config value reaches refusal text.
 
-The full contract — discovery order, merge semantics, per-format
-capabilities, refusal shapes — is in
-[docs/load.md](docs/load.md).
+The full contract — discovery order, merge rules, per-format capabilities, metadata semantics — lives in [docs/load.md](docs/load.md).
+
+## Comparison
+
+- **vs `encoding/json`, `yaml.v3`, `BurntSushi/toml`:** goconf adds strict unknown-field refusal, layering, defaults, provenance, and a shared reason vocabulary on top of those decoders.
+- **vs `spf13/viper`:** viper is a registry with env vars, flags, remote stores, and watching. goconf loads one typed config from disk and refuses ambiguity instead of merging everything. Its `WithEnv` is schema-bound overlay, not a general env-config system.
+- **vs `knadh/koanf`:** koanf is a key-value store with pluggable providers and parsers. goconf decodes directly into your struct and keeps per-occurrence source metadata.
+
+## Caveats
+
+- Formats are spelled only by their full extension: `".json"`, `".yaml"`, `".toml"`. `.yml` is deliberately absent, so which decoder runs is never guessed.
+- An explicit null marks a key present and decodes to the zero value; defaults never override it. TOML has no null: a key is either present with a value or absent.
+- Repeated field names across different array elements are not duplication and decode fine.
+- An empty file is refused for JSON and YAML but loads as no settings for TOML; goconf does not paper over the formats' own null semantics.
+- TOML carries an exact source digest but best-effort line attribution: BurntSushi/toml v1 does not expose authoritative per-key positions. JSON lines come from token offsets and YAML lines from node lines.
+- Loading from an `fs.FS` is not in the public API yet. Sources are files discovered on disk or bytes passed to `LoadBytes`.
 
 ## Dependencies
 
 - [BurntSushi/toml](https://github.com/BurntSushi/toml)
 - [yaml.v3](https://gopkg.in/yaml.v3)
-- [gorefuse](https://github.com/adambarber/gorefuse)
+- [gorefuse](https://github.com/adambarber/gorefuse) — the refusal carrier behind the error contract
 
-## Caveats
+## Status
 
-- Formats are spelled only by their full extension — `FormatJSON` is
-  `".json"`. `.yml` is deliberately absent: one spelling per format,
-  no ambiguity about which decoder runs.
-- An explicit null marks a key present and decodes to the zero value;
-  it is a decision, and defaults never override it. (TOML has no null:
-  a TOML key is either present with a value or absent.)
-- Repeated field names across different array elements are not
-  duplication and decode fine.
-- An empty file is refused for JSON and YAML but loads as no settings
-  for TOML — the formats' own null semantics differ, and goconf does not
-  paper over that.
+Pre-1.0. The latest tag is `v0.4.1`; `LoadBytes`, `Value`, `WithMaxBytes`, secret classification, and `WithEnv` are on `main` and untagged. Documented contracts are pinned by tests.
+
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/adambarber/goconf)](https://pkg.go.dev/github.com/adambarber/goconf)
+[![Go Report Card](https://goreportcard.com/badge/github.com/adambarber/goconf)](https://goreportcard.com/report/github.com/adambarber/goconf)
 
 ## License
 
 [MIT](LICENSE)
-
-## Status
-
-API is stable modulo the pre-1.0 conventions of an early library.
-
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/adambarber/goconf)](https://pkg.go.dev/github.com/adambarber/goconf)
-[![Go Report Card](https://goreportcard.com/badge/github.com/adambarber/goconf)](https://goreportcard.com/report/github.com/adambarber/goconf)
