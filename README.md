@@ -154,7 +154,6 @@ The full contract — discovery order, merge rules, per-format capabilities, met
 Pre-1.0. The latest tag is `v0.4.1`; `LoadBytes`, `Value`, `WithMaxBytes`, secret classification, and `WithEnv` are on `main` and untagged. Documented contracts are pinned by tests.
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/adambarber/goconf)](https://pkg.go.dev/github.com/adambarber/goconf)
-[![Go Report Card](https://goreportcard.com/badge/github.com/adambarber/goconf)](https://goreportcard.com/report/github.com/adambarber/goconf)
 
 ## License
 
