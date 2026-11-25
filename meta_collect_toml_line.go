@@ -32,6 +32,12 @@ func tomlFindKeyLineHeuristic(src SourceBytes, cursor int, k toml.Key, md *toml.
 
 	full := metaSeg(strings.Join(k, "."))
 	leaf := metaSeg(k[len(k)-1])
+
+	parent := metaSeg("")
+	if len(k) > 1 {
+		parent = metaSeg(strings.Join(k[:len(k)-1], "."))
+	}
+
 	typ := metaSeg(md.Type(k...))
 	lines := strings.Split(string(text[cursor:]), "\n")
 	offset := cursor
@@ -40,7 +46,7 @@ func tomlFindKeyLineHeuristic(src SourceBytes, cursor int, k toml.Key, md *toml.
 		lineNo := 1 + strings.Count(string(text[:offset]), "\n")
 		trimmed := trimTOMLLine(tomlLineText(ln))
 
-		if tomlLineMatchesKey(trimmed, full, leaf, typ) {
+		if tomlLineMatchesKey(trimmed, full, leaf, parent, typ) {
 			return offset, lineNo
 		}
 
@@ -78,7 +84,7 @@ func trimTOMLLine(ln tomlLineText) tomlLineText {
 	return tomlLineText(strings.TrimSpace(string(out)))
 }
 
-func tomlLineMatchesKey(trimmed tomlLineText, full, leaf, typ metaSeg) bool {
+func tomlLineMatchesKey(trimmed tomlLineText, full, leaf, parent, typ metaSeg) bool {
 	if trimmed == "" {
 		return false
 	}
@@ -87,11 +93,18 @@ func tomlLineMatchesKey(trimmed tomlLineText, full, leaf, typ metaSeg) bool {
 		return tomlMatchTableHeader(trimmed, full, leaf, "[[", "]]")
 	}
 
-	if typ == metaSeg("Hash") {
-		return tomlMatchTableHeader(trimmed, full, leaf, "[", "]")
+	if typ == metaSeg("Hash") && tomlMatchTableHeader(trimmed, full, leaf, "[", "]") {
+		return true
 	}
 
-	return tomlMatchAssignment(trimmed, full) || tomlMatchAssignment(trimmed, leaf)
+	// An inline table has md.Type "Hash" but is written as an assignment;
+	// its children live on that same assignment line.
+	if tomlMatchAssignment(trimmed, full) || tomlMatchAssignment(trimmed, leaf) {
+		return true
+	}
+
+	return parent != "" && tomlMatchAssignment(trimmed, parent) &&
+		strings.Contains(string(trimmed), string(leaf))
 }
 
 func tomlMatchTableHeader(trimmed tomlLineText, full, leaf, open, closer metaSeg) bool {

@@ -41,6 +41,10 @@ const (
 	ErrUnmarshalable    Reason = "unmarshalable default"
 	ErrBadDefaultShape  Reason = "bad default shape"
 	ErrTargetCast       Reason = "target cast failure"
+
+	// ErrUnsupportedValueContainer is the JSON/YAML refusal for a field that
+	// declares goconf.Value: the container is meaningful only in TOML.
+	ErrUnsupportedValueContainer Reason = "value container needs TOML"
 )
 
 // Error renders the stripped refusal message: the Cause tail gorefuse

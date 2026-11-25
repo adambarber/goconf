@@ -22,6 +22,7 @@ func canonicalTOMLOccurrencePath(
 		cur:       t,
 		leaf:      OccurrenceKey(tomlLeaf(k)),
 		inDynamic: false,
+		inValue:   false,
 	}
 	for i, seg := range k {
 		prefixKey := tomlPathKey(strings.Join(k[:i+1], "."))
@@ -45,6 +46,7 @@ type tomlPathState struct {
 	cur       reflect.Type
 	leaf      OccurrenceKey
 	inDynamic bool
+	inValue   bool
 }
 
 func tomlLeaf(k toml.Key) metaSeg {
@@ -69,6 +71,11 @@ func tomlPathStep(
 	st.cur = elemType(st.cur)
 
 	switch {
+	case st.inValue:
+		tomlAppendSegment(st, seg, st.cur)
+	case st.cur == valueTypeOf():
+		st.inValue = true
+		tomlAppendSegment(st, seg, st.cur)
 	case st.inDynamic:
 		tomlAppendSegment(st, seg, dynamicValueType(st.cur))
 		st.inDynamic = isDynamicValueMap(st.cur)

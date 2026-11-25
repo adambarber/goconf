@@ -10,6 +10,10 @@ import (
 // format's strict decoder; the undetermined arm is unreachable by
 // construction (discovery stamps each file's format; Load checks spec's).
 func decodeFormat(src SourceBytes, file FilePath, dst Target, f Format) error {
+	if err := checkValueContainerFormat(f, dst.Value.Type(), file); err != nil {
+		return err
+	}
+
 	switch f {
 	case FormatJSON:
 		return decodeJSONStrict(src, file, dst)
@@ -32,7 +36,12 @@ func decodeFormat(src SourceBytes, file FilePath, dst Target, f Format) error {
 // Presence is mapped through the decode target's field vocabulary in every
 // format, so t is the decode target's type.
 func presenceOf(src SourceBytes, f Format, file FilePath, t reflect.Type) (KeySet, error) {
+	if err := checkValueContainerFormat(f, t, file); err != nil {
+		return KeySet{}, err
+	}
+
 	keys, _, err := collectSourceMeta(src, f, file, 0, t)
+
 	return keys, err
 }
 
@@ -43,6 +52,10 @@ func collectPresenceAndMeta(sources []SourceBytes, files []FoundFile, t reflect.
 	meta := Meta{entries: nil}
 
 	for i, src := range sources {
+		if err := checkValueContainerFormat(files[i].Format, t, files[i].Path); err != nil {
+			return union, Meta{}, err
+		}
+
 		keys, entries, err := collectSourceMeta(src, files[i].Format, files[i].Path, i, t)
 		if err != nil {
 			return union, Meta{}, err

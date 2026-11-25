@@ -249,10 +249,13 @@ linters:
           - govet   # fieldalignment in the synthetic metadata-shape comparison struct is not a correctness concern
       # defaults_contract_test.go's helper is generic over the concrete config
       # type a test loads; a constraint cannot name a domain kind, so `any`
-      # is the only permissive spelling. The exclusion covers only that file.
-      - path: defaults_contract_test\.go$
+      # is the only permissive spelling. value.go owns the public generic
+      # DecodeValue, whose by-value parameter is part of its API; the private
+      # helpers already take *Value.
+      - path: (defaults_contract_test\.go|value\.go)$
         linters:
           - forbidigo
+          - gocritic
           - modernize
       - path: refusal\.go$
         linters:

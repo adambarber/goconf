@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -13,12 +14,26 @@ import (
 // decodeTOMLStrict decodes TOML bytes into the target, refusing unknown
 // fields and type mismatches with the offending field named.
 func decodeTOMLStrict(data SourceBytes, file FilePath, dst Target) error {
-	md, err := toml.NewDecoder(bytes.NewReader(data)).Decode(dst.Value.Addr().Interface())
+	shadowType := tomlShadowType(dst.Value.Type())
+	if shadowType == dst.Value.Type() {
+		md, err := toml.NewDecoder(bytes.NewReader(data)).Decode(dst.Value.Addr().Interface())
+		if err != nil {
+			return tomlDecodeRefusal(file, err)
+		}
+
+		return tomlUndecoded(dst, data, &md, file, nil)
+	}
+
+	shadow := reflect.New(shadowType).Elem()
+
+	md, err := toml.NewDecoder(bytes.NewReader(data)).Decode(shadow.Addr().Interface())
 	if err != nil {
 		return tomlDecodeRefusal(file, err)
 	}
 
-	return tomlUndecoded(dst, data, &md, file)
+	absorbed := fillValueShadows(dst.Value, shadow, &md, data, file, toml.Key{})
+
+	return tomlUndecoded(dst, data, &md, file, absorbed)
 }
 
 // tomlDecodeRefusal classifies one BurntSushi error at the boundary: a
@@ -144,50 +159,4 @@ func tomlParseLine(err error) int {
 	}
 
 	return 0
-}
-
-// tomlUndecoded refuses keys present in the file but missing from the
-// target: strictness matches JSON and YAML. Keys captured by a declared
-// extras field are routed into that field instead of refused.
-func tomlUndecoded(dst Target, data SourceBytes, md *toml.MetaData, file FilePath) error {
-	undec := md.Undecoded()
-	if len(undec) == 0 {
-		return nil
-	}
-
-	if !hasExtrasInType(dst.Value.Type()) {
-		return refuseAt(ErrUnknownField, file, 0,
-			gorefuse.Subject(string(joinKeys(undec))),
-			gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
-	}
-
-	return tomlRouteExtras(dst, data, undec, md, file)
-}
-
-// keyQuote wraps one key in quotes for a refusal message.
-func keyQuote(k toml.Key) keyRender {
-	return keyRender(`"` + k.String() + `"`)
-}
-
-// keyRender is one rendered key inside a refusal message.
-type keyRender string
-
-// joinKeys renders undecoded keys as a comma-separated list.
-func joinKeys(keys []toml.Key) keyRender {
-	parts := make([]keyRender, 0, len(keys))
-	for _, k := range keys {
-		parts = append(parts, keyQuote(k))
-	}
-
-	return keyRender(strings.Join(toStrings(parts), ", "))
-}
-
-// toStrings adapts rendered keys to strings.Join.
-func toStrings(parts []keyRender) []string {
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		out = append(out, string(p))
-	}
-
-	return out
 }
