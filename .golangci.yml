@@ -4,9 +4,8 @@ version: "2"
 # and where settings could differ, the stricter value wins. A linter appears
 # once, with every setting applied to it, merged.
 #
-# What is NOT here, and why — goconf's policy declares only no_clones.
-# No BPL budget, layers, or rule table rules exist in this tree;
-# nothing here references them because none are declared.
+# The BPL rules live in policy/policy.bpl and are checked by birdcage verify.
+# This file holds only Go compiler/linter settings; it does not restate those rules.
 
 linters:
   default: none
@@ -232,6 +231,9 @@ linters:
 
   exclusions:
     generated: strict
+    # Mirrored exclusions stay symmetric across goconf and gorefuse. A path
+    # absent in one repo is intentional; removing it would let the two lint
+    # gates drift, which is the failure this symmetry is meant to prevent.
     rules:
       - path: (load|load_bytes|options)\.go$
         linters:

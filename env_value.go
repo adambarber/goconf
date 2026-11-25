@@ -12,10 +12,6 @@ type envParsed interface {
 	bool | int64 | uint64 | float64
 }
 
-func parseEnvBinding(binding envBinding, raw envRawValue) error {
-	return setEnvValue(binding.name, derefAlloc(binding.value), raw)
-}
-
 func setEnvValue(name EnvName, dst reflect.Value, raw envRawValue) error {
 	t := dst.Type()
 

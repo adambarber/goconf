@@ -3,6 +3,7 @@ package goconf
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -120,5 +121,11 @@ func TestLoadBytesRequiresFormat(t *testing.T) {
 
 	if !errors.Is(err, ErrUnknownFormat) {
 		t.Fatalf("err = %v, want ErrUnknownFormat", err)
+	}
+
+	mustRefuseNames(t, err, "declare a format")
+
+	if strings.Contains(err.Error(), "construction fault") {
+		t.Fatalf("err = %v, must not leak an internal construction fault", err)
 	}
 }

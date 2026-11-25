@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/adambarber/gorefuse"
 	"gopkg.in/yaml.v3"
 )
 
@@ -105,77 +104,6 @@ func yamlPopulateSliceNode(node *yaml.Node, dst reflect.Value, file FilePath, pa
 func yamlDecodeScalarNode(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
 	if err := node.Decode(dst.Addr().Interface()); err != nil {
 		return yamlNodeDecodeRefusal(file, node, dst, path, err)
-	}
-
-	return nil
-}
-
-func yamlPopulateStruct(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
-	initYAMLExtrasMap(dst)
-
-	seen := map[ObjectKey]int{}
-
-	for i := 0; i+1 < len(node.Content); i += 2 {
-		kNode := node.Content[i]
-		key := ObjectKey(kNode.Value)
-
-		if first, dup := seen[key]; dup {
-			return yamlDuplicateKeyRefusal(file, key, first)
-		}
-
-		seen[key] = kNode.Line
-
-		if err := yamlPopulateStructPair(dst, kNode, node.Content[i+1], file, path); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func initYAMLExtrasMap(dst reflect.Value) { initExtrasMap(dst) }
-
-func yamlPopulateStructPair(dst reflect.Value, kNode, vNode *yaml.Node, file FilePath, path FieldPath) error {
-	key := keySegment(kNode.Value)
-
-	sf, ok := matchStructField(dst.Type(), key, yamlFieldMatches)
-	if ok {
-		return yamlPopulateNode(vNode, dst.FieldByIndex(sf.Index), file, childPath(path, tagPathOf(sf)))
-	}
-
-	if ef, ok := extrasField(dst.Type()); ok {
-		return yamlSetExtra(vNode, dst.FieldByIndex(ef.Index), key, file, childPath(path, FieldPath(key)))
-	}
-
-	return refuseAt(ErrUnknownField, file, gorefuse.Line(kNode.Line),
-		gorefuse.Subject(`"`+string(key)+`"`),
-		gorefuse.Why("remove it from your config file, or the app must declare the field in its schema."))
-}
-
-func yamlPopulateMap(node *yaml.Node, dst reflect.Value, file FilePath, path FieldPath) error {
-	if dst.IsNil() && dst.CanSet() {
-		dst.Set(reflect.MakeMap(dst.Type()))
-	}
-
-	seen := map[ObjectKey]int{}
-
-	for i := 0; i+1 < len(node.Content); i += 2 {
-		kNode := node.Content[i]
-		vNode := node.Content[i+1]
-		key := ObjectKey(kNode.Value)
-
-		if first, dup := seen[key]; dup {
-			return yamlDuplicateKeyRefusal(file, key, first)
-		}
-
-		seen[key] = kNode.Line
-
-		elem := reflect.New(dst.Type().Elem()).Elem()
-		if err := yamlPopulateNode(vNode, elem, file, childPath(path, FieldPath(key))); err != nil {
-			return err
-		}
-
-		dst.SetMapIndex(reflect.ValueOf(string(key)).Convert(dst.Type().Key()), elem)
 	}
 
 	return nil

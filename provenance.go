@@ -73,8 +73,8 @@ func measureSource(f FoundFile, limit byteCap) (int64, error) {
 	return info.Size(), nil
 }
 
-// confine refuses a candidate file whose symlink-resolved target leaves
-// the directory that was searched, naming the file and the target.
+// confine refuses a candidate file whose symlink-resolved target leaves the
+// searched directory. It is a best-effort check, not a TOCTOU guarantee.
 func confine(p FilePath) error {
 	file := string(p)
 
@@ -118,15 +118,15 @@ func ioReadRefusal(p FilePath, err error) error {
 			gorefuse.Why("check the file's permissions (it must be readable by your user).")), err)
 }
 
-// withinDir reports whether the resolved path stays inside the searched
-// directory: the same directory, or one nested beneath it.
+// withinDir compares whole path segments, so a sibling named "..foo" stays
+// inside while ".." and "../" escape.
 func withinDir(resolved, searched resolvedPath) bool {
 	rel, err := filepath.Rel(string(searched), string(resolved))
 	if err != nil {
 		return false
 	}
 
-	return rel == "." || (!strings.HasPrefix(rel, "..") && rel != "..")
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
 // defaultSearchPaths is the discovery default: the user's global config

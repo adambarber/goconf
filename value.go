@@ -49,16 +49,21 @@ func decodeValue[T any](v *Value) (T, error) {
 		return decodeValueTable[T](v, table)
 	}
 
-	var text valueText
-	if err := v.md.PrimitiveDecode(v.primitive, &text); err == nil {
-		return decodeValueText[T](v, text)
-	}
-
-	return zero, valueTypeRefusal(v, "a scalar or a table")
+	return decodeValueScalar[T](v)
 }
 
-// valueText is the one scalar shape Value materializes today.
-type valueText string
+// decodeValueScalar decodes the held primitive straight into the requested
+// destination, so TOML integer, float, boolean, and string scalars all work.
+func decodeValueScalar[T any](v *Value) (T, error) {
+	var zero T
+
+	dst := newValueDestination[T]()
+	if err := v.md.PrimitiveDecode(v.primitive, dst.Addr().Interface()); err != nil {
+		return zero, valueTypeRefusal(v, "the value's type")
+	}
+
+	return castValueDestination[T](dst)
+}
 
 // valueName is one key inside a held table; valueTable is that table's shape.
 type valueName string
@@ -75,19 +80,6 @@ func requireValueShape[T any](v *Value, kind reflect.Kind, want valueWant) (refl
 	}
 
 	return dst, nil
-}
-
-func decodeValueText[T any](v *Value, text valueText) (T, error) {
-	var zero T
-
-	dst, err := requireValueShape[T](v, reflect.String, "a string")
-	if err != nil {
-		return zero, err
-	}
-
-	dst.SetString(string(text))
-
-	return castValueDestination[T](dst)
 }
 
 func decodeValueTable[T any](v *Value, table valueTable) (T, error) {

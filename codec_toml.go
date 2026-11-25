@@ -50,6 +50,22 @@ func tomlDecodeRefusal(file FilePath, err error) error {
 	return tomlRefusal(file, err)
 }
 
+// tomlDuplicateKeyOf extracts the repeated key from a BurntSushi parse
+// error before the generic decoder-refused branch can echo its detail.
+func tomlDuplicateKeyOf(msg tomlMessage) (unquotedKey, bool) {
+	_, rest, ok := strings.Cut(string(msg), "Key '")
+	if !ok {
+		return "", false
+	}
+
+	key, _, ok := strings.Cut(rest, "'")
+	if !ok || !strings.Contains(string(msg), " has already been defined") {
+		return "", false
+	}
+
+	return unquotedKey(key), true
+}
+
 // has reports whether the message contains the span.
 func (m tomlMessage) has(s spanText) bool { return strings.Contains(string(m), string(s)) }
 
@@ -146,6 +162,13 @@ const tomlWordString = "string"
 // tomlRefusal rewrites one BurntSushi parse refusal as the
 // ErrDecoderRefused carrier: the stripped detail survives as the cause.
 func tomlRefusal(file FilePath, err error) error {
+	msg := tomlMessage(err.Error())
+	if key, found := tomlDuplicateKeyOf(msg); found {
+		return refuseAt(ErrDuplicateKey, file, gorefuse.Line(msg.line()),
+			gorefuse.Subject(`"`+string(key)+`"`),
+			gorefuse.Why(`delete one of the two "`+string(key)+`" lines.`))
+	}
+
 	return refuseDecoder(
 		gorefuse.At(gorefuse.File(file), gorefuse.Line(tomlParseLine(err)),
 			gorefuse.Subject("TOML syntax"),

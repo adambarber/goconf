@@ -1,5 +1,7 @@
 package "goconf"
 
+# Reviewed 2026-11-25; re-evaluate budgets and exclusions before v1.0.0.
+
 ignore positiveFixtures {
     paths  = ["policy/fixtures/**"]
     reason = "a positive fixture must violate a rule to prove the rule bites; the fixture accounting, not the whole-tree run, is where a fixture's finding is judged"

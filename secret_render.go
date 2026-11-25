@@ -64,9 +64,15 @@ func writeIndirect(b *strings.Builder, v reflect.Value, decision secretDecision)
 }
 
 func writeStruct(b *strings.Builder, v reflect.Value, decision secretDecision) {
+	t := v.Type()
+	if !hasExportedField(t) && decision == secretUnmarked && !hasMarkedField(t) {
+		_, _ = fmt.Fprintf(b, "%+v", v.Interface())
+
+		return
+	}
+
 	b.WriteByte('{')
 
-	t := v.Type()
 	for i := range t.NumField() {
 		if i > 0 {
 			b.WriteByte(' ')
@@ -91,6 +97,30 @@ func writeStruct(b *strings.Builder, v reflect.Value, decision secretDecision) {
 	}
 
 	b.WriteByte('}')
+}
+
+// hasExportedField reports whether a struct can inherit a secret decision
+// through its own schema. A struct without exported fields is an opaque leaf.
+func hasExportedField(t reflect.Type) bool {
+	for f := range t.Fields() {
+		if f.IsExported() {
+			return true
+		}
+	}
+
+	return false
+}
+
+// hasMarkedField keeps a declared secret on an otherwise opaque struct inside
+// the render traversal, where it becomes [redacted].
+func hasMarkedField(t reflect.Type) bool {
+	for f := range t.Fields() {
+		if declaredSecret(&f) == secretMarked {
+			return true
+		}
+	}
+
+	return false
 }
 
 func writeList(b *strings.Builder, v reflect.Value, decision secretDecision) {

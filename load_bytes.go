@@ -1,5 +1,7 @@
 package goconf
 
+import "github.com/adambarber/gorefuse"
+
 // LoadBytes decodes in-memory bytes into T under the same strict rules as
 // Load. spec.Name is provenance identity only; no file is discovered or read.
 func LoadBytes[T any](data []byte, spec Spec, opts ...Option) (T, []Provenance, error) {
@@ -16,6 +18,12 @@ func LoadBytesWithMeta[T any](data []byte, spec Spec, opts ...Option) (T, []Prov
 	s, err := prepareLoad(spec, opts...)
 	if err != nil {
 		return zero, nil, Meta{}, err
+	}
+
+	if spec.Format == undetermined {
+		return zero, nil, Meta{}, refuseWhy(ErrUnknownFormat,
+			gorefuse.Subject("the in-memory source has no declared format"),
+			gorefuse.Why("declare a format on Spec; accepted: "+acceptedFormats+"."))
 	}
 
 	dst, err := newTarget[T](&s)

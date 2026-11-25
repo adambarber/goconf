@@ -46,6 +46,10 @@ const yamlUnknownFieldTail = " not found in type "
 func yamlDecodeRefusal(data SourceBytes, file FilePath, target reflect.Type, err error) error {
 	typeErr, ok := errors.AsType[*yaml.TypeError](err)
 	if ok {
+		if refusal := yamlDuplicateRefusal(file, typeErr); refusal != nil {
+			return refusal
+		}
+
 		r := yamlTypeReason(typeErr)
 
 		if r != ErrDecoderRefused {
@@ -138,6 +142,12 @@ func yamlUnknownFieldOf(typeErr *yaml.TypeError) yamlFieldSpan {
 // ErrDecoderRefused carrier: the stripped detail survives as the cause
 // tail. An empty stream names its own fix: there is no syntax to check.
 func decodeRefusal(data SourceBytes, file FilePath, err error) error {
+	if typeErr, ok := errors.AsType[*yaml.TypeError](err); ok {
+		if refusal := yamlDuplicateRefusal(file, typeErr); refusal != nil {
+			return refusal
+		}
+	}
+
 	if len(data) == 0 {
 		return refuseDecoder(
 			gorefuse.At(gorefuse.File(file), 0,
