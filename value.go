@@ -119,7 +119,13 @@ func newValueDestination[T any]() reflect.Value {
 }
 
 func castValueDestination[T any](dst reflect.Value) (T, error) {
-	got, ok := reflect.TypeAssert[T](dst)
+	candidate := dst
+	if want := reflect.TypeFor[T](); want.Kind() == reflect.Pointer &&
+		!dst.Type().AssignableTo(want) && dst.CanAddr() && dst.Addr().Type().AssignableTo(want) {
+		candidate = dst.Addr()
+	}
+
+	got, ok := reflect.TypeAssert[T](candidate)
 	if !ok {
 		var zero T
 

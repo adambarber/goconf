@@ -17,12 +17,12 @@ type Rendered string
 func renderValue(v reflect.Value) Rendered {
 	var b strings.Builder
 
-	writeRendered(&b, v, secretUnmarked)
+	writeRendered(&b, v, secretUnmarked, true)
 
 	return Rendered(b.String())
 }
 
-func writeRendered(b *strings.Builder, v reflect.Value, decision secretDecision) {
+func writeRendered(b *strings.Builder, v reflect.Value, decision secretDecision, top bool) {
 	if !v.IsValid() {
 		b.WriteString("<nil>")
 		return
@@ -35,7 +35,7 @@ func writeRendered(b *strings.Builder, v reflect.Value, decision secretDecision)
 
 	switch v.Kind() {
 	case reflect.Interface, reflect.Pointer:
-		writeIndirect(b, v, decision)
+		writeIndirect(b, v, decision, top)
 	case reflect.Struct:
 		writeStruct(b, v, decision)
 	case reflect.Slice, reflect.Array:
@@ -50,17 +50,25 @@ func writeRendered(b *strings.Builder, v reflect.Value, decision secretDecision)
 	}
 }
 
-func writeIndirect(b *strings.Builder, v reflect.Value, decision secretDecision) {
+func writeIndirect(b *strings.Builder, v reflect.Value, decision secretDecision, top bool) {
 	if v.IsNil() {
 		b.WriteString("<nil>")
 		return
 	}
 
 	if v.Kind() == reflect.Pointer {
+		// fmt dereferences a top-level pointer but prints the address when the
+		// pointer sits inside a composite. Redact follows the same distinction,
+		// so an unmarked config still matches fmt.Sprintf("%+v", cfg).
+		if !top {
+			_, _ = fmt.Fprintf(b, "%p", v.Interface())
+			return
+		}
+
 		b.WriteByte('&')
 	}
 
-	writeRendered(b, v.Elem(), decision)
+	writeRendered(b, v.Elem(), decision, false)
 }
 
 func writeStruct(b *strings.Builder, v reflect.Value, decision secretDecision) {
@@ -93,7 +101,7 @@ func writeStruct(b *strings.Builder, v reflect.Value, decision secretDecision) {
 			continue
 		}
 
-		writeRendered(b, v.Field(i), next)
+		writeRendered(b, v.Field(i), next, false)
 	}
 
 	b.WriteByte('}')
@@ -131,7 +139,7 @@ func writeList(b *strings.Builder, v reflect.Value, decision secretDecision) {
 			b.WriteByte(' ')
 		}
 
-		writeRendered(b, v.Index(i), decision)
+		writeRendered(b, v.Index(i), decision, false)
 	}
 
 	b.WriteByte(']')
@@ -145,9 +153,9 @@ func writeMap(b *strings.Builder, v reflect.Value, decision secretDecision) {
 			b.WriteByte(' ')
 		}
 
-		writeRendered(b, key, secretUnmarked)
+		writeRendered(b, key, secretUnmarked, false)
 		b.WriteByte(':')
-		writeRendered(b, v.MapIndex(key), decision)
+		writeRendered(b, v.MapIndex(key), decision, false)
 	}
 
 	b.WriteByte(']')

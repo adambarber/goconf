@@ -9,6 +9,17 @@ type valueScalarCfg struct {
 	Value Value `toml:"value"`
 }
 
+func loadScalarValue(t *testing.T, body SourceBytes) Value {
+	t.Helper()
+
+	got, _, err := LoadBytes[valueScalarCfg](body, Spec{Name: configName("app"), Format: FormatTOML})
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+
+	return got.Value
+}
+
 func TestDecodeValueMaterializesTOMLScalars(t *testing.T) {
 	cases := map[string]struct {
 		want valueKind
@@ -22,21 +33,17 @@ func TestDecodeValueMaterializesTOMLScalars(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			got, _, err := LoadBytes[valueScalarCfg](tc.body,
-				Spec{Name: configName("app"), Format: FormatTOML})
-			if err != nil {
-				t.Fatalf("load: %v", err)
-			}
+			value := loadScalarValue(t, tc.body)
 
 			switch tc.want {
 			case kindInt:
-				assertDecodedValue(t, &got.Value, 42)
+				assertDecodedValue(t, &value, 42)
 			case kindFloat:
-				assertDecodedValue(t, &got.Value, 1.5)
+				assertDecodedValue(t, &value, 1.5)
 			case kindBool:
-				assertDecodedValue(t, &got.Value, true)
+				assertDecodedValue(t, &value, true)
 			case kindString:
-				assertDecodedValue(t, &got.Value, "hello")
+				assertDecodedValue(t, &value, "hello")
 			case kindList, kindTable:
 				t.Fatalf("unexpected scalar kind %q", tc.want)
 			}
@@ -57,14 +64,19 @@ func assertDecodedValue[T comparable](t *testing.T, v *Value, want T) {
 	}
 }
 
-func TestDecodeValueRefusesWrongScalarType(t *testing.T) {
-	got, _, err := LoadBytes[valueScalarCfg](SourceBytes("value = 42\n"),
-		Spec{Name: configName("app"), Format: FormatTOML})
+func TestDecodeValueMaterializesPointerScalar(t *testing.T) {
+	value, err := DecodeValue[*int](loadScalarValue(t, SourceBytes("value = 42\n")))
 	if err != nil {
-		t.Fatalf("load: %v", err)
+		t.Fatalf("DecodeValue[*int]: %v", err)
 	}
 
-	_, err = DecodeValue[string](got.Value)
+	if value == nil || *value != 42 {
+		t.Fatalf("DecodeValue[*int] = %v, want 42", value)
+	}
+}
+
+func TestDecodeValueRefusesWrongScalarType(t *testing.T) {
+	_, err := DecodeValue[string](loadScalarValue(t, SourceBytes("value = 42\n")))
 	if !errors.Is(err, ErrTypeMismatch) {
 		t.Fatalf("err = %v, want ErrTypeMismatch", err)
 	}

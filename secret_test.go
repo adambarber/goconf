@@ -128,6 +128,17 @@ func TestFormatRedactsMarkedFields(t *testing.T) {
 	}
 }
 
+func TestFormatMatchesFmtForPointerFields(t *testing.T) {
+	cfg := struct {
+		Child *plainCfg
+		Kids  []*plainCfg
+	}{Child: &plainCfg{Region: "eu", Port: 8080}, Kids: []*plainCfg{{Region: "us", Port: 9090}}}
+
+	if got, want := string(Redact(cfg)), fmt.Sprintf("%+v", cfg); got != want {
+		t.Fatalf("Redact = %q, want %q", got, want)
+	}
+}
+
 func TestFormatMatchesFmtForUnmarkedConfig(t *testing.T) {
 	cfg := plainCfg{Region: "eu", Port: 8080}
 
