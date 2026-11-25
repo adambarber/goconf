@@ -1,9 +1,7 @@
 package goconf
 
 import (
-	"encoding/json/jsontext"
 	"reflect"
-	"strings"
 	"testing"
 )
 
@@ -60,11 +58,7 @@ func TestSetJSONScalarMismatchCoverage(t *testing.T) {
 }
 
 func TestDecodeJSONObjectUnknownFieldRefusalCoverage(t *testing.T) {
-	dec := jsontext.NewDecoder(strings.NewReader(`{"a":1}`), jsontext.AllowDuplicateNames(true))
-
-	if _, err := dec.ReadToken(); err != nil {
-		t.Fatal(err)
-	}
+	dec := jsonObjectDecoder(t, SourceBytes(`{"a":1}`))
 
 	key, err := decodeJSONObjectKey(dec, SourceBytes(`{"a":1}`), FilePath("f.json"))
 	if err != nil {
@@ -78,11 +72,7 @@ func TestDecodeJSONObjectUnknownFieldRefusalCoverage(t *testing.T) {
 }
 
 func TestConsumeJSONObjectEndCoverage(t *testing.T) {
-	dec := jsontext.NewDecoder(strings.NewReader(`{}`), jsontext.AllowDuplicateNames(true))
-
-	if _, err := dec.ReadToken(); err != nil {
-		t.Fatal(err)
-	}
+	dec := jsonObjectDecoder(t, SourceBytes(`{}`))
 
 	if err := consumeJSONObjectEnd(dec, SourceBytes(`{}`), FilePath("f.json")); err != nil {
 		t.Fatal(err)

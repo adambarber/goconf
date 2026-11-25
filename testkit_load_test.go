@@ -4,8 +4,17 @@ import "testing"
 
 // ConfigTarget is the closed set of config structs the shared load helpers fill.
 type ConfigTarget interface {
-	loadCfg | resourceDoc | envCfg | nestedDynCfg | yamlMapDoc |
-		intExtrasDoc | int8ExtrasDoc | uintExtrasDoc | floatExtrasDoc | boolExtrasDoc
+	loadCfg | resourceDoc | envCfg | nestedDynCfg | dynExtrasDoc | yamlMapDoc |
+		jsonUnknownExtrasDoc | intExtrasDoc | int8ExtrasDoc | uintExtrasDoc |
+		floatExtrasDoc | boolExtrasDoc
+}
+
+// jsonUnknownExtrasDoc is the shared target for nested unknown-field tests.
+type jsonUnknownExtrasDoc struct {
+	Extra map[extraKey]extraVal `goconf:"extras" json:"-"`
+	In    struct {
+		Name resName `json:"name"`
+	} `json:"in"`
 }
 
 // yamlMapDoc is the shared target for YAML map-shape mismatch tests.

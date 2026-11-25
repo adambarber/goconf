@@ -1,8 +1,10 @@
 package goconf
 
 import (
+	"encoding/json/jsontext"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -30,6 +32,18 @@ func discoverOK(t *testing.T, d Discovery) []FoundFile {
 	}
 
 	return found
+}
+
+// jsonObjectDecoder returns a decoder parked just past the opening brace.
+func jsonObjectDecoder(t *testing.T, data SourceBytes) *jsontext.Decoder {
+	t.Helper()
+
+	dec := jsontext.NewDecoder(strings.NewReader(string(data)), jsontext.AllowDuplicateNames(true))
+	if _, err := dec.ReadToken(); err != nil {
+		t.Fatal(err)
+	}
+
+	return dec
 }
 
 // yamlContentNode parses one YAML document and unwraps its document node.

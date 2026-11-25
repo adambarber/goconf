@@ -16,16 +16,7 @@ type dynExtrasDoc struct {
 }
 
 func TestTOMLExtrasInsideDynamicMapEntry(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameTOML: SourceBytes("[items.one]\nname = \"n\"\nx = \"y\"\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[dynExtrasDoc](Spec{Name: configName("app"), Format: FormatTOML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("err=%v", err)
-	}
+	got := loadBytesOK[dynExtrasDoc](t, SourceBytes("[items.one]\nname = \"n\"\nx = \"y\"\n"), FormatTOML)
 
 	if got.Items["one"].Name != "n" || got.Items["one"].Extra["x"] != "y" {
 		t.Fatalf("got=%#v", got)
@@ -33,16 +24,7 @@ func TestTOMLExtrasInsideDynamicMapEntry(t *testing.T) {
 }
 
 func TestYAMLExtrasInsideDynamicMapEntry(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("items:\n  one:\n    name: n\n    x: y\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[dynExtrasDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("err=%v", err)
-	}
+	got := loadBytesOK[dynExtrasDoc](t, SourceBytes("items:\n  one:\n    name: n\n    x: y\n"), FormatYAML)
 
 	if got.Items["one"].Extra["x"] != "y" {
 		t.Fatalf("got=%#v", got)
@@ -50,16 +32,7 @@ func TestYAMLExtrasInsideDynamicMapEntry(t *testing.T) {
 }
 
 func TestJSONExtrasInsideDynamicMapEntry(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"items":{"one":{"name":"n","x":"y"}}}`)},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[dynExtrasDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil {
-		t.Fatalf("err=%v", err)
-	}
+	got := loadBytesOK[dynExtrasDoc](t, SourceBytes(`{"items":{"one":{"name":"n","x":"y"}}}`), FormatJSON)
 
 	if got.Items["one"].Extra["x"] != "y" {
 		t.Fatalf("got=%#v", got)
@@ -85,22 +58,7 @@ func TestTOMLUintFitsCoverage(t *testing.T) {
 }
 
 func TestJSONUnknownFieldExtrasPathRefused(t *testing.T) {
-	type inner struct {
-		Name resName `json:"name"`
-	}
-
-	type doc struct {
-		Extra map[extraKey]extraVal `goconf:"extras" json:"-"`
-		In    inner                 `json:"in"`
-	}
-
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"in":{"name":"n","bad":1}}`)},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[doc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
+	err := refuseBytesErr[jsonUnknownExtrasDoc](t, SourceBytes(`{"in":{"name":"n","bad":1}}`), FormatJSON)
 	if err == nil {
 		t.Fatal("expected refusal")
 	}
@@ -111,17 +69,7 @@ func TestJSONUnknownFieldExtrasPathRefused(t *testing.T) {
 }
 
 func TestYAMLRootScalarExtrasNotMapping(t *testing.T) {
-	_, _, err := Load[intExtrasDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(t.TempDir())))
-	_ = err
-
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("just-a-scalar\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err = Load[intExtrasDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
+	err := refuseBytesErr[intExtrasDoc](t, SourceBytes("just-a-scalar\n"), FormatYAML)
 	if err == nil {
 		t.Fatal("expected refusal")
 	}
