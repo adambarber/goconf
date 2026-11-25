@@ -10,24 +10,15 @@ const (
 	hardByteCap    byteCap = 64 << 20
 )
 
-// maxBytesOption caps each acquired source for one load.
-type maxBytesOption struct {
-	cap byteCap
-}
-
-func (o maxBytesOption) apply(s *settings) {
-	s.maxBytes = o.cap
-}
-
 // WithMaxBytes caps each source at n bytes for one load, overriding the
 // default of 16 MiB. n must be positive and no greater than the hard maximum
 // of 64 MiB; an out-of-range n is a programmer error and panics.
-func WithMaxBytes(n int) *maxBytesOption {
+func WithMaxBytes(n int) *valueOption[byteCap] {
 	if n < 1 || byteCap(n) > hardByteCap {
 		panic("goconf: WithMaxBytes must be between 1 and 64 MiB")
 	}
 
-	return &maxBytesOption{cap: byteCap(n)}
+	return newValueOption(byteCap(n), func(s *settings, capBytes byteCap) { s.maxBytes = capBytes })
 }
 
 // checkByteCap refuses one source whose size exceeds the load's cap. Both

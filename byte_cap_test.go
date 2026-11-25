@@ -92,3 +92,16 @@ func TestMaxBytesRefusalRendersOneAction(t *testing.T) {
 		t.Fatalf("render = %q, want %q", err.Error(), want)
 	}
 }
+
+func TestMaxBytesRefusesOversizedSecondSource(t *testing.T) {
+	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
+		dirGlobal: {fileNameTOML: SourceBytes("port = 1\n")},
+		dirLocal:  {fileNameTOML: capSource()},
+	})
+
+	_, _, err := Load[capCfg](Spec{Name: configName("app"), Format: FormatTOML},
+		WithSearchPaths(legPaths(root, dirGlobal, dirLocal)...), WithMaxBytes(8))
+	if !errors.Is(err, ErrSourceTooLarge) {
+		t.Fatalf("err = %v, want ErrSourceTooLarge", err)
+	}
+}

@@ -21,6 +21,12 @@ type DirPath string
 // FilePath is the path of a file on disk.
 type FilePath string
 
+// EnvPrefix names the process-environment prefix goconf overlays.
+type EnvPrefix string
+
+// EnvName is one environment variable name.
+type EnvName string
+
 // Target is the reflect view of the destination a format decodes into.
 // Value must be addressable and is always set by the caller through
 // reflect.ValueOf(&v).Elem(); the library never takes an untyped parameter.

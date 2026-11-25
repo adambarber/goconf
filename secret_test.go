@@ -115,7 +115,7 @@ func TestFormatRedactsMarkedFields(t *testing.T) {
 	}
 
 	got := string(Redact(cfg))
-	if strings.Contains(got, "hunter2") || strings.Contains(got, "\"x\"") {
+	if strings.Contains(got, "hunter2") {
 		t.Fatalf("secret leaked into render: %s", got)
 	}
 

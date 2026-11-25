@@ -76,12 +76,17 @@ func writeStruct(b *strings.Builder, v reflect.Value, decision secretDecision) {
 		b.WriteString(f.Name)
 		b.WriteByte(':')
 
+		next := applySecretTag(declaredSecret(&f), decision)
+		if next == secretMarked {
+			b.WriteString(gorefuse.Redacted)
+			continue
+		}
+
 		if !f.IsExported() {
 			_, _ = fmt.Fprintf(b, "%+v", v.Field(i))
 			continue
 		}
 
-		next := applySecretTag(declaredSecret(&f), decision)
 		writeRendered(b, v.Field(i), next)
 	}
 

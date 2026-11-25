@@ -39,16 +39,18 @@ func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, erro
 
 	files, err := discover(Discovery{Search: s.search, Name: spec.Name, Format: spec.Format})
 	if err != nil {
-		if !s.optional || !errors.Is(err, ErrNothingFound) {
+		if !envOrOptionalAbsence(&s, err) {
 			return zero, nil, Meta{}, err
 		}
 
-		// true absence, opted in: every leg listed cleanly and zero
-		// candidates exist, so the load proceeds with zero sources.
+		// True absence is allowed when the caller opted in or declared an
+		// env overlay: the env values are then the whole config source.
 
 		files = []FoundFile{}
 
-		warnOptionalAbsence()
+		if s.optional {
+			warnOptionalAbsence()
+		}
 	}
 
 	dst, err := newTarget[T](&s)
@@ -62,6 +64,12 @@ func LoadWithMeta[T any](spec Spec, opts ...Option) (T, []Provenance, Meta, erro
 	}
 
 	return loadAcquired(zero, dst, &s, acquired{sources: sources, files: files, prov: prov})
+}
+
+// envOrOptionalAbsence reports whether a discovery fault is true absence that
+// this load may proceed through: the caller opted in, or declared env values.
+func envOrOptionalAbsence(s *settings, err error) bool {
+	return errors.Is(err, ErrNothingFound) && (s.optional || s.envPrefix != "")
 }
 
 // acquired is one load's sources and their provenance, after discovery and
@@ -92,7 +100,7 @@ func loadAcquired[T any](zero T, dst Target, s *settings, src acquired) (T, []Pr
 		}
 	}
 
-	meta, err := decodeSources(dst, src.sources, src.files, s.defaults)
+	meta, err := decodeSources(dst, src.sources, src.files, s)
 	if err != nil {
 		return zero, nil, Meta{}, err
 	}
@@ -134,21 +142,30 @@ func prepareLoad(spec Spec, opts ...Option) (settings, error) {
 	return s, nil
 }
 
-// decodeSources runs the strict decode, default fill, and metadata pass over
-// already-acquired bytes; disk and in-memory entry points share it.
-func decodeSources(dst Target, sources []SourceBytes, files []FoundFile, defaults []layeredDefault) (Meta, error) {
+// decodeSources runs the strict decode, env overlay, default fill, and
+// metadata pass over already-acquired bytes; both entry points share it.
+func decodeSources(dst Target, sources []SourceBytes, files []FoundFile, s *settings) (Meta, error) {
 	present, meta, err := collectPresenceAndMeta(sources, files, dst.Value.Type())
 	if err != nil {
 		return Meta{}, err
 	}
 
 	for i, src := range sources {
-		if err := decodeFormat(src, files[i].Path, dst, files[i].Format); err != nil {
-			return Meta{}, err
+		if decodeErr := decodeFormat(src, files[i].Path, dst, files[i].Format); decodeErr != nil {
+			return Meta{}, decodeErr
 		}
 	}
 
-	if err := fillAbsents(dst, present, defaults); err != nil {
+	envKeys, err := applyEnvOverlay(dst, s.envPrefix)
+	if err != nil {
+		return Meta{}, err
+	}
+
+	for _, path := range envKeys.pathsList() {
+		present = present.Add(path)
+	}
+
+	if err := fillAbsents(dst, present, s.defaults); err != nil {
 		return Meta{}, err
 	}
 

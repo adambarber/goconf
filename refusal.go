@@ -43,6 +43,8 @@ const (
 	ErrTargetCast       Reason = "target cast failure"
 	ErrSourceTooLarge   Reason = "source too large"
 	ErrNeedDeclaration  Reason = "undeclared secret"
+	ErrEnvParse         Reason = "invalid environment value"
+	ErrEnvAmbiguous     Reason = "ambiguous environment name"
 
 	// ErrUnsupportedValueContainer is the JSON/YAML refusal for a field that
 	// declares goconf.Value: the container is meaningful only in TOML.

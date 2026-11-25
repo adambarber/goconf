@@ -17,19 +17,31 @@ type Spec struct {
 }
 
 // Option customizes one Load call.
-
-// Option customizes one Load call.
 type Option interface {
 	apply(s *settings)
+}
+
+// valueOption is the one Option implementation: it stores a typed setting
+// and the setter that folds it into a load's settings.
+type valueOption[T any] struct {
+	value T
+	set   func(*settings, T)
+}
+
+func (o valueOption[T]) apply(s *settings) { o.set(s, o.value) }
+
+func newValueOption[T any](value T, set func(*settings, T)) *valueOption[T] {
+	return &valueOption[T]{value: value, set: set}
 }
 
 // settings is the mutable configuration of one Load call.
 type settings struct {
 	search    []DirPath
-	globalDir DirPath
 	defaults  []layeredDefault
+	globalDir DirPath
 	maxBytes  byteCap
 	optional  bool
+	envPrefix EnvPrefix
 }
 
 // layeredDefault is one defaults layer whose filled fields are exactly
@@ -64,6 +76,17 @@ type defaultsOption struct {
 
 func (o defaultsOption) apply(s *settings) {
 	s.defaults = append(s.defaults, layeredDefault{value: o.value})
+}
+
+// WithEnv overlays process variables named PREFIX_FIELD over the decoded
+// config. Dots in a field path become underscores and the path is upper-cased;
+// env values are the outermost layer and win over file values and defaults.
+func WithEnv(prefix EnvPrefix) *valueOption[EnvPrefix] {
+	if prefix == "" {
+		panic("goconf: WithEnv prefix must not be empty")
+	}
+
+	return newValueOption(prefix, func(s *settings, p EnvPrefix) { s.envPrefix = p })
 }
 
 // optionalConfigOption forgives true absence of config for one load.

@@ -31,21 +31,39 @@ func declaredSecret(f *reflect.StructField) secretDecision {
 }
 
 // looksSecret reports whether one key segment names a secret-like value.
+// Words are reduced to a stem so plural and compound spellings cannot slip
+// past an exact-word check.
 func looksSecret(seg metaSeg) bool {
-	indicators := []FieldPath{"password", "passwd", "secret", "token", "credential", "credentials", "apikey", "privatekey"}
+	indicators := []FieldPath{"password", "pass", "passwd", "pwd", "secret", "token", "credential", "apikey", "privatekey", "api", "private"}
 	words := secretWordsOf(seg)
 
 	for i, word := range words {
-		if slices.Contains(indicators, word) {
+		stem := singular(word)
+		if slices.Contains(indicators, stem) {
 			return true
 		}
 
-		if (word == "api" || word == "private") && i+1 < len(words) && words[i+1] == "key" {
+		if (stem == "api" || stem == "private") && i+1 < len(words) && singular(words[i+1]) == "key" {
 			return true
 		}
 	}
 
 	return false
+}
+
+// singular folds a plural word back to its stem so one indicator covers
+// "token" and "tokens" without a second hand-maintained list.
+func singular(word FieldPath) FieldPath {
+	s := string(word)
+	if len(s) > 3 && strings.HasSuffix(s, "ies") {
+		return FieldPath(strings.TrimSuffix(s, "ies") + "y")
+	}
+
+	if len(s) > 2 && strings.HasSuffix(s, "s") && !strings.HasSuffix(s, "ss") {
+		return FieldPath(strings.TrimSuffix(s, "s"))
+	}
+
+	return word
 }
 
 // secretWordsOf splits a key into lower-cased words at separators and
