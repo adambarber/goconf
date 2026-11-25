@@ -15,6 +15,13 @@ func Load[T any](spec Spec, opts ...Option) (T, []Provenance, error) {
 	return got, prov, err
 }
 
+// Redact renders cfg the way fmt.Sprintf("%+v", cfg) would, except that every
+// field tagged secret:"true" renders as gorefuse.Redacted. Marked parents
+// cover their descendants; an explicit secret:"false" overrides inheritance.
+func Redact[T any](cfg T) Rendered {
+	return renderValue(reflect.ValueOf(cfg))
+}
+
 // LoadWithMeta behaves like Load and also returns per-occurrence metadata.
 // On refusal it returns zero config, nil provenance, zero Meta, and the error.
 // See docs/load.md for metadata semantics and query helpers.

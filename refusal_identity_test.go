@@ -99,7 +99,7 @@ func TestReasonsAreDistinct(t *testing.T) {
 		ErrMultiDoc, ErrNotAMapping, ErrDecoderRefused,
 		ErrIO, ErrUnknownField, ErrTypeMismatch,
 		ErrNothingFound, ErrUnmarshalable, ErrBadDefaultShape,
-		ErrTargetCast, ErrSourceTooLarge, ErrUnsupportedValueContainer,
+		ErrTargetCast, ErrSourceTooLarge, ErrNeedDeclaration, ErrUnsupportedValueContainer,
 	} {
 		if r == "" {
 			t.Fatalf("a reason constant must not render empty")

@@ -61,6 +61,10 @@ func collectPresenceAndMeta(sources []SourceBytes, files []FoundFile, t reflect.
 			return union, Meta{}, err
 		}
 
+		if err := checkSecretDeclarations(keys, t, files[i].Path); err != nil {
+			return union, Meta{}, err
+		}
+
 		for _, p := range keys.pathsList() {
 			union = union.Add(p)
 		}
