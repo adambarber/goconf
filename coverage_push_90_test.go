@@ -28,21 +28,11 @@ func TestJSONExtrasRootShapeMoreCoverage(t *testing.T) {
 }
 
 func TestYAMLPopulateStructNodeTypeMismatchNested(t *testing.T) {
-	root := yamlContentNode(t, SourceText("1\n"))
-
-	dst := reflect.New(reflect.TypeFor[intExtrasDoc]()).Elem()
-	if err := yamlPopulateStructNode(root, dst, FilePath("f.yaml"), "nested"); err == nil {
-		t.Fatal("expected")
-	}
+	assertYAMLPopulateStructRefused(t, SourceText("1\n"), "nested")
 }
 
 func TestYAMLPopulateMapNodeTypeMismatchNested(t *testing.T) {
-	root := yamlContentNode(t, SourceText("1\n"))
-
-	dst := reflect.MakeMap(reflect.MapOf(reflect.TypeFor[extraKey](), reflect.TypeFor[extraVal]()))
-	if err := yamlPopulateMapNode(root, dst, FilePath("f.yaml"), "nested"); err == nil {
-		t.Fatal("expected")
-	}
+	assertYAMLPopulateMapRefused(t, SourceText("1\n"), "nested")
 }
 
 func TestTOMLSetExtraValueConvertibleInt(t *testing.T) {

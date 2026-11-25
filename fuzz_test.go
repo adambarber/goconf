@@ -17,24 +17,21 @@ const (
 // each format's decode and refusal paths.
 func FuzzLoad(f *testing.F) {
 	deep := strings.Repeat(`{"a":`, 50) + "1" + strings.Repeat("}", 50)
-	seeds := []string{
-		// golden fixture shapes
-		`{"region":"eu","nested":{"host":"h","port":1}}`,
-		"region: eu\nnested:\n  host: h\n  port: 1\n",
-		"region = \"eu\"\n\n[nested]\nhost = \"h\"\nport = 1\n",
+	seeds := fuzzGoldenSeeds()
+	seeds = append(seeds,
 		// duplicate keys in all three formats
 		`{"region":"eu","region":"us"}`,
 		"region: eu\nregion: us\n",
 		"region = \"eu\"\nregion = \"us\"\n",
 		// secret-shaped values: quoted, backquoted, multi-line
-		`{"region":"` + fuzzSentinel + `"}`,
-		"region: `" + fuzzSentinel + "`\n",
-		"region = \"" + fuzzSentinel + "\"\n",
-		"region: |\n  " + fuzzSentinel + "\n  second line\n",
+		`{"region":"`+fuzzSentinel+`"}`,
+		"region: `"+fuzzSentinel+"`\n",
+		"region = \""+fuzzSentinel+"\"\n",
+		"region: |\n  "+fuzzSentinel+"\n  second line\n",
 		// the marker as a key: the refusal must name it, not echo it
-		fuzzSentinel + ": 1\n",
-		`{"` + fuzzSentinel + `":1}`,
-		fuzzSentinel + " = 1\n",
+		fuzzSentinel+": 1\n",
+		`{"`+fuzzSentinel+`":1}`,
+		fuzzSentinel+" = 1\n",
 		// multi-doc YAML, deep nesting, trailing data, escaped-quote keys
 		"---\nregion: eu\n---\nregion: us\n",
 		deep,
@@ -42,20 +39,17 @@ func FuzzLoad(f *testing.F) {
 		`{"reg\"ion"="x"}`,
 		// a marker used only as an array value: a false duplicate-key
 		// refusal would echo it, so the twin oracle must catch that
-		`{"tags":["` + fuzzSentinel + `","b","` + fuzzSentinel + `"]}`,
+		`{"tags":["`+fuzzSentinel+`","b","`+fuzzSentinel+`"]}`,
 		// invalid UTF-8, null bytes, empty, huge scalar
 		"\xff\xfe\xfa",
-		"\x00\x01\x02",
-		"",
-		"region = " + strings.Repeat("9", 4096) + "\n",
-	}
+	)
+	seeds = append(seeds, fuzzEdgeSeeds()...)
+	seeds = append(seeds, "region = "+strings.Repeat("9", 4096)+"\n")
 
-	for _, seed := range seeds {
-		f.Add([]byte(seed))
-	}
+	addFuzzSeeds(f, seeds)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		for _, format := range []Format{FormatJSON, FormatYAML, FormatTOML} {
+		for _, format := range fuzzFormats() {
 			runFuzzLeg(t, data, format)
 		}
 	})
@@ -74,41 +68,22 @@ func runFuzzLeg(t *testing.T, data []byte, format Format) {
 
 		_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: format},
 			WithSearchPaths(DirPath(dir)))
-		if err == nil {
+
+		refusal := fuzzRefusal(err)
+		if refusal == "" {
 			return ""
 		}
 
 		// the frame names the temp dir; it differs per run by design.
-		_, tail, cut := strings.Cut(err.Error(), "/app"+string(format))
+		_, tail, cut := strings.Cut(string(refusal), "/app"+string(format))
 		if !cut {
-			return refusalText(err.Error())
+			return refusal
 		}
 
 		return refusalText(tail)
 	}
 
-	refusal := errOf(data)
-
-	if refusal == "" {
-		return
-	}
-
-	twinRefusal := errOf([]byte(strings.ReplaceAll(string(data), fuzzSentinel, fuzzTwin)))
-
-	// twinRefusal for a no-marker input is the same bytes: the oracle
-	// stands down. Both sides normalize their marker to one placeholder
-	// before comparing — see docs/load.md "Fuzzing" for the guarantee.
-	if !strings.Contains(string(data), fuzzSentinel) {
-		return
-	}
-
-	placeholder := func(msg refusalText) refusalText {
-		return refusalText(strings.ReplaceAll(strings.ReplaceAll(string(msg), fuzzSentinel, "#"), fuzzTwin, "#"))
-	}
-
-	if string(placeholder(stripQuotedFuzz(refusal))) != string(placeholder(stripQuotedFuzz(twinRefusal))) {
-		t.Fatalf("refusal is not substitution-stable (value echo):\n got: %s\ntwin: %s", refusal, twinRefusal)
-	}
+	assertFuzzRefusalOracle(t, data, errOf)
 }
 
 // stripQuotedFuzz drops every single-quoted span — a decoder's

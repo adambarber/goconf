@@ -1,9 +1,7 @@
 package goconf
 
 import (
-	"encoding/json/jsontext"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/BurntSushi/toml"
@@ -17,12 +15,7 @@ func TestTOMLCaptureKeyEmpty(t *testing.T) {
 }
 
 func TestYAMLPopulateStructNodeMismatchNonRoot(t *testing.T) {
-	root := yamlContentNode(t, SourceText("- a\n"))
-
-	dst := reflect.New(reflect.TypeFor[intExtrasDoc]()).Elem()
-	if err := yamlPopulateStructNode(root, dst, FilePath("f.yaml"), "nested"); err == nil {
-		t.Fatal("expected")
-	}
+	assertYAMLPopulateStructRefused(t, SourceText("- a\n"), "nested")
 }
 
 func TestYAMLPopulateMapNodeAliasAndDefault(t *testing.T) {
@@ -41,23 +34,7 @@ func TestJSONLineAtByteCoverage(t *testing.T) {
 }
 
 func TestJSONConsumeJSONObjectEndError(t *testing.T) {
-	dec := jsontext.NewDecoder(strings.NewReader(`{"a":1`), jsontext.AllowDuplicateNames(true))
-
-	if _, err := dec.ReadToken(); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := decodeJSONObjectKey(dec, SourceBytes(`{"a":1`), FilePath("f.json")); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := dec.ReadToken(); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := consumeJSONObjectEnd(dec, SourceBytes(`{"a":1`), FilePath("f.json")); err == nil {
-		t.Fatal("expected")
-	}
+	assertJSONObjectEnd(t, SourceBytes(`{"a":1`), true)
 }
 
 func TestJSONKeyLineNestedContainers(t *testing.T) {

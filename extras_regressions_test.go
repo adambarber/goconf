@@ -1,9 +1,6 @@
 package goconf
 
-import (
-	"errors"
-	"testing"
-)
+import "testing"
 
 type (
 	overflowInt int8
@@ -14,20 +11,7 @@ type (
 )
 
 func TestExtrasJSONIntOverflowRefused(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"n":99999,"x":"y"}`)},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[overflowDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
-
-	if !errors.Is(err, ErrTypeMismatch) {
-		t.Fatalf("err = %v, want ErrTypeMismatch", err)
-	}
+	refuseBytesReason[overflowDoc](t, SourceBytes(`{"n":99999,"x":"y"}`), FormatJSON, ErrTypeMismatch)
 }
 
 type fixedArrDoc struct {
@@ -36,33 +20,11 @@ type fixedArrDoc struct {
 }
 
 func TestExtrasJSONFixedArrayOverflowRefused(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"arr":[1,2,3],"x":"y"}`)},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[fixedArrDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
+	refuseBytes[fixedArrDoc](t, SourceBytes(`{"arr":[1,2,3],"x":"y"}`), FormatJSON, WantText("expected refusal"))
 }
 
 func TestExtrasJSONRootShapeRefusedAsNotAMapping(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`[1,2,3]`)},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[resourceDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
-
-	if !errors.Is(err, ErrNotAMapping) {
-		t.Fatalf("err = %v, want ErrNotAMapping", err)
-	}
+	refuseBytesReason[resourceDoc](t, SourceBytes(`[1,2,3]`), FormatJSON, ErrNotAMapping)
 }
 
 type yamlIntExtraDoc struct {
@@ -71,20 +33,7 @@ type yamlIntExtraDoc struct {
 }
 
 func TestExtrasYAMLTypeMismatchRefused(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("n: hello\nx: y\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[yamlIntExtraDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
-
-	if !errors.Is(err, ErrTypeMismatch) {
-		t.Fatalf("err = %v, want ErrTypeMismatch", err)
-	}
+	refuseBytesReason[yamlIntExtraDoc](t, SourceBytes("n: hello\nx: y\n"), FormatYAML, ErrTypeMismatch)
 }
 
 type tomlTypedExtraDoc struct {
@@ -96,37 +45,11 @@ type tomlTypedExtraDoc struct {
 }
 
 func TestExtrasTOMLTypedValueMismatchRefused(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameTOML: SourceBytes("[resource]\nname = \"r\"\nkind = \"k\"\n[resource.provider]\nregion = \"us\"\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[tomlTypedExtraDoc](Spec{Name: configName("app"), Format: FormatTOML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
-
-	if !errors.Is(err, ErrTypeMismatch) {
-		t.Fatalf("err = %v, want ErrTypeMismatch", err)
-	}
+	refuseBytesReason[tomlTypedExtraDoc](t, SourceBytes("[resource]\nname = \"r\"\nkind = \"k\"\n[resource.provider]\nregion = \"us\"\n"), FormatTOML, ErrTypeMismatch)
 }
 
 func TestExtrasYAMLDuplicateKeyRefused(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("n: 1\nx: a\nx: b\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[yamlIntExtraDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
-
-	if !errors.Is(err, ErrDuplicateKey) {
-		t.Fatalf("err = %v, want ErrDuplicateKey", err)
-	}
+	refuseBytesReason[yamlIntExtraDoc](t, SourceBytes("n: 1\nx: a\nx: b\n"), FormatYAML, ErrDuplicateKey)
 }
 
 type float32ExtraDoc struct {
@@ -135,52 +58,13 @@ type float32ExtraDoc struct {
 }
 
 func TestExtrasJSONFloat32OverflowRefused(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"f":1e39,"x":"y"}`)},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[float32ExtraDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
-
-	if !errors.Is(err, ErrTypeMismatch) {
-		t.Fatalf("err = %v, want ErrTypeMismatch", err)
-	}
+	refuseBytesReason[float32ExtraDoc](t, SourceBytes(`{"f":1e39,"x":"y"}`), FormatJSON, ErrTypeMismatch)
 }
 
 func TestExtrasTOMLIntToStringExtraRefused(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameTOML: SourceBytes("[resource]\nname = \"r\"\nkind = \"k\"\nextra_num = 65\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[resourceDoc](Spec{Name: configName("app"), Format: FormatTOML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
-
-	if !errors.Is(err, ErrTypeMismatch) {
-		t.Fatalf("err = %v, want ErrTypeMismatch", err)
-	}
+	refuseBytesReason[resourceDoc](t, SourceBytes("[resource]\nname = \"r\"\nkind = \"k\"\nextra_num = 65\n"), FormatTOML, ErrTypeMismatch)
 }
 
 func TestExtrasYAMLRootSequenceNotAMapping(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("- a\n- b\n")},
-	})
-	t.Chdir(string(root))
-
-	_, _, err := Load[yamlIntExtraDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
-
-	if !errors.Is(err, ErrNotAMapping) {
-		t.Fatalf("err = %v, want ErrNotAMapping", err)
-	}
+	refuseBytesReason[yamlIntExtraDoc](t, SourceBytes("- a\n- b\n"), FormatYAML, ErrNotAMapping)
 }

@@ -3,28 +3,7 @@ package goconf
 import "testing"
 
 func TestLoadWithMetaYAMLMergeSequence(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameYAML: SourceBytes("b1: &b1\n  x: 1\n  y: 1\nb2: &b2\n  y: 2\n  z: 2\na:\n  <<: [*b1, *b2]\n  z: 3\n")},
-	})
-	t.Chdir(string(root))
-
-	type inner struct {
-		X int `yaml:"x"`
-		Y int `yaml:"y"`
-		Z int `yaml:"z"`
-	}
-
-	type cfg struct {
-		B1 inner `yaml:"b1"`
-		B2 inner `yaml:"b2"`
-		A  inner `yaml:"a"`
-	}
-
-	got, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatYAML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	got, meta := loadMetaGlobal[metaMergeSeqCfg](t, SourceBytes("b1: &b1\n  x: 1\n  y: 1\nb2: &b2\n  y: 2\n  z: 2\na:\n  <<: [*b1, *b2]\n  z: 3\n"), FormatYAML)
 
 	if got.A.X != 1 || got.A.Y != 1 || got.A.Z != 3 {
 		t.Fatalf("a=%#v", got.A)
@@ -36,21 +15,7 @@ func TestLoadWithMetaYAMLMergeSequence(t *testing.T) {
 }
 
 func TestLoadWithMetaTOMLLineTricky(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameTOML: SourceBytes("# name = \"comment\"\nname = \"real\"\nother = \"name = fake\"\n")},
-	})
-	t.Chdir(string(root))
-
-	type cfg struct {
-		Name  mstr `toml:"name"`
-		Other mstr `toml:"other"`
-	}
-
-	_, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatTOML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	_, meta := loadMetaGlobal[metaNameOtherCfg](t, SourceBytes("# name = \"comment\"\nname = \"real\"\nother = \"name = fake\"\n"), FormatTOML)
 
 	name := meta.BySchemaPath("name")
 	if len(name) != 1 || name[0].Line != 2 {

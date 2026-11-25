@@ -35,24 +35,7 @@ func TestLoadWithMetaYAMLBasic(t *testing.T) {
 }
 
 func TestLoadWithMetaJSONArrayOccurrences(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameJSON: SourceBytes("{\n  \"items\": [\n    {\"name\": \"a\"},\n    {\"name\": \"b\"}\n  ]\n}\n")},
-	})
-	t.Chdir(string(root))
-
-	type item struct {
-		Name mstr `json:"name"`
-	}
-
-	type cfg struct {
-		Items []item `json:"items"`
-	}
-
-	got, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatJSON},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	got, meta := loadMetaGlobal[metaItemsCfg](t, SourceBytes("{\n  \"items\": [\n    {\"name\": \"a\"},\n    {\"name\": \"b\"}\n  ]\n}\n"), FormatJSON)
 
 	if len(got.Items) != 2 || got.Items[0].Name != "a" || got.Items[1].Name != "b" {
 		t.Fatalf("got %+v", got)
@@ -68,16 +51,12 @@ func assertJSONArrayOccurrences(t *testing.T, meta Meta) {
 		t.Fatalf("element paths: %#v", meta.Entries())
 	}
 
-	const pathItems0Name OccurrencePath = "items[0].name"
-
-	const pathItems1Name OccurrencePath = "items[1].name"
-
 	sn := meta.BySchemaPath("items.name")
-	if len(sn) != 2 || sn[0].Path != pathItems0Name || sn[1].Path != pathItems1Name {
+	if len(sn) != 2 || sn[0].Path != metaPathItems0Name || sn[1].Path != metaPathItems1Name {
 		t.Fatalf("schema order/paths: %#v", sn)
 	}
 
-	if occ, ok := meta.AtSchema("items.name", 1); !ok || occ.Path != pathItems1Name {
+	if occ, ok := meta.AtSchema("items.name", 1); !ok || occ.Path != metaPathItems1Name {
 		t.Fatalf("AtSchema: %+v %v", occ, ok)
 	}
 }
@@ -120,22 +99,7 @@ func assertMergeLayersMeta(t *testing.T, region mstr, prov []Provenance, meta Me
 }
 
 func TestLoadWithMetaDynamicAndExtras(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameJSON: SourceBytes("{\"env\":{\"A\":\"1\"},\"extra\":\"x\",\"name\":\"n\"}\n")},
-	})
-	t.Chdir(string(root))
-
-	type cfg struct {
-		Env   map[mstr]mstr `goconf:"dynamic" json:"env"`
-		Extra map[mstr]mstr `goconf:"extras"  json:"-"`
-		Name  mstr          `json:"name"`
-	}
-
-	_, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatJSON},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	_, meta := loadMetaGlobal[metaDynamicJSONCfg](t, SourceBytes("{\"env\":{\"A\":\"1\"},\"extra\":\"x\",\"name\":\"n\"}\n"), FormatJSON)
 
 	if len(meta.ByPath("env.A")) != 1 {
 		t.Fatalf("dynamic key missing: %#v", meta.Entries())
@@ -147,24 +111,7 @@ func TestLoadWithMetaDynamicAndExtras(t *testing.T) {
 }
 
 func TestLoadWithMetaTOMLAOT(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameTOML: SourceBytes("[[items]]\nname = \"a\"\n\n[[items]]\nname = \"b\"\n")},
-	})
-	t.Chdir(string(root))
-
-	type item struct {
-		Name mstr `toml:"name"`
-	}
-
-	type cfg struct {
-		Items []item `toml:"items"`
-	}
-
-	got, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatTOML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	got, meta := loadMetaGlobal[metaTOMLItemsCfg](t, SourceBytes("[[items]]\nname = \"a\"\n\n[[items]]\nname = \"b\"\n"), FormatTOML)
 
 	if len(got.Items) != 2 || got.Items[0].Name != "a" || got.Items[1].Name != "b" {
 		t.Fatalf("got %+v", got)

@@ -1,12 +1,19 @@
 package goconf
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 // ConfigTarget is the closed set of config structs the shared load helpers fill.
 type ConfigTarget interface {
 	loadCfg | resourceDoc | envCfg | nestedDynCfg | dynExtrasDoc | yamlMapDoc |
 		jsonUnknownExtrasDoc | intExtrasDoc | int8ExtrasDoc | uintExtrasDoc |
-		floatExtrasDoc | boolExtrasDoc
+		floatExtrasDoc | boolExtrasDoc | sliceExtrasDoc | structExtrasDoc |
+		float32ExtrasDoc | mapExtrasDoc | ptrExtrasDoc | mapFieldDoc |
+		overflowDoc | fixedArrDoc | yamlIntExtraDoc | tomlTypedExtraDoc | float32ExtraDoc |
+		metaItemsCfg | metaNumsCfg | metaMergeCfg | metaMergeSeqCfg | metaNameOtherCfg |
+		metaDynamicJSONCfg | metaExtrasTOMLCfg | metaRegionRetriesCfg | metaTOMLItemsCfg | mrcfg | muCfg
 }
 
 // jsonUnknownExtrasDoc is the shared target for nested unknown-field tests.
@@ -60,4 +67,18 @@ func refuseBytesErr[T ConfigTarget](t *testing.T, data SourceBytes, format Forma
 	_, err := loadBytes[T](t, data, format)
 
 	return err
+}
+
+// refuseBytesReason checks both that a source is refused and why.
+func refuseBytesReason[T ConfigTarget](t *testing.T, data SourceBytes, format Format, want Reason) {
+	t.Helper()
+
+	err := refuseBytesErr[T](t, data, format)
+	if err == nil {
+		t.Fatalf("expected refusal with reason %v", want)
+	}
+
+	if !errors.Is(err, want) {
+		t.Fatalf("err = %v, want %v", err, want)
+	}
 }

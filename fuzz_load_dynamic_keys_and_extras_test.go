@@ -1,9 +1,6 @@
 package goconf
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 type fuzzExtrasInner struct {
 	Extra map[extraKey]extraVal `goconf:"extras" json:"-"    toml:"-"    yaml:"-"`
@@ -17,7 +14,7 @@ type fuzzExtrasCfg struct {
 }
 
 func FuzzLoadDynamicKeysAndExtras(f *testing.F) {
-	seeds := []string{
+	seeds := fuzzSeeds{
 		`{"resource":{"name":"r","x":"y"},"dynamic":{"k":{"host":"h","port":1}},"top":"v"}`,
 		"resource:\n  name: r\n  x: y\ndynamic:\n  k:\n    host: h\n    port: 1\ntop: v\n",
 		"[resource]\nname = \"r\"\nx = \"y\"\n[dynamic.k]\nhost = \"h\"\nport = 1\ntop = \"v\"\n",
@@ -31,12 +28,10 @@ func FuzzLoadDynamicKeysAndExtras(f *testing.F) {
 		`{"resource":{"name":"r","name":"dup"}}`,
 		"resource:\n  name: r\n  name: r\n",
 	}
-	for _, seed := range seeds {
-		f.Add([]byte(seed))
-	}
+	addFuzzSeeds(f, seeds)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		for _, format := range []Format{FormatJSON, FormatYAML, FormatTOML} {
+		for _, format := range fuzzFormats() {
 			runFuzzDynamicExtrasLeg(t, data, format)
 		}
 	})
@@ -48,39 +43,10 @@ func runFuzzDynamicExtrasLeg(t *testing.T, data []byte, format Format) {
 	errOf := func(bytes []byte) refusalText {
 		t.Helper()
 
-		dir := t.TempDir()
-		_ = writeFileAt(t, DirPath(dir), FileName("app"+string(format)), SourceBytes(bytes))
+		_, _, err := LoadBytes[fuzzExtrasCfg](bytes, Spec{Name: configName("app"), Format: format})
 
-		_, _, err := Load[fuzzExtrasCfg](Spec{Name: configName("app"), Format: format},
-			WithSearchPaths(DirPath(dir)))
-		if err == nil {
-			return ""
-		}
-
-		_, tail, cut := strings.Cut(err.Error(), "/app"+string(format))
-		if !cut {
-			return refusalText(err.Error())
-		}
-
-		return refusalText(tail)
+		return fuzzRefusal(err)
 	}
 
-	refusal := errOf(data)
-	if refusal == "" {
-		return
-	}
-
-	if !strings.Contains(string(data), fuzzSentinel) {
-		return
-	}
-
-	twinRefusal := errOf([]byte(strings.ReplaceAll(string(data), fuzzSentinel, fuzzTwin)))
-
-	placeholder := func(msg refusalText) refusalText {
-		return refusalText(strings.ReplaceAll(strings.ReplaceAll(string(msg), fuzzSentinel, "#"), fuzzTwin, "#"))
-	}
-
-	if string(placeholder(stripQuotedFuzz(refusal))) != string(placeholder(stripQuotedFuzz(twinRefusal))) {
-		t.Fatalf("refusal is not substitution-stable (value echo):\n got: %s\ntwin: %s", refusal, twinRefusal)
-	}
+	assertFuzzRefusalOracle(t, data, errOf)
 }

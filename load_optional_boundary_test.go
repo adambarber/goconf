@@ -2,8 +2,6 @@ package goconf
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -30,23 +28,8 @@ func TestUnlistableDirWithOptionStillRefused(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
 	t.Chdir(string(root))
 
-	unlistable := filepath.Join(string(root), "unlistable")
-	if err := os.MkdirAll(unlistable, 0); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-
-	if err := os.Chmod(unlistable, 0); err != nil {
-		t.Fatalf("chmod: %v", err)
-	}
-
-	defer func() {
-		if rmErr := os.Remove(unlistable); rmErr != nil {
-			t.Logf("cleanup remove: %v", rmErr)
-		}
-	}()
-
 	_, _, err := Load[loadCfg](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(unlistable)), WithOptionalConfig())
+		WithSearchPaths(unlistableDir(t, root)), WithOptionalConfig())
 	if err == nil {
 		t.Fatalf("an unlistable directory is a fault, not absence; must refuse")
 	}

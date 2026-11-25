@@ -44,118 +44,64 @@ type sliceExtrasDoc struct {
 }
 
 func TestExtrasTypedIntJSON(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"name":"r","n":42}`)},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[intExtrasDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || got.Extra["n"] != 42 {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[intExtrasDoc](t, SourceBytes(`{"name":"r","n":42}`), FormatJSON)
+	if got.Extra["n"] != 42 {
+		t.Fatalf("got=%v", got)
 	}
 }
 
 func TestExtrasTypedBoolJSON(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"name":"r","flag":true}`)},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[boolExtrasDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || !bool(got.Extra["flag"]) {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[boolExtrasDoc](t, SourceBytes(`{"name":"r","flag":true}`), FormatJSON)
+	if !bool(got.Extra["flag"]) {
+		t.Fatalf("got=%v", got)
 	}
 }
 
 func TestExtrasTypedFloatJSON(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"name":"r","f":1.5}`)},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[floatExtrasDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || got.Extra["f"] != 1.5 {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[floatExtrasDoc](t, SourceBytes(`{"name":"r","f":1.5}`), FormatJSON)
+	if got.Extra["f"] != 1.5 {
+		t.Fatalf("got=%v", got)
 	}
 }
 
 func TestExtrasTypedUintJSON(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"name":"r","u":7}`)},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[uintExtrasDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || got.Extra["u"] != 7 {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[uintExtrasDoc](t, SourceBytes(`{"name":"r","u":7}`), FormatJSON)
+	if got.Extra["u"] != 7 {
+		t.Fatalf("got=%v", got)
 	}
 }
 
 func TestExtrasTypedSliceJSON(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameJSON: SourceBytes(`{"name":"r","items":["a","b"]}`)},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[sliceExtrasDoc](Spec{Name: configName("app"), Format: FormatJSON},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || len(got.Extra["items"]) != 2 || got.Extra["items"][0] != "a" {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[sliceExtrasDoc](t, SourceBytes(`{"name":"r","items":["a","b"]}`), FormatJSON)
+	if len(got.Extra["items"]) != 2 || got.Extra["items"][0] != "a" {
+		t.Fatalf("got=%v", got)
 	}
 }
 
 func TestExtrasTypedIntYAML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("name: r\nn: 42\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[intExtrasDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || got.Extra["n"] != 42 {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[intExtrasDoc](t, SourceBytes("name: r\nn: 42\n"), FormatYAML)
+	if got.Extra["n"] != 42 {
+		t.Fatalf("got=%v", got)
 	}
 }
 
 func TestExtrasTypedBoolYAML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("name: r\nflag: true\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[boolExtrasDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || !bool(got.Extra["flag"]) {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[boolExtrasDoc](t, SourceBytes("name: r\nflag: true\n"), FormatYAML)
+	if !bool(got.Extra["flag"]) {
+		t.Fatalf("got=%v", got)
 	}
 }
 
 func TestExtrasTypedFloatYAML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("name: r\nf: 1.5\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[floatExtrasDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || got.Extra["f"] != 1.5 {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[floatExtrasDoc](t, SourceBytes("name: r\nf: 1.5\n"), FormatYAML)
+	if got.Extra["f"] != 1.5 {
+		t.Fatalf("got=%v", got)
 	}
 }
 
 func TestExtrasTypedSliceYAML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("name: r\nitems:\n  - a\n  - b\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[sliceExtrasDoc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || len(got.Extra["items"]) != 2 || got.Extra["items"][0] != "a" {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[sliceExtrasDoc](t, SourceBytes("name: r\nitems:\n  - a\n  - b\n"), FormatYAML)
+	if len(got.Extra["items"]) != 2 || got.Extra["items"][0] != "a" {
+		t.Fatalf("got=%v", got)
 	}
 }

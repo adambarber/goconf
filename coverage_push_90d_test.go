@@ -56,37 +56,12 @@ func TestLineAtByteBounds(t *testing.T) {
 }
 
 func TestConsumeJSONObjectEndOK(t *testing.T) {
-	dec := jsonObjectDecoder(t, SourceBytes(`{"a":1}`))
-
-	if _, err := decodeJSONObjectKey(dec, SourceBytes(`{"a":1}`), FilePath("f.json")); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := dec.ReadToken(); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := consumeJSONObjectEnd(dec, SourceBytes(`{"a":1}`), FilePath("f.json")); err != nil {
-		t.Fatal(err)
-	}
+	assertJSONObjectEnd(t, SourceBytes(`{"a":1}`), false)
 }
 
 func TestYAMLPopulateMapNodeNestedMapping(t *testing.T) {
-	type inner map[extraKey]extraVal
-
-	type doc struct {
-		Extra map[extraKey]extraVal `goconf:"extras" yaml:"-"`
-		M     inner                 `yaml:"m"`
-	}
-
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		"": {fileNameYAML: SourceBytes("m:\n  a: b\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, err := Load[doc](Spec{Name: configName("app"), Format: FormatYAML},
-		WithSearchPaths(DirPath(string(root))))
-	if err != nil || got.M["a"] != "b" {
-		t.Fatalf("got=%v err=%v", got, err)
+	got := loadBytesOK[yamlMapDoc](t, SourceBytes("m:\n  a: b\n"), FormatYAML)
+	if got.M["a"] != "b" {
+		t.Fatalf("got=%v", got)
 	}
 }

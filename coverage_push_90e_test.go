@@ -6,12 +6,7 @@ import (
 )
 
 func TestYAMLPopulateMapNodeRootMismatch(t *testing.T) {
-	root := yamlContentNode(t, SourceText("- a\n"))
-
-	dst := reflect.MakeMap(reflect.MapOf(reflect.TypeFor[extraKey](), reflect.TypeFor[extraVal]()))
-	if err := yamlPopulateMapNode(root, dst, FilePath("f.yaml"), ""); err == nil {
-		t.Fatal("expected")
-	}
+	assertYAMLPopulateMapRefused(t, SourceText("- a\n"), "")
 }
 
 func TestYAMLWantKindMoreCoverage(t *testing.T) {

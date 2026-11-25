@@ -3,7 +3,6 @@ package goconf
 import (
 	"errors"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/adambarber/gorefuse"
@@ -69,20 +68,7 @@ func TestIOFaultsThroughLoadCarryReasonIO(t *testing.T) {
 	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
 	t.Chdir(string(root))
 
-	unlistable := filepath.Join(string(root), "unlistable")
-	if err := os.MkdirAll(unlistable, 0); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-
-	if err := os.Chmod(unlistable, 0); err != nil {
-		t.Fatalf("chmod: %v", err)
-	}
-
-	defer func() {
-		_ = os.Remove(unlistable)
-	}()
-
-	_, err := discover(Discovery{Search: []DirPath{DirPath(unlistable)}, Name: configName("app"), Format: FormatJSON})
+	_, err := discover(Discovery{Search: []DirPath{unlistableDir(t, root)}, Name: configName("app"), Format: FormatJSON})
 	if err == nil {
 		t.Fatalf("unlistable directory must be refused")
 	}

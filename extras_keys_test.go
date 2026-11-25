@@ -27,37 +27,19 @@ const testProvider = "aws"
 func TestExtrasJSON(t *testing.T) {
 	got := loadResourceOK(t, SourceBytes(`{"resource":{"name":"r","kind":"k","provider":"`+testProvider+`"}}`), FormatJSON)
 
-	if got.Resource.Name != "r" || got.Resource.Kind != "k" {
-		t.Fatalf("fixed: %#v", got.Resource)
-	}
-
-	if got.Resource.Extra[extraKey("provider")] != extraVal(testProvider) {
-		t.Fatalf("extra provider = %#v", got.Resource.Extra[extraKey("provider")])
-	}
+	assertResourceExtras(t, got)
 }
 
 func TestExtrasYAML(t *testing.T) {
 	got := loadResourceOK(t, SourceBytes("resource:\n  name: r\n  kind: k\n  provider: aws\n"), FormatYAML)
 
-	if got.Resource.Name != "r" || got.Resource.Kind != "k" {
-		t.Fatalf("fixed: %#v", got.Resource)
-	}
-
-	if got.Resource.Extra[extraKey("provider")] != extraVal(testProvider) {
-		t.Fatalf("extra provider = %#v", got.Resource.Extra[extraKey("provider")])
-	}
+	assertResourceExtras(t, got)
 }
 
 func TestExtrasTOML(t *testing.T) {
 	got := loadResourceOK(t, SourceBytes("[resource]\nname = \"r\"\nkind = \"k\"\nprovider = \"aws\"\n"), FormatTOML)
 
-	if got.Resource.Name != "r" || got.Resource.Kind != "k" {
-		t.Fatalf("fixed: %#v", got.Resource)
-	}
-
-	if got.Resource.Extra[extraKey("provider")] != extraVal(testProvider) {
-		t.Fatalf("extra provider = %#v", got.Resource.Extra[extraKey("provider")])
-	}
+	assertResourceExtras(t, got)
 }
 
 func TestExtrasFixedFieldPrecedenceJSON(t *testing.T) {
@@ -72,17 +54,8 @@ func TestExtrasFixedFieldPrecedenceJSON(t *testing.T) {
 	}
 }
 
-type strictA string
-
 func TestUnknownOutsideExtrasStillRefused(t *testing.T) {
-	type strict struct {
-		A strictA `json:"a" toml:"a" yaml:"a"`
-	}
-
-	_, _, err := LoadBytes[strict]([]byte(`{"a":"x","b":"y"}`), Spec{Name: configName("app"), Format: FormatJSON})
-	if err == nil {
-		t.Fatal("expected refusal")
-	}
+	refuseBytes[loadCfg](t, SourceBytes(`{"region":"eu","b":"y"}`), FormatJSON, WantText("expected refusal"))
 }
 
 func TestExtrasYAMLPrecedence(t *testing.T) {

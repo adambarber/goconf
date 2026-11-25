@@ -3,58 +3,19 @@ package goconf
 import "testing"
 
 func TestMetaArrayUniformityTOMLAOT(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameTOML: SourceBytes("[[items]]\nname = \"a\"\n\n[[items]]\nname = \"b\"\n")},
-	})
-	t.Chdir(string(root))
-
-	type cfg struct {
-		Items []muItem `toml:"items"`
-	}
-
-	_, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatTOML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	_, meta := loadMetaGlobal[muCfg](t, SourceBytes("[[items]]\nname = \"a\"\n\n[[items]]\nname = \"b\"\n"), FormatTOML)
 
 	assertArrayOfObjectsShape(t, meta)
 }
 
 func TestMetaArrayUniformityTOMLInlineScalar(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameTOML: SourceBytes("nums = [1, 2, 3]\n")},
-	})
-	t.Chdir(string(root))
-
-	type cfg struct {
-		Nums []int `toml:"nums"`
-	}
-
-	_, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatTOML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	_, meta := loadMetaGlobal[muCfg](t, SourceBytes("nums = [1, 2, 3]\n"), FormatTOML)
 
 	assertArrayContainerAndElements(t, meta, "nums", 3, false)
 }
 
 func TestMetaArrayUniformityTOMLInlineTableArray(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameTOML: SourceBytes("items = [{name=\"a\"}, {name=\"b\"}]\n")},
-	})
-	t.Chdir(string(root))
-
-	type cfg struct {
-		Items []muItem `toml:"items"`
-	}
-
-	_, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatTOML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	_, meta := loadMetaGlobal[muCfg](t, SourceBytes("items = [{name=\"a\"}, {name=\"b\"}]\n"), FormatTOML)
 
 	assertArrayOfObjectsShape(t, meta)
 }

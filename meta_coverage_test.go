@@ -3,31 +3,10 @@ package goconf
 import "testing"
 
 func TestLoadWithMetaYAMLArrayOccurrences(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameYAML: SourceBytes("items:\n  - name: a\n  - name: b\n")},
-	})
-	t.Chdir(string(root))
-
-	type item struct {
-		Name mstr `yaml:"name"`
-	}
-
-	type cfg struct {
-		Items []item `yaml:"items"`
-	}
-
-	_, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatYAML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
-
-	const pathItems0Name OccurrencePath = "items[0].name"
-
-	const pathItems1Name OccurrencePath = "items[1].name"
+	_, meta := loadMetaGlobal[metaItemsCfg](t, SourceBytes("items:\n  - name: a\n  - name: b\n"), FormatYAML)
 
 	sn := meta.BySchemaPath("items.name")
-	if len(sn) != 2 || sn[0].Path != pathItems0Name || sn[1].Path != pathItems1Name {
+	if len(sn) != 2 || sn[0].Path != metaPathItems0Name || sn[1].Path != metaPathItems1Name {
 		t.Fatalf("entries=%#v", meta.Entries())
 	}
 
@@ -37,21 +16,7 @@ func TestLoadWithMetaYAMLArrayOccurrences(t *testing.T) {
 }
 
 func TestLoadWithMetaExtrasTOML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameTOML: SourceBytes("name = \"n\"\nextra = \"x\"\n")},
-	})
-	t.Chdir(string(root))
-
-	type cfg struct {
-		Extra map[mstr]mstr `goconf:"extras" toml:"-"`
-		Name  mstr          `toml:"name"`
-	}
-
-	_, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatTOML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	_, meta := loadMetaGlobal[metaExtrasTOMLCfg](t, SourceBytes("name = \"n\"\nextra = \"x\"\n"), FormatTOML)
 
 	if len(meta.BySchemaPath("extra")) != 1 {
 		t.Fatalf("entries=%#v", meta.Entries())
@@ -59,20 +24,7 @@ func TestLoadWithMetaExtrasTOML(t *testing.T) {
 }
 
 func TestLoadWithMetaDynamicYAML(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameYAML: SourceBytes("env:\n  A: \"1\"\n")},
-	})
-	t.Chdir(string(root))
-
-	type cfg struct {
-		Env map[mstr]mstr `goconf:"dynamic" yaml:"env"`
-	}
-
-	_, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatYAML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	_, meta := loadMetaGlobal[metaDynamicJSONCfg](t, SourceBytes("env:\n  A: \"1\"\n"), FormatYAML)
 
 	if len(meta.ByPath("env.A")) != 1 {
 		t.Fatalf("entries=%#v", meta.Entries())
@@ -80,21 +32,8 @@ func TestLoadWithMetaDynamicYAML(t *testing.T) {
 }
 
 func TestLoadWithMetaDefaultsEffective(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameJSON: SourceBytes("{\"region\":\"eu\"}\n")},
-	})
-	t.Chdir(string(root))
-
-	type cfg struct {
-		Region  mstr `json:"region"`
-		Retries int  `json:"retries"`
-	}
-
-	got, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatJSON},
-		append(loadOpts(globalPathOf(root)), WithDefaults(cfg{Region: "d", Retries: 5}))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	got, meta := loadMetaGlobal[metaRegionRetriesCfg](t, SourceBytes("{\"region\":\"eu\"}\n"), FormatJSON,
+		WithDefaults(metaRegionRetriesCfg{Region: "d", Retries: 5}))
 
 	if got.Region != "eu" || got.Retries != 5 {
 		t.Fatalf("got=%+v", got)

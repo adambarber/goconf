@@ -26,13 +26,7 @@ func TestDiscoverExtensionBoundary(t *testing.T) {
 // TestDiscoverEmptyRefusal: a load that found nothing loaded nothing.
 // Zero files after discovery is an error naming every searched path.
 func TestDiscoverEmptyRefusal(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
-	paths := legPaths(root, dirGlobal, dirLocal)
-
-	_, err := discover(Discovery{Search: paths, Name: configName("app"), Format: FormatJSON})
-	if err == nil {
-		t.Fatalf("empty discovery must be refused")
-	}
+	err, paths := emptyDiscoveryRefusal(t, dirGlobal, dirLocal)
 
 	for _, p := range paths {
 		if !strings.Contains(err.Error(), string(p)) {

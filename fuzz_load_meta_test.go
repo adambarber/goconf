@@ -6,25 +6,20 @@ import (
 )
 
 func FuzzLoadWithMeta(f *testing.F) {
-	seeds := []string{
-		`{"region":"eu","nested":{"host":"h","port":1}}`,
-		"region: eu\nnested:\n  host: h\n  port: 1\n",
-		"region = \"eu\"\n\n[nested]\nhost = \"h\"\nport = 1\n",
+	seeds := append(fuzzGoldenSeeds(),
 		`{"items":[{"name":"a"},{"name":"b"}]}`,
 		"items:\n  - name: a\n  - name: b\n",
 		"[[items]]\nname = \"a\"\n[[items]]\nname = \"b\"\n",
 		`{"a":{"b":1}}`,
 		"a = [1,2,3]\n",
 		"base: &b\n  x: 1\na:\n  <<: *b\n  y: 2\n",
-		``,
-		"\x00\x01",
-	}
-	for _, seed := range seeds {
-		f.Add([]byte(seed))
-	}
+	)
+	seeds = append(seeds, fuzzEdgeSeeds()...)
+
+	addFuzzSeeds(f, seeds)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		for _, format := range []Format{FormatJSON, FormatYAML, FormatTOML} {
+		for _, format := range fuzzFormats() {
 			runFuzzMetaLeg(t, data, format)
 		}
 	})

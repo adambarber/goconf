@@ -23,21 +23,12 @@ type mrcfg struct {
 }
 
 func TestLoadWithMetaTOMLNestedAOTIndexed(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameTOML: SourceBytes("" +
-			"[[servers]]\nname = \"s1\"\n" +
-			"[[servers.ports]]\nnum = 80\n" +
-			"[[servers.ports]]\nnum = 81\n" +
-			"[[servers]]\nname = \"s2\"\n" +
-			"[[servers.ports]]\nnum = 90\n")},
-	})
-	t.Chdir(string(root))
-
-	got, _, meta, err := LoadWithMeta[mrcfg](Spec{Name: configName("app"), Format: FormatTOML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	got, meta := loadMetaGlobal[mrcfg](t, SourceBytes(""+
+		"[[servers]]\nname = \"s1\"\n"+
+		"[[servers.ports]]\nnum = 80\n"+
+		"[[servers.ports]]\nnum = 81\n"+
+		"[[servers]]\nname = \"s2\"\n"+
+		"[[servers.ports]]\nnum = 90\n"), FormatTOML)
 
 	if len(got.Servers) != 2 || got.Servers[0].Name != "s1" || len(got.Servers[0].Ports) != 2 || got.Servers[0].Ports[0].Num != 80 || got.Servers[0].Ports[1].Num != 81 || got.Servers[1].Name != "s2" || len(got.Servers[1].Ports) != 1 || got.Servers[1].Ports[0].Num != 90 {
 		t.Fatalf("decoded=%#v", got)
@@ -85,20 +76,7 @@ func assertNestedAOTPaths(t *testing.T, meta Meta) {
 }
 
 func TestLoadWithMetaTOMLInlineArrayElements(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameTOML: SourceBytes("nums = [10, 20, 30]\n")},
-	})
-	t.Chdir(string(root))
-
-	type cfg struct {
-		Nums []int `toml:"nums"`
-	}
-
-	got, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatTOML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	got, meta := loadMetaGlobal[metaNumsCfg](t, SourceBytes("nums = [10, 20, 30]\n"), FormatTOML)
 
 	if len(got.Nums) != 3 || got.Nums[0] != 10 || got.Nums[1] != 20 || got.Nums[2] != 30 {
 		t.Fatalf("nums=%#v", got.Nums)
@@ -119,26 +97,7 @@ func TestLoadWithMetaTOMLInlineArrayElements(t *testing.T) {
 }
 
 func TestLoadWithMetaYAMLMergeKeyEffective(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{
-		dirGlobal: {fileNameYAML: SourceBytes("base: &base\n  x: 1\n  y: 2\na:\n  <<: *base\n  y: 3\n")},
-	})
-	t.Chdir(string(root))
-
-	type inner struct {
-		X int `yaml:"x"`
-		Y int `yaml:"y"`
-	}
-
-	type cfg struct {
-		Base inner `yaml:"base"`
-		A    inner `yaml:"a"`
-	}
-
-	got, _, meta, err := LoadWithMeta[cfg](Spec{Name: configName("app"), Format: FormatYAML},
-		loadOpts(globalPathOf(root))...)
-	if err != nil {
-		t.Fatalf("LoadWithMeta: %v", err)
-	}
+	got, meta := loadMetaGlobal[metaMergeCfg](t, SourceBytes("base: &base\n  x: 1\n  y: 2\na:\n  <<: *base\n  y: 3\n"), FormatYAML)
 
 	if got.A.X != 1 || got.A.Y != 3 {
 		t.Fatalf("a=%#v base=%#v", got.A, got.Base)

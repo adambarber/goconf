@@ -7,13 +7,7 @@ import (
 
 // TestNotFoundProseSpeaksToTheUser pins the not-found refusal shape.
 func TestNotFoundProseSpeaksToTheUser(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
-	t.Chdir(string(root))
-
-	_, err := discover(Discovery{Search: []DirPath{DirPath(string(root))}, Name: configName("app"), Format: FormatJSON})
-	if err == nil {
-		t.Fatalf("empty discovery must be refused")
-	}
+	err := notFoundRefusal(t)
 
 	for _, want := range []userSpan{
 		"no config file found",
@@ -36,13 +30,7 @@ func TestNotFoundProseSpeaksToTheUser(t *testing.T) {
 // double-label: the Reason already says "no config file found", so the
 // Subject carries only the looked-for names, the paths, and the action.
 func TestNotFoundLabelsTheFaultOnce(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
-	t.Chdir(string(root))
-
-	_, err := discover(Discovery{Search: []DirPath{DirPath(string(root))}, Name: configName("app"), Format: FormatJSON})
-	if err == nil {
-		t.Fatalf("empty discovery must be refused")
-	}
+	err := notFoundRefusal(t)
 
 	if got := strings.Count(err.Error(), "no config file"); got != 1 {
 		t.Fatalf("refusal %q says \"no config file\" %d times; one label", err, got)

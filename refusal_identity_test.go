@@ -51,13 +51,7 @@ func TestRefusalFrameNamesTheRealFile(t *testing.T) {
 // happened before any file exists carries no frame: gorefuse renders no
 // file:line prefix for a zero File, and no file is fabricated.
 func TestDiscoveryRefusalIsFrameless(t *testing.T) {
-	root := writeTree(t, map[searchDir]map[FileName]SourceBytes{})
-	paths := legPaths(root, dirGlobal, dirLocal)
-
-	_, err := discover(Discovery{Search: paths, Name: configName("app"), Format: FormatJSON})
-	if err == nil {
-		t.Fatalf("empty discovery must be refused")
-	}
+	err, _ := emptyDiscoveryRefusal(t, dirGlobal, dirLocal)
 
 	var because gorefuse.Because[Reason]
 	if !errors.As(err, &because) {
