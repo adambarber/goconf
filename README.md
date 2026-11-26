@@ -129,7 +129,9 @@ The full contract — discovery order, merge rules, per-format capabilities, met
 
 Pre-1.0. Unreleased on `main`; the next tag will be `v0.5.0` and the last tag is `v0.4.1`. The pending release adds `LoadBytes`, `Value`, `WithMaxBytes`, secret classification, and `WithEnv`. Documented contracts are pinned by tests.
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/adambarber/goconf)](https://pkg.go.dev/github.com/adambarber/goconf) [![codecov](https://codecov.io/gh/adambarber/goconf/branch/main/graph/badge.svg)](https://app.codecov.io/gh/adambarber/goconf)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/adambarber/goconf)](https://pkg.go.dev/github.com/adambarber/goconf) [![Release](https://img.shields.io/github/release/adambarber/goconf.svg?color=%23007ec6)](https://github.com/adambarber/goconf/releases/latest) [![test](https://github.com/adambarber/goconf/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/adambarber/goconf/actions/workflows/test.yml) [![lint](https://github.com/adambarber/goconf/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/adambarber/goconf/actions/workflows/lint.yml) [![coverage](https://raw.githubusercontent.com/adambarber/goconf/badges/.badges/main/coverage.svg)](.testcoverage.yml)
+
+The coverage badge is written by CI to the `badges` branch; it appears after that branch exists on the remote and the first `main` run completes.
 
 ## License
 

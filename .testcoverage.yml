@@ -1,0 +1,16 @@
+profile: cover.out
+
+threshold:
+  file: 70
+  package: 70
+  total: 85
+
+exclude:
+  paths:
+    - ^examples/
+    - ^policy/fixtures/
+    - ^uxprobe/
+    # Defensive token-read error branches in the extras decoder are not
+    # reachable from public document inputs.
+    - ^codec_json_extras\.go$
+    - ^codec_json_extras_key\.go$

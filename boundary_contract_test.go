@@ -41,6 +41,28 @@ func implicitScalarNode(value implicitScalar) *yaml.Node {
 
 // TestYAMLImplicitScalarFallback pins the untagged scalar resolver used when
 // yaml.v3 leaves a node without a resolved core tag.
+func assertYAMLNullScalars(t *testing.T) {
+	t.Helper()
+
+	for _, null := range []implicitScalar{"~", "null", "Null", "NULL", ""} {
+		if got := yamlScalarImplicit(implicitScalarNode(null)); got.IsValid() {
+			t.Fatalf("null value %q resolved to %v", null, got)
+		}
+	}
+}
+
+func assertYAMLBoolAndFloatScalars(t *testing.T) {
+	t.Helper()
+
+	if got := yamlScalarImplicit(implicitScalarNode("1.5")); !got.IsValid() || got.Float() != 1.5 {
+		t.Fatalf("float resolved to %v", got)
+	}
+
+	if got := yamlScalarImplicit(implicitScalarNode("true")); !got.IsValid() || !got.Bool() {
+		t.Fatalf("true resolved to %v", got)
+	}
+}
+
 func TestYAMLImplicitScalarFallback(t *testing.T) {
 	cases := []struct {
 		value implicitScalar
@@ -57,7 +79,6 @@ func TestYAMLImplicitScalarFallback(t *testing.T) {
 		}
 	}
 
-	if got := yamlScalarImplicit(implicitScalarNode("true")); !got.IsValid() || !got.Bool() {
-		t.Fatalf("true resolved to %v", got)
-	}
+	assertYAMLNullScalars(t)
+	assertYAMLBoolAndFloatScalars(t)
 }

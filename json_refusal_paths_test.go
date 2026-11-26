@@ -9,6 +9,11 @@ func TestJSONExtrasUnexpectedTokenRefusal(t *testing.T) {
 		SourceBytes(`{"resource":}`),
 		SourceBytes(`{"resource":[}`),
 		SourceBytes(`{"resource":{"name":}}`),
+		SourceBytes(`{"resource":`),
+		SourceBytes(`{"resource":{"name":`),
+		SourceBytes(`{"resource":[`),
+		SourceBytes(`{"resource":{"name":"a"`),
+		SourceBytes(`{"resource":{1:2}}`),
 	} {
 		_, _, err := LoadBytes[fuzzExtrasCfg](src, Spec{Name: configName("app"), Format: FormatJSON})
 		if err == nil {
