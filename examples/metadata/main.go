@@ -30,5 +30,6 @@ func main() {
 	}
 
 	occurrences := meta.ByPath(goconf.OccurrencePath("port"))
-	fmt.Println(occurrences[0].Path, occurrences[0].Line, occurrences[0].Effective)
+	fmt.Println(occurrences[0].Path, occurrences[0].Line, occurrences[0].Effective,
+		occurrences[0].LineConfidence == goconf.LineExact)
 }

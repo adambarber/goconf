@@ -1,6 +1,6 @@
 # goconf
 
-Strict, auditable config loading for Go: decode JSON, YAML, or TOML into one typed struct, with layered defaults, sha256 provenance, and per-occurrence source metadata.
+Strict, auditable config loading for Go: decode JSON, YAML, or TOML into one typed struct, with layered defaults, sha256 provenance, and per-occurrence source metadata that declares its own line confidence.
 
 `os.ReadFile` plus `json.Unmarshal` ignore unknown fields, resolve duplicates silently, and keep no record of which file contributed which value. goconf refuses what it cannot spell unambiguously and returns the evidence of what it loaded.
 
@@ -44,7 +44,7 @@ func main() {
 // eu 8080 1
 ```
 
-`prov[0]` names the source and carries the sha256 of the exact decoded bytes. `LoadBytes` shares `Load`'s strict decode rules, but `spec.Format` must name a format because in-memory bytes have no extension to infer from. `Load` discovers files in the working directory and the user config directory, with later layers overriding earlier ones field by field. Use `LoadWithMeta` to also get `Meta`: ordered occurrences with indexed and schema paths, key, line, file, source index, value, and whether each occurrence survived the merge.
+`prov[0]` names the source and carries the sha256 of the exact decoded bytes. `LoadBytes` shares `Load`'s strict decode rules, but `spec.Format` must name a format because in-memory bytes have no extension to infer from. `Load` discovers files in the working directory and the user config directory, with later layers overriding earlier ones field by field. Use `LoadWithMeta` to also get `Meta`: ordered occurrences with indexed and schema paths, key, line, declared line confidence, file, source index, value, and whether each occurrence survived the merge.
 
 ## At a glance
 
@@ -62,7 +62,7 @@ The standard library parses one document and returns the result; it does not say
 
 - **Fail loud.** An unknown key, duplicate key, ambiguous candidate, or symlink target outside the searched tree is refused by name. Symlink confinement is enforced on the descriptor that reads the bytes.
 - **Never echo a value.** Refusal text names keys, paths, formats, and line numbers, but never a config value — including fragments a third-party decoder tried to echo. This is fuzz-pinned across all three formats.
-- **Keep the evidence.** Every load returns the digest of every source, and `LoadWithMeta` returns the source line of each occurrence.
+- **Keep the evidence.** Every load returns the digest of every source, and `LoadWithMeta` returns the source line of each occurrence with `LineExact` for JSON/YAML or `LineHeuristic` for TOML.
 
 goconf is not a registry: no reload, no file watching, no secret store, and no decision about what your application should do with a refusal. It loads one config, strictly.
 
@@ -112,7 +112,7 @@ The full contract — discovery order, merge rules, per-format capabilities, met
 - An explicit null marks a key present and decodes to zero; defaults never override it. TOML has no null: a key is either present with a value or absent.
 - Repeated field names across different array elements are not duplication and decode fine.
 - An empty file is refused for JSON and YAML but loads as no settings for TOML.
-- TOML carries an exact source digest but best-effort line attribution: BurntSushi/toml v1 does not expose authoritative per-key positions. JSON lines come from token offsets and YAML lines from node lines.
+- TOML carries an exact source digest but heuristic line attribution: BurntSushi/toml v1 does not expose authoritative per-key positions. JSON lines come from token offsets and YAML lines from node lines. `Occurrence.LineConfidence` tells you which you are reading, so callers never have to guess from the format.
 - Loading from an `fs.FS` is not in the public API yet. Sources are files discovered on disk or bytes passed to `LoadBytes`.
 
 ## Examples

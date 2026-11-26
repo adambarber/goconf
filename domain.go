@@ -9,12 +9,6 @@ type FieldPath string
 // SourceBytes holds the raw bytes of one config source.
 type SourceBytes []byte
 
-// SourceText holds the raw text of one config source.
-type SourceText string
-
-// WantText is the test's own description of an expected refusal.
-type WantText string
-
 // Extension is a file extension including the leading dot: ".json".
 type Extension string
 

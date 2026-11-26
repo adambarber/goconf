@@ -13,7 +13,7 @@ compiled by `go test ./...` and was run with `go run ./examples/<name>`.
 | [`env_overlay`](env_overlay/main.go) | schema-bound `WithEnv` overlay | `eu 9090` |
 | [`optional_absence`](optional_absence/main.go) | `WithOptionalConfig` plus defaults | warning line, then `eu 8080` |
 | [`max_bytes`](max_bytes/main.go) | source-size refusal | `true` |
-| [`metadata`](metadata/main.go) | `LoadWithMeta` occurrence path, line, survival | `port 3 true` |
+| [`metadata`](metadata/main.go) | `LoadWithMeta` path, line, survival, line confidence | `port 3 true true` |
 | [`secrets`](secrets/main.go) | secret declaration and `Redact` | `{Token:[redacted]}` |
 | [`extras_dynamic`](extras_dynamic/main.go) | `extras` and `dynamic` maps | `app team eu` |
 | [`value`](value/main.go) | opaque TOML `Value` and `DecodeValue` | `42` |

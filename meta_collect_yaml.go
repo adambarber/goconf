@@ -9,7 +9,7 @@ import (
 )
 
 func collectYAMLMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.Type) (KeySet, []Occurrence, error) {
-	c := newMetaCollector(file, sourceIndex)
+	c := newMetaCollector(file, sourceIndex, LineExact)
 
 	docs, err := yamlDocuments(src, file)
 	if err != nil {

@@ -11,6 +11,15 @@ type SchemaPath FieldPath
 // OccurrenceKey is the leaf key or element name at an occurrence.
 type OccurrenceKey string
 
+// LineConfidence declares how authoritative Occurrence.Line is.
+type LineConfidence uint8
+
+const (
+	LineUnknown LineConfidence = iota
+	LineExact
+	LineHeuristic
+)
+
 // Occurrence is one per-occurrence record of a present key/value in a source.
 // Records are in document order per source; sources follow load order.
 type Occurrence struct {
@@ -28,6 +37,8 @@ type Occurrence struct {
 	SourceIndex int
 	// Line is the 1-based source line of this occurrence.
 	Line int
+	// LineConfidence declares whether Line is parser-derived or heuristic.
+	LineConfidence LineConfidence
 	// Effective reports contribution to the effective loaded config.
 	Effective bool
 }
@@ -87,14 +98,15 @@ func (m *Meta) AtSchema(path SchemaPath, index int) (Occurrence, bool) {
 func metaAt(matches []Occurrence, index int) (Occurrence, bool) {
 	if index < 0 || index >= len(matches) {
 		return Occurrence{
-			Value:       reflect.Value{},
-			File:        "",
-			Key:         "",
-			Path:        "",
-			SchemaPath:  "",
-			SourceIndex: 0,
-			Line:        0,
-			Effective:   false,
+			Value:          reflect.Value{},
+			File:           "",
+			Key:            "",
+			Path:           "",
+			SchemaPath:     "",
+			SourceIndex:    0,
+			Line:           0,
+			LineConfidence: LineUnknown,
+			Effective:      false,
 		}, false
 	}
 
@@ -128,28 +140,31 @@ type metaCollector struct {
 	file        FilePath
 	entries     []Occurrence
 	sourceIndex int
+	confidence  LineConfidence
 }
 
-func newMetaCollector(file FilePath, sourceIndex int) *metaCollector {
+func newMetaCollector(file FilePath, sourceIndex int, confidence LineConfidence) *metaCollector {
 	return &metaCollector{
 		keys:        KeySet{paths: nil},
 		entries:     nil,
 		file:        file,
 		sourceIndex: sourceIndex,
+		confidence:  confidence,
 	}
 }
 
 func (c *metaCollector) add(path OccurrencePath, schema SchemaPath, key OccurrenceKey, line int, value reflect.Value) {
 	c.keys = c.keys.Add(FieldPath(schema))
 	c.entries = append(c.entries, Occurrence{
-		Value:       value,
-		File:        c.file,
-		Key:         key,
-		Path:        path,
-		SchemaPath:  schema,
-		SourceIndex: c.sourceIndex,
-		Line:        line,
-		Effective:   false,
+		Value:          value,
+		File:           c.file,
+		Key:            key,
+		Path:           path,
+		SchemaPath:     schema,
+		SourceIndex:    c.sourceIndex,
+		Line:           line,
+		LineConfidence: c.confidence,
+		Effective:      false,
 	})
 }
 

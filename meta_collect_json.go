@@ -12,7 +12,7 @@ import (
 )
 
 func collectJSONMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.Type) (KeySet, []Occurrence, error) {
-	c := newMetaCollector(file, sourceIndex)
+	c := newMetaCollector(file, sourceIndex, LineExact)
 	dec := jsontext.NewDecoder(bytes.NewReader(src), jsontext.AllowDuplicateNames(true))
 
 	if err := jsonMetaConsume(dec, src, file, c, "", ""); err != nil {

@@ -15,7 +15,7 @@ const (
 type tomlPathKey string
 
 func collectTOMLMeta(src SourceBytes, file FilePath, sourceIndex int, t reflect.Type) (KeySet, []Occurrence, error) {
-	c := newMetaCollector(file, sourceIndex)
+	c := newMetaCollector(file, sourceIndex, LineHeuristic)
 
 	var raw tomlKeyMap
 
