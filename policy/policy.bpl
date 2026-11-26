@@ -8,6 +8,12 @@ ignore positiveFixtures {
     owner  = "platform"
 }
 
+ignore recipeClones {
+    paths  = ["examples/**"]
+    reason = "each recipe is a standalone copy-pasteable main.go; the repeated schema and load call are the point, not drift-prone production logic"
+    owner  = "platform"
+}
+
 ignore errorRendering {
     paths  = ["refusal.go"]
     reason = "the stdlib error interface's Error() string method set is the stdlib's spelling; the named-kind rule cannot apply to the two methods that satisfy it"
