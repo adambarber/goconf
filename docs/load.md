@@ -41,7 +41,9 @@ Leaving the format undetermined (the zero value) is documented behavior:
 discovery then demands that each directory hold exactly one candidate
 extension, and each discovered file is decoded through its own format, so
 search legs may legitimately mix formats (a global `.json` and a local
-`.toml` load together, later legs overriding earlier ones).
+`.toml` load together, later legs overriding earlier ones). `LoadBytes` has
+no file extension to infer from, so its caller must declare a format; it
+otherwise applies the same strict decode rules as `Load`.
 
 ## Discovery
 
@@ -87,12 +89,13 @@ caller opted in.
 
 ## Symlink confinement
 
-A candidate file whose symlink-resolved target leaves the directory that
-was searched is refused at read time: the refusal names the file and where
-it points. A symlink whose target stays inside the searched directory is a
-legitimate candidate and loads. Confinement lives in the read path
-(`readSources`), the one chokepoint every candidate's bytes pass through,
-so the window between check and read is minimal.
+A candidate file whose symlink target is absolute or resolves outside the
+directory that was searched is refused at read time: the refusal names the
+file and where it points. A relative symlink whose target stays inside the
+searched directory is a legitimate candidate and loads. Confinement lives
+in the read path (`readSources`), where `os.Root` ties the check to the
+descriptor used for the read; a link swapped between check and read cannot
+escape the tree.
 
 ## Error identity
 

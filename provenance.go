@@ -31,21 +31,25 @@ func provenanceOf(f FoundFile, data SourceBytes) Provenance {
 	return Provenance{Digest: digestOf(data), Path: f.Path}
 }
 
-// readSources reads every located file, in discovery order, naming the
-// full path on a read failure. Each file is confined at
-// read time so a symlink cannot smuggle bytes in from outside.
+// readSources reads every located file, in discovery order, refusing a read
+// failure with the full path. os.Root enforces symlink confinement on the
+// descriptor it reads, so a swap between check and read cannot escape.
 func readSources(files []FoundFile, limit byteCap) ([]SourceBytes, []Provenance, error) {
 	sources := make([]SourceBytes, 0, len(files))
-
 	prov := make([]Provenance, 0, len(files))
-	for _, f := range files {
-		if _, err := measureSource(f, limit); err != nil {
-			return nil, nil, err
-		}
 
-		raw, err := os.ReadFile(string(f.Path))
+	for _, f := range files {
+		root, err := os.OpenRoot(string(f.Leg))
 		if err != nil {
 			return nil, nil, ioReadRefusal(f.Path, err)
+		}
+
+		raw, err := readConfined(root, f, limit)
+		closeErr := root.Close()
+		_ = closeErr
+
+		if err != nil {
+			return nil, nil, err
 		}
 
 		sources = append(sources, raw)
@@ -55,28 +59,52 @@ func readSources(files []FoundFile, limit byteCap) ([]SourceBytes, []Provenance,
 	return sources, prov, nil
 }
 
-// measureSource confines and sizes one candidate before its bytes are read.
-func measureSource(f FoundFile, limit byteCap) (int64, error) {
+// readConfined measures and reads one candidate through a root-bound handle.
+func readConfined(root *os.Root, f FoundFile, limit byteCap) (SourceBytes, error) {
 	if err := confine(f.Path); err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	info, err := os.Stat(string(f.Path))
+	name := FileName(filepath.Base(string(f.Path)))
+
+	info, err := root.Stat(string(name))
 	if err != nil {
-		return 0, ioReadRefusal(f.Path, err)
+		return nil, confinedReadError(f, err)
 	}
 
 	if capErr := checkByteCap(int(info.Size()), f.Path, limit); capErr != nil {
-		return 0, capErr
+		return nil, capErr
 	}
 
-	return info.Size(), nil
+	raw, err := root.ReadFile(string(name))
+	if err != nil {
+		return nil, confinedReadError(f, err)
+	}
+
+	return raw, nil
 }
 
-// confine refuses a candidate file whose symlink-resolved target leaves the
-// searched directory. It is a best-effort check, not a TOCTOU guarantee.
+// confinedReadError keeps the user-facing confinement refusal when the root
+// rejects a path; a genuine IO fault keeps the plain read-fault text.
+func confinedReadError(f FoundFile, err error) error {
+	if confErr := confine(f.Path); confErr != nil {
+		return confErr
+	}
+
+	return ioReadRefusal(f.Path, err)
+}
+
+// confine names the refusal for a candidate whose symlink target is absolute
+// or resolves outside the searched directory. os.Root enforces the boundary;
+// this produces the reason and the target the user needs to see.
 func confine(p FilePath) error {
 	file := string(p)
+
+	if link, err := os.Readlink(file); err == nil && filepath.IsAbs(link) {
+		return refuseWhy(ErrOutsideSearch,
+			gorefuse.Subject("\""+file+"\" which points at \""+link+"\""),
+			gorefuse.Why("the symlink target must be relative and stay inside the searched directory."))
+	}
 
 	resolved, err := filepath.EvalSymlinks(file)
 	if err != nil {

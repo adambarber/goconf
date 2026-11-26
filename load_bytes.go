@@ -2,8 +2,9 @@ package goconf
 
 import "github.com/adambarber/gorefuse"
 
-// LoadBytes decodes in-memory bytes into T under the same strict rules as
-// Load. spec.Name is provenance identity only; no file is discovered or read.
+// LoadBytes decodes in-memory bytes into T under Load's strict decode rules;
+// unlike Load, spec.Format must be named (no file extension to infer from).
+// spec.Name is provenance identity only; no file is discovered or read.
 func LoadBytes[T any](data []byte, spec Spec, opts ...Option) (T, []Provenance, error) {
 	got, prov, _, err := LoadBytesWithMeta[T](data, spec, opts...)
 	return got, prov, err

@@ -83,11 +83,8 @@ linters:
     - exptostd
     - mnd
 
-    # budget discipline: size and complexity rules. The five budget linters
-    # below mirror the thresholds the birdcage policy declares (file_budget,
-    # function_budget, branching_budget, comment_budget), so each linter below
-    # has a single owner. When the BPL budget rules take over these checks,
-    # these five are removed in the same commit — never both at once.
+    # budget discipline: size and complexity rules. Birdcage owns the policy
+    # budgets; these linters guard the same properties in the editor.
     - funlen
     - gocyclo
     - gocognit
@@ -231,9 +228,6 @@ linters:
 
   exclusions:
     generated: strict
-    # Mirrored exclusions stay symmetric across goconf and gorefuse. A path
-    # absent in one repo is intentional; removing it would let the two lint
-    # gates drift, which is the failure this symmetry is meant to prevent.
     rules:
       - path: (load|load_bytes|options)\.go$
         linters:

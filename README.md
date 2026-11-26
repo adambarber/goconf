@@ -44,7 +44,7 @@ func main() {
 // eu 8080 1
 ```
 
-`prov[0]` names the source and carries the sha256 of the exact decoded bytes. `LoadBytes` decodes in-memory bytes under the same rules as `Load`; `Load` discovers files in the working directory and the user config directory, and later layers override earlier ones field by field. Use `LoadWithMeta` instead of `Load` to also get `Meta`: ordered occurrences with indexed and schema paths, key, line, file, source index, value, and whether each occurrence survived the merge.
+`prov[0]` names the source and carries the sha256 of the exact decoded bytes. `LoadBytes` decodes in-memory bytes under the same strict decode rules as `Load`, but `spec.Format` must name a format because in-memory bytes have no file extension to infer from; `Load` discovers files in the working directory and the user config directory, and later layers override earlier ones field by field. Use `LoadWithMeta` instead of `Load` to also get `Meta`: ordered occurrences with indexed and schema paths, key, line, file, source index, value, and whether each occurrence survived the merge.
 
 ## At a glance
 
@@ -72,7 +72,7 @@ goconf is not a registry: no reload or file watching, no secret store, and no de
 
 ## Secrets
 
-A key whose name looks secret (`password`, `token`, `secret`, `api_key`, `credentials`, and their plural or camelCase spellings) must be declared with a `secret` tag on the schema field, or the load is refused. The refusal names the path, never the value:
+A key whose name looks secret must be declared with a `secret` tag on the schema field, or the load is refused. Each word is stemmed before matching, so plural and camelCase spellings cannot slip past: `password`, `pass`, `passwd`, `pwd`, `secret`, `token`, `credential`, `apikey`, `privatekey`, `api`, and `private`. `api` and `private` match on their own or followed by `key`. The refusal names the path, never the value:
 
 ```go
 type Config struct {

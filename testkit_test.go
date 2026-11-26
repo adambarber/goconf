@@ -44,16 +44,6 @@ func oneLegTree(t *testing.T, files map[FileName]SourceBytes) DirPath {
 	return writeTree(t, map[searchDir]map[FileName]SourceBytes{dirLocal: files})
 }
 
-// symlinkCandidate links name in the local leg at target.
-func symlinkCandidate(t *testing.T, root DirPath, name FileName, target FilePath) {
-	t.Helper()
-
-	link := filepath.Join(string(root), string(dirLocal), string(name))
-	if err := os.Symlink(string(target), link); err != nil {
-		t.Fatalf("symlink: %v", err)
-	}
-}
-
 // stripAccess denies access to path and restores the original bits at
 // cleanup, so temp-dir removal can still traverse and unlink.
 func stripAccess(t *testing.T, path FilePath, deny, restore os.FileMode) {
