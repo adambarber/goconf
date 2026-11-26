@@ -9,6 +9,10 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 1
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -26,3 +30,17 @@ jobs:
 
       - name: Format check
         run: golangci-lint fmt --diff
+
+      - name: Coverage
+        if: ${{ !cancelled() }}
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: coverage.out
+          disable_search: true
+          use_oidc: true
+          fail_ci_if_error: false
+          handle_no_reports_found: true
