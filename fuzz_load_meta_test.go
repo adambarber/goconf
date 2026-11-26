@@ -42,14 +42,14 @@ func runFuzzMetaLeg(t *testing.T, data []byte, format Format) {
 		t.Fatalf("entries len %d != meta len %d", len(entries), meta.Len())
 	}
 
-	assertFuzzMetaEntries(t, entries, len(prov), meta)
+	assertFuzzMetaEntries(t, entries, len(prov), meta, format)
 }
 
-func assertFuzzMetaEntries(t *testing.T, entries []Occurrence, provLen int, meta Meta) {
+func assertFuzzMetaEntries(t *testing.T, entries []Occurrence, provLen int, meta Meta, format Format) {
 	t.Helper()
 
 	for i := range entries {
-		assertFuzzMetaEntry(t, i, &entries[i], provLen)
+		assertFuzzMetaEntry(t, i, &entries[i], provLen, format)
 	}
 
 	for _, e := range entries {
@@ -63,8 +63,17 @@ func assertFuzzMetaEntries(t *testing.T, entries []Occurrence, provLen int, meta
 	}
 }
 
-func assertFuzzMetaEntry(t *testing.T, i int, e *Occurrence, provLen int) {
+func assertFuzzMetaEntry(t *testing.T, i int, e *Occurrence, provLen int, format Format) {
 	t.Helper()
+
+	want := LineExact
+	if format == FormatTOML {
+		want = LineHeuristic
+	}
+
+	if e.LineConfidence != want {
+		t.Fatalf("entry %d line confidence = %v, want %v", i, e.LineConfidence, want)
+	}
 
 	if e.SourceIndex < 0 || e.SourceIndex >= provLen {
 		t.Fatalf("entry %d bad source index %d prov=%d", i, e.SourceIndex, provLen)
