@@ -1,4 +1,3 @@
-// json extras object decoder: structs and extras capture.
 package goconf
 
 import (

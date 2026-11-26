@@ -1,4 +1,3 @@
-// extras-aware JSON array decoding helpers.
 package goconf
 
 import (

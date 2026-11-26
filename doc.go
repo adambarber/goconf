@@ -1,4 +1,4 @@
-// Package goconf provides strict, auditable config loading: see
-// docs/load.md for the discovery, merge, defaults, and provenance contract.
-// MIT licensed; see LICENSE.
+// Package goconf loads JSON, YAML, or TOML into a typed struct with strict
+// refusal of ambiguity, layered defaults, sha256 provenance, and per-occurrence
+// source metadata. See docs/load.md for the full contract.
 package goconf
